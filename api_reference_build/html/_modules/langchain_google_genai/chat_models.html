@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Oct 24, 2024" name="docbuild:last-update"/>
+<meta content="Oct 25, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -294,6 +294,7 @@
 <span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
 <span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
 <span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">secret_from_env</span>
+<span class="kn">from</span> <span class="nn">langchain_core.utils.function_calling</span> <span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
 <span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">ConfigDict</span><span class="p">,</span>
@@ -1213,6 +1214,7 @@
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_ToolConfigDict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">generation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
         <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">(</span>
@@ -1224,6 +1226,7 @@
             <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
             <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
             <span class="n">cached_content</span><span class="o">=</span><span class="n">cached_content</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span><span class="p">,</span>
+            <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="n">_chat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
@@ -1245,6 +1248,7 @@
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_ToolConfigDict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">generation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">:</span>
@@ -1271,6 +1275,7 @@
             <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
             <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
             <span class="n">cached_content</span><span class="o">=</span><span class="n">cached_content</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span><span class="p">,</span>
+            <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_achat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
@@ -1292,6 +1297,7 @@
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_ToolConfigDict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">generation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
         <span class="n">request</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">(</span>
@@ -1303,6 +1309,7 @@
             <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
             <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
             <span class="n">cached_content</span><span class="o">=</span><span class="n">cached_content</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span><span class="p">,</span>
+            <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="n">_chat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
@@ -1352,6 +1359,7 @@
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_ToolConfigDict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">generation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">:</span>
@@ -1379,6 +1387,7 @@
                 <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
                 <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
                 <span class="n">cached_content</span><span class="o">=</span><span class="n">cached_content</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span><span class="p">,</span>
+                <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">prev_usage_metadata</span><span class="p">:</span> <span class="n">UsageMetadata</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">_achat_with_retry</span><span class="p">(</span>
@@ -1423,9 +1432,15 @@
         <span class="n">functions</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">FunctionDeclarationType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">safety_settings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SafetySettingDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_ToolConfigDict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">generation_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">GenerateContentRequest</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">and</span> <span class="n">tool_config</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Must specify at most one of tool_choice and tool_config, received "</span>
+                <span class="sa">f</span><span class="s2">"both:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_config</span><span class="si">=}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="n">formatted_tools</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">tools</span><span class="p">:</span>
             <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_genai_function_declarations</span><span class="p">(</span><span class="n">tools</span><span class="p">)]</span>
@@ -1436,6 +1451,18 @@
             <span class="n">messages</span><span class="p">,</span>
             <span class="n">convert_system_message_to_human</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">convert_system_message_to_human</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">formatted_tools</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Received </span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="s2"> but no </span><span class="si">{</span><span class="n">tools</span><span class="si">=}</span><span class="s2">. 'tool_choice' can only "</span>
+                    <span class="sa">f</span><span class="s2">"be specified if 'tools' is specified."</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">all_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">formatted_tools</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">function_declarations</span>
+            <span class="p">]</span>
+            <span class="n">tool_config</span> <span class="o">=</span> <span class="n">_tool_choice_to_tool_config</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="n">all_names</span><span class="p">)</span>
+
         <span class="n">formatted_tool_config</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">tool_config</span><span class="p">:</span>
             <span class="n">formatted_tool_config</span> <span class="o">=</span> <span class="n">ToolConfig</span><span class="p">(</span>
@@ -1540,16 +1567,19 @@
                 <span class="s2">"Must specify at most one of tool_choice and tool_config, received "</span>
                 <span class="sa">f</span><span class="s2">"both:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_config</span><span class="si">=}</span><span class="s2">"</span>
             <span class="p">)</span>
-        <span class="c1"># Bind dicts for easier serialization/deserialization.</span>
-        <span class="n">genai_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">tool_to_dict</span><span class="p">(</span><span class="n">convert_to_genai_function_declarations</span><span class="p">(</span><span class="n">tools</span><span class="p">))]</span>
-        <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
-            <span class="n">all_names</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">f</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>  <span class="c1"># type: ignore[index]</span>
-                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">genai_tools</span>
-                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">t</span><span class="p">[</span><span class="s2">"function_declarations"</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">formatted_tools</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">tool_to_dict</span><span class="p">(</span><span class="n">convert_to_genai_function_declarations</span><span class="p">(</span><span class="n">tools</span><span class="p">))</span>
             <span class="p">]</span>
-            <span class="n">tool_config</span> <span class="o">=</span> <span class="n">_tool_choice_to_tool_config</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="n">all_names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">genai_tools</span><span class="p">,</span> <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tool_choice"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tool_choice</span>
+        <span class="k">elif</span> <span class="n">tool_config</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tool_config"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tool_config</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ChatGoogleGenerativeAI.create_cached_content">
