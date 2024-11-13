@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 12, 2024" name="docbuild:last-update"/>
+<meta content="Nov 13, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -233,7 +233,7 @@
 <span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">anthropic</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">beta</span><span class="p">,</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
@@ -1331,6 +1331,89 @@
             <span class="k">return</span> <span class="n">RunnableMap</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">llm</span><span class="p">)</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">output_parser</span></div>
+
+
+<div class="viewcode-block" id="ChatAnthropic.get_num_tokens_from_messages">
+<a class="viewcode-back" href="../../anthropic/chat_models/langchain_anthropic.chat_models.ChatAnthropic.html#langchain_anthropic.chat_models.ChatAnthropic.get_num_tokens_from_messages">[docs]</a>
+    <span class="nd">@beta</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Count tokens in a sequence of input messages.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages: The message inputs to tokenize.</span>
+<span class="sd">            tools: If provided, sequence of dict, BaseModel, function, or BaseTools</span>
+<span class="sd">                to be converted to tool schemas.</span>
+
+<span class="sd">        Basic usage:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                from langchain_anthropic import ChatAnthropic</span>
+<span class="sd">                from langchain_core.messages import HumanMessage, SystemMessage</span>
+
+<span class="sd">                llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")</span>
+
+<span class="sd">                messages = [</span>
+<span class="sd">                    SystemMessage(content="You are a scientist"),</span>
+<span class="sd">                    HumanMessage(content="Hello, Claude"),</span>
+<span class="sd">                ]</span>
+<span class="sd">                llm.get_num_tokens_from_messages(messages)</span>
+
+<span class="sd">            .. code-block:: none</span>
+
+<span class="sd">                14</span>
+
+<span class="sd">        Pass tool schemas:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                from langchain_anthropic import ChatAnthropic</span>
+<span class="sd">                from langchain_core.messages import HumanMessage</span>
+<span class="sd">                from langchain_core.tools import tool</span>
+
+<span class="sd">                llm = ChatAnthropic(model="claude-3-5-sonnet-20241022")</span>
+
+<span class="sd">                @tool(parse_docstring=True)</span>
+<span class="sd">                def get_weather(location: str) -&gt; str:</span>
+<span class="sd">                    \"\"\"Get the current weather in a given location</span>
+
+<span class="sd">                    Args:</span>
+<span class="sd">                        location: The city and state, e.g. San Francisco, CA</span>
+<span class="sd">                    \"\"\"</span>
+<span class="sd">                    return "Sunny"</span>
+
+<span class="sd">                messages = [</span>
+<span class="sd">                    HumanMessage(content="What's the weather like in San Francisco?"),</span>
+<span class="sd">                ]</span>
+<span class="sd">                llm.get_num_tokens_from_messages(messages, tools=[get_weather])</span>
+
+<span class="sd">            .. code-block:: none</span>
+
+<span class="sd">                403</span>
+
+<span class="sd">        .. versionchanged:: 0.3.0</span>
+
+<span class="sd">                Uses Anthropic's token counting API to count tokens in messages. See:</span>
+<span class="sd">                https://docs.anthropic.com/en/docs/build-with-claude/token-counting</span>
+<span class="sd">        """</span>
+        <span class="n">formatted_system</span><span class="p">,</span> <span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">_format_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">formatted_system</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span> <span class="o">=</span> <span class="n">formatted_system</span>
+        <span class="k">if</span> <span class="n">tools</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tools"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_anthropic_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>
+            <span class="n">betas</span><span class="o">=</span><span class="p">[</span><span class="s2">"token-counting-2024-11-01"</span><span class="p">],</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="n">formatted_messages</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">input_tokens</span></div>
 </div>
 
 

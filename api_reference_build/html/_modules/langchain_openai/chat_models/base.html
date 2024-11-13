@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 12, 2024" name="docbuild:last-update"/>
+<meta content="Nov 13, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1103,10 +1103,15 @@
         <span class="k">return</span> <span class="n">encoding_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
 
-    <span class="c1"># TODO: Count bound tools as part of input.</span>
 <div class="viewcode-block" id="BaseChatOpenAI.get_num_tokens_from_messages">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI.get_num_tokens_from_messages">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_num_tokens_from_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Calculate num tokens for gpt-3.5-turbo and gpt-4 with tiktoken package.</span>
 
 <span class="sd">        **Requirements**: You must have the ``pillow`` installed if you want to count</span>
@@ -1116,7 +1121,18 @@
 <span class="sd">        counting.</span>
 
 <span class="sd">        OpenAI reference: https://github.com/openai/openai-cookbook/blob/</span>
-<span class="sd">        main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb"""</span>
+<span class="sd">        main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages: The message inputs to tokenize.</span>
+<span class="sd">            tools: If provided, sequence of dict, BaseModel, function, or BaseTools</span>
+<span class="sd">                to be converted to tool schemas.</span>
+<span class="sd">        """</span>
+        <span class="c1"># TODO: Count bound tools as part of input.</span>
+        <span class="k">if</span> <span class="n">tools</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"Counting tokens in tool schemas is not yet supported. Ignoring tools."</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">7</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens_from_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
         <span class="n">model</span><span class="p">,</span> <span class="n">encoding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_encoding_model</span><span class="p">()</span>
@@ -1197,7 +1213,7 @@
             <span class="c1"># TODO: Add support for streaming with Pydantic response_format.</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">"Streaming with Pydantic response_format not yet supported."</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"o1"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"o1"</span><span class="p">):</span>
             <span class="c1"># TODO: Add support for streaming with o1 once supported.</span>
             <span class="k">return</span> <span class="kc">False</span>
 
