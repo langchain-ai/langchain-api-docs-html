@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -532,19 +532,24 @@
 
     <span class="k">def</span> <span class="nf">_create_llm_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">LLMResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create the LLMResult from the choices and prompts."""</span>
-        <span class="n">generations</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"results"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
-                <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">)</span>
-                <span class="n">gen</span> <span class="o">=</span> <span class="n">Generation</span><span class="p">(</span>
-                    <span class="n">text</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"generated_text"</span><span class="p">),</span>
-                    <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span><span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">finish_reason</span><span class="p">},</span>
+        <span class="n">generations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">Generation</span><span class="p">(</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"generated_text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                    <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span><span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">)}</span>
+                    <span class="o">|</span> <span class="p">(</span>
+                        <span class="p">{</span><span class="s2">"moderations"</span><span class="p">:</span> <span class="n">moderations</span><span class="p">}</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">moderations</span> <span class="o">:=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"moderations"</span><span class="p">))</span>
+                        <span class="k">else</span> <span class="p">{}</span>
+                    <span class="p">),</span>
                 <span class="p">)</span>
-                <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">gen</span><span class="p">])</span>
-        <span class="n">final_token_usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_token_usage</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">response</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">results</span> <span class="o">:=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"results"</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span>
+        <span class="p">]</span>
         <span class="n">llm_output</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"token_usage"</span><span class="p">:</span> <span class="n">final_token_usage</span><span class="p">,</span>
+            <span class="s2">"token_usage"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_token_usage</span><span class="p">(</span><span class="n">response</span><span class="p">),</span>
             <span class="s2">"model_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span>
             <span class="s2">"deployment_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_id</span><span class="p">,</span>
         <span class="p">}</span>
@@ -555,22 +560,27 @@
         <span class="n">stream_response</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationChunk</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Convert a stream response to a generation chunk."""</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"results"</span><span class="p">]:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">stream_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"results"</span><span class="p">,</span> <span class="p">[{}])[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">GenerationChunk</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
 
-        <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"results"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">)</span>
+        <span class="n">finish_reason</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">finish_reason</span> <span class="o">==</span> <span class="s2">"not_finished"</span> <span class="k">else</span> <span class="n">finish_reason</span>
+
+        <span class="n">generation_info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">finish_reason</span><span class="p">,</span>
+            <span class="s2">"llm_output"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"model_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span>
+                <span class="s2">"deployment_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_id</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">moderations</span> <span class="o">:=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"moderations"</span><span class="p">):</span>
+            <span class="n">generation_info</span><span class="p">[</span><span class="s2">"moderations"</span><span class="p">]</span> <span class="o">=</span> <span class="n">moderations</span>
 
         <span class="k">return</span> <span class="n">GenerationChunk</span><span class="p">(</span>
-            <span class="n">text</span><span class="o">=</span><span class="n">stream_response</span><span class="p">[</span><span class="s2">"results"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"generated_text"</span><span class="p">],</span>
-            <span class="n">generation_info</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
-                <span class="n">finish_reason</span><span class="o">=</span><span class="p">(</span>
-                    <span class="kc">None</span> <span class="k">if</span> <span class="n">finish_reason</span> <span class="o">==</span> <span class="s2">"not_finished"</span> <span class="k">else</span> <span class="n">finish_reason</span>
-                <span class="p">),</span>
-                <span class="n">llm_output</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s2">"model_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span>
-                    <span class="s2">"deployment_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_id</span><span class="p">,</span>
-                <span class="p">},</span>
-            <span class="p">),</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"generated_text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+            <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>

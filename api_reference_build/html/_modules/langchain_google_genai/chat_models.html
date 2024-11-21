@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -217,7 +217,6 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BytesIO</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
@@ -234,7 +233,6 @@
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
 
 <span class="kn">import</span> <span class="nn">google.api_core</span>
 
@@ -325,16 +323,6 @@
 <span class="kn">from</span> <span class="nn">langchain_google_genai.llms</span> <span class="kn">import</span> <span class="n">_BaseGoogleGenerativeAI</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_genai_extension</span> <span class="k">as</span> <span class="n">genaix</span>
-
-<span class="n">IMAGE_TYPES</span><span class="p">:</span> <span class="n">Tuple</span> <span class="o">=</span> <span class="p">()</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">PIL</span>
-    <span class="kn">from</span> <span class="nn">PIL.Image</span> <span class="kn">import</span> <span class="n">Image</span>
-
-    <span class="n">IMAGE_TYPES</span> <span class="o">=</span> <span class="n">IMAGE_TYPES</span> <span class="o">+</span> <span class="p">(</span><span class="n">Image</span><span class="p">,)</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">PIL</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore</span>
-    <span class="n">Image</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -460,46 +448,6 @@
     <span class="k">return</span> <span class="s2">"type"</span> <span class="ow">in</span> <span class="n">part</span>
 
 
-<span class="k">def</span> <span class="nf">_is_vision_model</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="s2">"vision"</span> <span class="ow">in</span> <span class="n">model</span>
-
-
-<span class="k">def</span> <span class="nf">_is_url</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">result</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">netloc</span><span class="p">])</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unable to parse URL: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">False</span>
-
-
-<span class="k">def</span> <span class="nf">_is_b64</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image"</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_load_image_from_gcs</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">project</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="p">:</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">storage</span>  <span class="c1"># type: ignore[attr-defined]</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-            <span class="s2">"google-cloud-storage is required to load images from GCS."</span>
-            <span class="s2">" Install it with `pip install google-cloud-storage`"</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">PIL</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-            <span class="s2">"PIL is required to load images. Please install it "</span>
-            <span class="s2">"with `pip install pillow`"</span>
-        <span class="p">)</span>
-
-    <span class="n">gcs_client</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">)</span>
-    <span class="n">pieces</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
-    <span class="n">blobs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gcs_client</span><span class="o">.</span><span class="n">list_blobs</span><span class="p">(</span><span class="n">pieces</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pieces</span><span class="p">[</span><span class="mi">3</span><span class="p">:])))</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Found more than one candidate for </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
-    <span class="n">img_bytes</span> <span class="o">=</span> <span class="n">blobs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">download_as_bytes</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">img_bytes</span><span class="p">))</span>
-
-
 <span class="k">def</span> <span class="nf">_convert_to_parts</span><span class="p">(</span>
     <span class="n">raw_content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Part</span><span class="p">]:</span>
@@ -583,8 +531,17 @@
             <span class="k">continue</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
             <span class="n">role</span> <span class="o">=</span> <span class="s2">"model"</span>
-            <span class="n">raw_function_call</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">raw_function_call</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                    <span class="n">function_call</span> <span class="o">=</span> <span class="n">FunctionCall</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">"name"</span><span class="p">:</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
+                            <span class="s2">"args"</span><span class="p">:</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"args"</span><span class="p">],</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                    <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Part</span><span class="p">(</span><span class="n">function_call</span><span class="o">=</span><span class="n">function_call</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">raw_function_call</span> <span class="o">:=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">):</span>
                 <span class="n">function_call</span> <span class="o">=</span> <span class="n">FunctionCall</span><span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="n">raw_function_call</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>

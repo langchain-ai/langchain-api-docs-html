@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -247,7 +247,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
 <span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">convert_to_secret_str</span><span class="p">,</span> <span class="n">get_from_env</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">AliasChoices</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">AliasChoices</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
 <span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
 
 <span class="n">_DEFAULT_BASE_URL</span> <span class="o">=</span> <span class="s2">"https://clovastudio.stream.ntruss.com"</span>
@@ -262,6 +262,12 @@
     <span class="n">message</span> <span class="o">=</span> <span class="n">sse_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"message"</span><span class="p">)</span>
     <span class="n">role</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span>
     <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+
+    <span class="k">if</span> <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"result"</span><span class="p">:</span>
+        <span class="n">response_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s2">"stopReason"</span> <span class="ow">in</span> <span class="n">sse_data</span><span class="p">:</span>
+            <span class="n">response_metadata</span><span class="p">[</span><span class="s2">"stopReason"</span><span class="p">]</span> <span class="o">=</span> <span class="n">sse_data</span><span class="p">[</span><span class="s2">"stopReason"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">response_metadata</span><span class="o">=</span><span class="n">response_metadata</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"user"</span> <span class="ow">or</span> <span class="n">default_class</span> <span class="o">==</span> <span class="n">HumanMessageChunk</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">HumanMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
@@ -335,8 +341,6 @@
         <span class="k">async</span> <span class="k">for</span> <span class="n">sse</span> <span class="ow">in</span> <span class="n">event_source</span><span class="o">.</span><span class="n">aiter_sse</span><span class="p">():</span>
             <span class="n">event_data</span> <span class="o">=</span> <span class="n">sse</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"signal"</span> <span class="ow">and</span> <span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">{})</span> <span class="o">==</span> <span class="s2">"[DONE]"</span><span class="p">:</span>
-                <span class="k">return</span>
-            <span class="k">if</span> <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"result"</span><span class="p">:</span>
                 <span class="k">return</span>
             <span class="k">yield</span> <span class="n">sse</span>
 
@@ -424,13 +428,7 @@
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ChatClovaX.Config">
-<a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.naver.ChatClovaX.html#langchain_community.chat_models.naver.ChatClovaX.Config">[docs]</a>
-    <span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Configuration for this pydantic object."""</span>
-
-        <span class="n">populate_by_name</span> <span class="o">=</span> <span class="kc">True</span></div>
-
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">protected_namespaces</span><span class="o">=</span><span class="p">())</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -503,7 +501,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span> <span class="o">=</span> <span class="n">convert_to_secret_str</span><span class="p">(</span>
-                <span class="n">get_from_env</span><span class="p">(</span><span class="s2">"ncp_apigw_api_key"</span><span class="p">,</span> <span class="s2">"NCP_APIGW_API_KEY"</span><span class="p">)</span>
+                <span class="n">get_from_env</span><span class="p">(</span><span class="s2">"ncp_apigw_api_key"</span><span class="p">,</span> <span class="s2">"NCP_APIGW_API_KEY"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">:</span>
@@ -530,22 +528,28 @@
 <div class="viewcode-block" id="ChatClovaX.default_headers">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.naver.ChatClovaX.html#langchain_community.chat_models.naver.ChatClovaX.default_headers">[docs]</a>
     <span class="k">def</span> <span class="nf">default_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+            <span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+        <span class="p">}</span>
+
         <span class="n">clovastudio_api_key</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_clovastudio_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_clovastudio_api_key</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">clovastudio_api_key</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">"X-NCP-CLOVASTUDIO-API-KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="n">clovastudio_api_key</span>
+
         <span class="n">apigw_api_key</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-            <span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-            <span class="s2">"X-NCP-CLOVASTUDIO-API-KEY"</span><span class="p">:</span> <span class="n">clovastudio_api_key</span><span class="p">,</span>
-            <span class="s2">"X-NCP-APIGW-API-KEY"</span><span class="p">:</span> <span class="n">apigw_api_key</span><span class="p">,</span>
-        <span class="p">}</span></div>
+        <span class="k">if</span> <span class="n">apigw_api_key</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">"X-NCP-APIGW-API-KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="n">apigw_api_key</span>
+
+        <span class="k">return</span> <span class="n">headers</span></div>
 
 
     <span class="k">def</span> <span class="nf">_create_message_dicts</span><span class="p">(</span>
@@ -582,8 +586,6 @@
                             <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"signal"</span>
                             <span class="ow">and</span> <span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">{})</span> <span class="o">==</span> <span class="s2">"[DONE]"</span>
                         <span class="p">):</span>
-                            <span class="k">return</span>
-                        <span class="k">if</span> <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"result"</span><span class="p">:</span>
                             <span class="k">return</span>
                         <span class="k">if</span> <span class="n">sse</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"error"</span><span class="p">:</span>
                             <span class="k">raise</span> <span class="n">SSEError</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">sse</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>

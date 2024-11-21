@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -219,6 +219,7 @@
 <span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AliasChoices</span><span class="p">,</span>
     <span class="n">BaseModel</span><span class="p">,</span>
+    <span class="n">ConfigDict</span><span class="p">,</span>
     <span class="n">Field</span><span class="p">,</span>
     <span class="n">SecretStr</span><span class="p">,</span>
     <span class="n">model_validator</span><span class="p">,</span>
@@ -300,11 +301,7 @@
 
     <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ClovaXEmbeddings.Config">
-<a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.naver.ClovaXEmbeddings.html#langchain_community.embeddings.naver.ClovaXEmbeddings.Config">[docs]</a>
-    <span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
-        <span class="n">arbitrary_types_allowed</span> <span class="o">=</span> <span class="kc">True</span></div>
-
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">protected_namespaces</span><span class="o">=</span><span class="p">())</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
@@ -332,7 +329,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span> <span class="o">=</span> <span class="n">convert_to_secret_str</span><span class="p">(</span>
-                <span class="n">get_from_env</span><span class="p">(</span><span class="s2">"ncp_apigw_api_key"</span><span class="p">,</span> <span class="s2">"NCP_APIGW_API_KEY"</span><span class="p">)</span>
+                <span class="n">get_from_env</span><span class="p">(</span><span class="s2">"ncp_apigw_api_key"</span><span class="p">,</span> <span class="s2">"NCP_APIGW_API_KEY"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span><span class="p">:</span>
@@ -362,22 +359,28 @@
 <div class="viewcode-block" id="ClovaXEmbeddings.default_headers">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.naver.ClovaXEmbeddings.html#langchain_community.embeddings.naver.ClovaXEmbeddings.default_headers">[docs]</a>
     <span class="k">def</span> <span class="nf">default_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+            <span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+        <span class="p">}</span>
+
         <span class="n">clovastudio_api_key</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_clovastudio_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_clovastudio_api_key</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">clovastudio_api_key</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">"X-NCP-CLOVASTUDIO-API-KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="n">clovastudio_api_key</span>
+
         <span class="n">apigw_api_key</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncp_apigw_api_key</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-            <span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-            <span class="s2">"X-NCP-CLOVASTUDIO-API-KEY"</span><span class="p">:</span> <span class="n">clovastudio_api_key</span><span class="p">,</span>
-            <span class="s2">"X-NCP-APIGW-API-KEY"</span><span class="p">:</span> <span class="n">apigw_api_key</span><span class="p">,</span>
-        <span class="p">}</span></div>
+        <span class="k">if</span> <span class="n">apigw_api_key</span><span class="p">:</span>
+            <span class="n">headers</span><span class="p">[</span><span class="s2">"X-NCP-APIGW-API-KEY"</span><span class="p">]</span> <span class="o">=</span> <span class="n">apigw_api_key</span>
+
+        <span class="k">return</span> <span class="n">headers</span></div>
 
 
     <span class="k">def</span> <span class="nf">_embed_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>

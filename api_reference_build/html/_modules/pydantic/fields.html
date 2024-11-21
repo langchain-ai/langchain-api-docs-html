@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -221,7 +221,7 @@
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">Field</span> <span class="k">as</span> <span class="n">DataclassField</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">overload</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="kn">import</span> <span class="nn">annotated_types</span>
@@ -231,9 +231,11 @@
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">types</span>
 <span class="kn">from</span> <span class="nn">._internal</span> <span class="kn">import</span> <span class="n">_decorators</span><span class="p">,</span> <span class="n">_fields</span><span class="p">,</span> <span class="n">_generics</span><span class="p">,</span> <span class="n">_internal_dataclass</span><span class="p">,</span> <span class="n">_repr</span><span class="p">,</span> <span class="n">_typing_extra</span><span class="p">,</span> <span class="n">_utils</span>
+<span class="kn">from</span> <span class="nn">._internal._namespace_utils</span> <span class="kn">import</span> <span class="n">GlobalsNamespace</span><span class="p">,</span> <span class="n">MappingNamespace</span>
 <span class="kn">from</span> <span class="nn">.aliases</span> <span class="kn">import</span> <span class="n">AliasChoices</span><span class="p">,</span> <span class="n">AliasPath</span>
 <span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">JsonDict</span>
 <span class="kn">from</span> <span class="nn">.errors</span> <span class="kn">import</span> <span class="n">PydanticUserError</span>
+<span class="kn">from</span> <span class="nn">.json_schema</span> <span class="kn">import</span> <span class="n">PydanticJsonSchemaWarning</span>
 <span class="kn">from</span> <span class="nn">.warnings</span> <span class="kn">import</span> <span class="n">PydanticDeprecatedSince20</span>
 
 <span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -260,13 +262,13 @@
 <span class="w">    </span><span class="sd">"""This class exists solely to add type checking for the `**kwargs` in `FieldInfo.from_field`."""</span>
 
     <span class="n">annotation</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">typing_extensions</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
@@ -285,7 +287,7 @@
     <span class="n">union_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'left_to_right'</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span>
@@ -315,7 +317,8 @@
 <span class="sd">    Attributes:</span>
 <span class="sd">        annotation: The type annotation of the field.</span>
 <span class="sd">        default: The default value of the field.</span>
-<span class="sd">        default_factory: The factory function used to construct the default for the field.</span>
+<span class="sd">        default_factory: A callable to generate the default value. The callable can either take 0 arguments</span>
+<span class="sd">            (in which case it is called as is) or a single argument containing the already validated data.</span>
 <span class="sd">        alias: The alias name of the field.</span>
 <span class="sd">        alias_priority: The priority of the field's alias.</span>
 <span class="sd">        validation_alias: The validation alias of the field.</span>
@@ -340,19 +343,19 @@
 
     <span class="n">annotation</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">default</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span>
@@ -420,6 +423,10 @@
         <span class="n">default</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'default'</span><span class="p">,</span> <span class="n">PydanticUndefined</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="bp">Ellipsis</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">PydanticUndefined</span>
+            <span class="c1"># Also remove it from the attributes set, otherwise</span>
+            <span class="c1"># `GenerateSchema._common_field_schema` mistakenly</span>
+            <span class="c1"># uses it:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attributes_set</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'default'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span>
 
@@ -658,11 +665,24 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">json_schema_extra</span> <span class="o">=</span> <span class="n">attributes_set</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'json_schema_extra'</span><span class="p">)</span>
-                <span class="n">existing_json_schema_extra</span> <span class="o">=</span> <span class="n">merged_field_info_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'json_schema_extra'</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">existing_json_schema_extra</span> <span class="o">=</span> <span class="n">merged_field_info_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'json_schema_extra'</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">existing_json_schema_extra</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_schema_extra</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">merged_field_info_kwargs</span><span class="p">[</span><span class="s1">'json_schema_extra'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">existing_json_schema_extra</span><span class="p">,</span> <span class="o">**</span><span class="n">json_schema_extra</span><span class="p">}</span>
-                <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">existing_json_schema_extra</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">merged_field_info_kwargs</span><span class="p">[</span><span class="s1">'json_schema_extra'</span><span class="p">]</span> <span class="o">=</span> <span class="n">json_schema_extra</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">existing_json_schema_extra</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_schema_extra</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="n">merged_field_info_kwargs</span><span class="p">[</span><span class="s1">'json_schema_extra'</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="o">**</span><span class="n">existing_json_schema_extra</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">json_schema_extra</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">json_schema_extra</span><span class="p">):</span>
+                        <span class="n">warn</span><span class="p">(</span>
+                            <span class="s1">'Composing `dict` and `callable` type `json_schema_extra` is not supported.'</span>
+                            <span class="s1">'The `callable` type is being ignored.'</span>
+                            <span class="s2">"If you'd like support for this behavior, please open an issue on pydantic."</span><span class="p">,</span>
+                            <span class="n">PydanticJsonSchemaWarning</span><span class="p">,</span>
+                        <span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">json_schema_extra</span><span class="p">):</span>
                     <span class="c1"># if ever there's a case of a callable, we'll just keep the last json schema extra spec</span>
                     <span class="n">merged_field_info_kwargs</span><span class="p">[</span><span class="s1">'json_schema_extra'</span><span class="p">]</span> <span class="o">=</span> <span class="n">json_schema_extra</span>
             <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -698,13 +718,13 @@
             <span class="n">default</span> <span class="o">=</span> <span class="n">_Unset</span>
 
         <span class="k">if</span> <span class="n">dc_field</span><span class="o">.</span><span class="n">default_factory</span> <span class="ow">is</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">MISSING</span><span class="p">:</span>
-            <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span>
+            <span class="n">default_factory</span> <span class="o">=</span> <span class="n">_Unset</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">default_factory</span> <span class="o">=</span> <span class="n">dc_field</span><span class="o">.</span><span class="n">default_factory</span>
 
         <span class="c1"># use the `Field` function so in correct kwargs raise the correct `TypeError`</span>
         <span class="n">dc_field_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dc_field</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_FIELD_ARG_NAMES</span><span class="p">}</span>
-        <span class="k">return</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span> <span class="n">default_factory</span><span class="o">=</span><span class="n">default_factory</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="n">dc_field</span><span class="o">.</span><span class="n">repr</span><span class="p">,</span> <span class="o">**</span><span class="n">dc_field_metadata</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span> <span class="n">default_factory</span><span class="o">=</span><span class="n">default_factory</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="n">dc_field</span><span class="o">.</span><span class="n">repr</span><span class="p">,</span> <span class="o">**</span><span class="n">dc_field_metadata</span><span class="p">)</span>  <span class="c1"># pyright: ignore[reportCallIssue]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_extract_metadata</span><span class="p">(</span><span class="n">annotation</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
@@ -761,7 +781,13 @@
             <span class="k">return</span> <span class="s1">'deprecated'</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">deprecated</span><span class="o">.</span><span class="n">message</span>
 
-    <span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">call_default_factory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="nd">@overload</span>
+    <span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">call_default_factory</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span> <span class="n">validated_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">call_default_factory</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+
+    <span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">call_default_factory</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">validated_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the default value.</span>
 
 <span class="sd">        We expose an option for whether to call the default_factory (if present), as calling it may</span>
@@ -769,7 +795,8 @@
 <span class="sd">        be called (namely, when instantiating a model via `model_construct`).</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            call_default_factory: Whether to call the default_factory or not. Defaults to `False`.</span>
+<span class="sd">            call_default_factory: Whether to call the default factory or not.</span>
+<span class="sd">            validated_data: The already validated data to be passed to the default factory.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The default value, calling the default factory if requested or `None` if not set.</span>
@@ -777,7 +804,13 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_utils</span><span class="o">.</span><span class="n">smart_deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">call_default_factory</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">validated_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"'validated_data' must be provided if 'call_default_factory' is True."</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_fields</span><span class="o">.</span><span class="n">takes_validated_data_argument</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span><span class="p">(</span><span class="n">validated_data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fac</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span><span class="p">)</span>  <span class="c1"># Pyright doesn't narrow correctly</span>
+                <span class="k">return</span> <span class="n">fac</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
@@ -808,7 +841,12 @@
             <span class="c1"># Annotated arguments must be a tuple</span>
             <span class="k">return</span> <span class="n">typing_extensions</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotation</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">)]</span>  <span class="c1"># type: ignore</span>
 
-    <span class="k">def</span> <span class="nf">apply_typevars_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">typevars_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">types_namespace</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">apply_typevars_map</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">typevars_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">globalns</span><span class="p">:</span> <span class="n">GlobalsNamespace</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">localns</span><span class="p">:</span> <span class="n">MappingNamespace</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Apply a `typevars_map` to the annotation.</span>
 
 <span class="sd">        This method is used when analyzing parametrized generic types to replace typevars with their concrete types.</span>
@@ -817,13 +855,14 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            typevars_map: A dictionary mapping type variables to their concrete types.</span>
-<span class="sd">            types_namespace (dict | None): A dictionary containing related types to the annotated type.</span>
+<span class="sd">            globalns: The globals namespace to use during type annotation evaluation.</span>
+<span class="sd">            localns: The locals namespace to use during type annotation evaluation.</span>
 
 <span class="sd">        See Also:</span>
 <span class="sd">            pydantic._internal._generics.replace_types is used for replacing the typevars with</span>
 <span class="sd">                their concrete types.</span>
 <span class="sd">        """</span>
-        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_typing_extra</span><span class="o">.</span><span class="n">eval_type_lenient</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotation</span><span class="p">,</span> <span class="n">types_namespace</span><span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_typing_extra</span><span class="o">.</span><span class="n">eval_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotation</span><span class="p">,</span> <span class="n">globalns</span><span class="p">,</span> <span class="n">localns</span><span class="p">,</span> <span class="n">lenient</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">annotation</span> <span class="o">=</span> <span class="n">_generics</span><span class="o">.</span><span class="n">replace_types</span><span class="p">(</span><span class="n">annotation</span><span class="p">,</span> <span class="n">typevars_map</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr_args__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReprArgs</span><span class="p">:</span>
@@ -894,22 +933,182 @@
 <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
-    <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">PydanticUndefined</span><span class="p">,</span>
+<span class="n">_T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">'_T'</span><span class="p">)</span>
+
+
+<span class="c1"># NOTE: Actual return type is 'FieldInfo', but we want to help type checkers</span>
+<span class="c1"># to understand the magic that happens at runtime with the following overloads:</span>
+<span class="nd">@overload</span>  <span class="c1"># type hint the return value as `Any` to avoid type checking regressions when using `...`.</span>
+<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">_typing_extra</span><span class="o">.</span><span class="n">EllipsisType</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
-    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">typing_extensions</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
-    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init_var</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">kw_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">coerce_numbers_to_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">gt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">ge</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">lt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">le</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">multiple_of</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">allow_inf_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_digits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">decimal_places</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">union_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'left_to_right'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">fail_fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Unpack</span><span class="p">[</span><span class="n">_EmptyKwargs</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@overload</span>  <span class="c1"># `default` argument set</span>
+<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">_T</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init_var</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">kw_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">coerce_numbers_to_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">gt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">ge</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">lt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">le</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">multiple_of</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">allow_inf_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_digits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">decimal_places</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">union_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'left_to_right'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">fail_fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Unpack</span><span class="p">[</span><span class="n">_EmptyKwargs</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_T</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@overload</span>  <span class="c1"># `default_factory` argument set</span>
+<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">_T</span><span class="p">]</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">_T</span><span class="p">],</span>
+    <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init_var</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">kw_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">coerce_numbers_to_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">gt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">ge</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">lt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">le</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">multiple_of</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">allow_inf_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_digits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">decimal_places</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">union_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'left_to_right'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">fail_fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Unpack</span><span class="p">[</span><span class="n">_EmptyKwargs</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_T</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@overload</span>
+<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>  <span class="c1"># No default set</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">init_var</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">kw_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">coerce_numbers_to_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">gt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">ge</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsGe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">lt</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">le</span><span class="p">:</span> <span class="n">annotated_types</span><span class="o">.</span><span class="n">SupportsLe</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">multiple_of</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">allow_inf_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_digits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">decimal_places</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">union_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'left_to_right'</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">fail_fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Unpack</span><span class="p">[</span><span class="n">_EmptyKwargs</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+<span class="k">def</span> <span class="nf">Field</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">PydanticUndefined</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">alias_priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">validation_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">AliasPath</span> <span class="o">|</span> <span class="n">AliasChoices</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">serialization_alias</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">field_title_generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">exclude</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">types</span><span class="o">.</span><span class="n">Discriminator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">deprecated</span><span class="p">:</span> <span class="n">Deprecated</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
+    <span class="n">json_schema_extra</span><span class="p">:</span> <span class="n">JsonDict</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">JsonDict</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">frozen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="n">validate_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
@@ -933,7 +1132,7 @@
     <span class="n">fail_fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_Unset</span><span class="p">,</span>
     <span class="o">**</span><span class="n">extra</span><span class="p">:</span> <span class="n">Unpack</span><span class="p">[</span><span class="n">_EmptyKwargs</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.9/concepts/fields</span>
+<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.10/concepts/fields</span>
 
 <span class="sd">    Create a field for objects that can be configured.</span>
 
@@ -945,7 +1144,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        default: Default value if the field is not set.</span>
-<span class="sd">        default_factory: A callable to generate the default value, such as :func:`~datetime.utcnow`.</span>
+<span class="sd">        default_factory: A callable to generate the default value. The callable can either take 0 arguments</span>
+<span class="sd">            (in which case it is called as is) or a single argument containing the already validated data.</span>
 <span class="sd">        alias: The name to use for the attribute when validating or serializing by alias.</span>
 <span class="sd">            This is often used for things like converting between snake and camel case.</span>
 <span class="sd">        alias_priority: Priority of the alias. This affects whether an alias generator is used.</span>
@@ -1117,12 +1317,15 @@
 <span class="sd">            attribute if not provided.</span>
 <span class="sd">    """</span>
 
-    <span class="vm">__slots__</span> <span class="o">=</span> <span class="s1">'default'</span><span class="p">,</span> <span class="s1">'default_factory'</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'default'</span><span class="p">,</span> <span class="s1">'default_factory'</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">PydanticUndefined</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="bp">Ellipsis</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">PydanticUndefined</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_factory</span> <span class="o">=</span> <span class="n">default_factory</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -1165,13 +1368,32 @@
         <span class="p">)</span>
 
 
+<span class="c1"># NOTE: Actual return type is 'ModelPrivateAttr', but we want to help type checkers</span>
+<span class="c1"># to understand the magic that happens at runtime.</span>
+<span class="nd">@overload</span>  <span class="c1"># `default` argument set</span>
+<span class="k">def</span> <span class="nf">PrivateAttr</span><span class="p">(</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">_T</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_T</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@overload</span>  <span class="c1"># `default_factory` argument set</span>
+<span class="k">def</span> <span class="nf">PrivateAttr</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">_T</span><span class="p">],</span>
+    <span class="n">init</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_T</span><span class="p">:</span> <span class="o">...</span>
+<span class="nd">@overload</span>  <span class="c1"># No default set</span>
+<span class="k">def</span> <span class="nf">PrivateAttr</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">init</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
 <span class="k">def</span> <span class="nf">PrivateAttr</span><span class="p">(</span>
     <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">PydanticUndefined</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">default_factory</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">default_factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">init</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.9/concepts/models/#private-model-attributes</span>
+<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.10/concepts/models/#private-model-attributes</span>
 
 <span class="sd">    Indicates that an attribute is intended for private use and not handled during normal validation/serialization.</span>
 
@@ -1296,13 +1518,13 @@
     <span class="nb">repr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_type</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">PydanticUndefined</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PropertyT</span> <span class="o">|</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">PropertyT</span><span class="p">],</span> <span class="n">PropertyT</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.9/concepts/fields#the-computed_field-decorator</span>
+<span class="w">    </span><span class="sd">"""Usage docs: https://docs.pydantic.dev/2.10/concepts/fields#the-computed_field-decorator</span>
 
 <span class="sd">    Decorator to include `property` and `cached_property` when serializing models or dataclasses.</span>
 
 <span class="sd">    This is useful for fields that are computed from other fields, or for fields that are expensive to compute and should be cached.</span>
 
-<span class="sd">    ```py</span>
+<span class="sd">    ```python</span>
 <span class="sd">    from pydantic import BaseModel, computed_field</span>
 
 <span class="sd">    class Rectangle(BaseModel):</span>
@@ -1330,7 +1552,7 @@
 
 <span class="sd">        [pyright](https://github.com/microsoft/pyright) supports `@computed_field` without error.</span>
 
-<span class="sd">    ```py</span>
+<span class="sd">    ```python</span>
 <span class="sd">    import random</span>
 
 <span class="sd">    from pydantic import BaseModel, computed_field</span>
@@ -1370,7 +1592,7 @@
 <span class="sd">        `mypy` complains about this behavior if allowed, and `dataclasses` doesn't allow this pattern either.</span>
 <span class="sd">        See the example below:</span>
 
-<span class="sd">    ```py</span>
+<span class="sd">    ```python</span>
 <span class="sd">    from pydantic import BaseModel, computed_field</span>
 
 <span class="sd">    class Parent(BaseModel):</span>
@@ -1391,7 +1613,7 @@
 
 <span class="sd">    Private properties decorated with `@computed_field` have `repr=False` by default.</span>
 
-<span class="sd">    ```py</span>
+<span class="sd">    ```python</span>
 <span class="sd">    from functools import cached_property</span>
 
 <span class="sd">    from pydantic import BaseModel, computed_field</span>
@@ -1411,7 +1633,7 @@
 
 <span class="sd">    m = Model(foo=1)</span>
 <span class="sd">    print(repr(m))</span>
-<span class="sd">    #&gt; M(foo=1)</span>
+<span class="sd">    #&gt; Model(foo=1)</span>
 <span class="sd">    ```</span>
 
 <span class="sd">    Args:</span>

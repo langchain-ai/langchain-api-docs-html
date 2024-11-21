@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Nov 18, 2024" name="docbuild:last-update"/>
+<meta content="Nov 21, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -211,12 +211,27 @@
 <article class="bd-article">
 <h1>Source code for langchain_community.chat_models.sambanova</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">Iterator</span><span class="p">,</span>
+    <span class="n">List</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Sequence</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span>
+    <span class="n">Type</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
+    <span class="n">cast</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">LanguageModelInput</span>
 <span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseChatModel</span><span class="p">,</span>
     <span class="n">generate_from_stream</span><span class="p">,</span>
@@ -231,9 +246,24 @@
     <span class="n">SystemMessage</span><span class="p">,</span>
     <span class="n">ToolMessage</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">JsonOutputParser</span><span class="p">,</span>
+    <span class="n">PydanticOutputParser</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.base</span> <span class="kn">import</span> <span class="n">OutputParserLike</span>
+<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.openai_tools</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">JsonOutputKeyToolsParser</span><span class="p">,</span>
+    <span class="n">PydanticToolsParser</span><span class="p">,</span>
+    <span class="n">make_invalid_tool_call</span><span class="p">,</span>
+    <span class="n">parse_tool_call</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
+<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
 <span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">convert_to_secret_str</span><span class="p">,</span> <span class="n">get_from_dict_or_env</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span>
+<span class="kn">from</span> <span class="nn">langchain_core.utils.function_calling</span> <span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
+<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">is_basemodel_subclass</span>
+<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span>
 <span class="kn">from</span> <span class="nn">requests</span> <span class="kn">import</span> <span class="n">Response</span>
 
 
@@ -247,6 +277,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        messages_dict:  role / content dict</span>
 <span class="sd">    """</span>
+    <span class="n">message_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
         <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
@@ -255,8 +286,16 @@
         <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
         <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
+        <span class="k">if</span> <span class="s2">"tool_calls"</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">:</span>
+            <span class="n">message_dict</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">message_dict</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+                <span class="n">message_dict</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">):</span>
-        <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"tool"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
+        <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"tool"</span><span class="p">,</span>
+            <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+            <span class="s2">"tool_call_id"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span><span class="p">,</span>
+        <span class="p">}</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Got unknown type </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">message_dict</span>
@@ -276,6 +315,10 @@
     <span class="k">return</span> <span class="n">message_dicts</span>
 
 
+<span class="k">def</span> <span class="nf">_is_pydantic_class</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_basemodel_subclass</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="ChatSambaNovaCloud">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sambanova.ChatSambaNovaCloud.html#langchain_community.chat_models.sambanova.ChatSambaNovaCloud">[docs]</a>
 <span class="k">class</span> <span class="nc">ChatSambaNovaCloud</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
@@ -284,8 +327,8 @@
 
 <span class="sd">    Setup:</span>
 <span class="sd">        To use, you should have the environment variables:</span>
-<span class="sd">        ``SAMBANOVA_URL`` set with your SambaNova Cloud URL.</span>
-<span class="sd">        ``SAMBANOVA_API_KEY`` set with your SambaNova Cloud API Key.</span>
+<span class="sd">        `SAMBANOVA_URL` set with your SambaNova Cloud URL.</span>
+<span class="sd">        `SAMBANOVA_API_KEY` set with your SambaNova Cloud API Key.</span>
 <span class="sd">        http://cloud.sambanova.ai/</span>
 <span class="sd">        Example:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -337,8 +380,10 @@
 <span class="sd">                top_k = model top k,</span>
 <span class="sd">                stream_options = include usage to get generation metrics</span>
 <span class="sd">            )</span>
+
 <span class="sd">    Invoke:</span>
 <span class="sd">        .. code-block:: python</span>
+
 <span class="sd">            messages = [</span>
 <span class="sd">                SystemMessage(content="your are an AI assistant."),</span>
 <span class="sd">                HumanMessage(content="tell me a joke."),</span>
@@ -348,26 +393,78 @@
 <span class="sd">    Stream:</span>
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">        for chunk in chat.stream(messages):</span>
-<span class="sd">            print(chunk.content, end="", flush=True)</span>
+<span class="sd">            for chunk in chat.stream(messages):</span>
+<span class="sd">                print(chunk.content, end="", flush=True)</span>
 
 <span class="sd">    Async:</span>
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">        response = chat.ainvoke(messages)</span>
-<span class="sd">        await response</span>
+<span class="sd">            response = chat.ainvoke(messages)</span>
+<span class="sd">            await response</span>
+
+<span class="sd">    Tool calling:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from pydantic import BaseModel, Field</span>
+
+<span class="sd">            class GetWeather(BaseModel):</span>
+<span class="sd">                '''Get the current weather in a given location'''</span>
+
+<span class="sd">                location: str = Field(</span>
+<span class="sd">                    ...,</span>
+<span class="sd">                    description="The city and state, e.g. Los Angeles, CA"</span>
+<span class="sd">                )</span>
+
+<span class="sd">            llm_with_tools = llm.bind_tools([GetWeather, GetPopulation])</span>
+<span class="sd">            ai_msg = llm_with_tools.invoke("Should I bring my umbrella today in LA?")</span>
+<span class="sd">            ai_msg.tool_calls</span>
+
+<span class="sd">        .. code-block:: none</span>
+
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    'name': 'GetWeather',</span>
+<span class="sd">                    'args': {'location': 'Los Angeles, CA'},</span>
+<span class="sd">                    'id': 'call_adf61180ea2b4d228a'</span>
+<span class="sd">                }</span>
+<span class="sd">            ]</span>
+
+<span class="sd">    Structured output:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from typing import Optional</span>
+
+<span class="sd">            from pydantic import BaseModel, Field</span>
+
+<span class="sd">            class Joke(BaseModel):</span>
+<span class="sd">                '''Joke to tell user.'''</span>
+
+<span class="sd">                setup: str = Field(description="The setup of the joke")</span>
+<span class="sd">                punchline: str = Field(description="The punchline to the joke")</span>
+
+<span class="sd">            structured_model = llm.with_structured_output(Joke)</span>
+<span class="sd">            structured_model.invoke("Tell me a joke about cats")</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            Joke(setup="Why did the cat join a band?",</span>
+<span class="sd">            punchline="Because it wanted to be the purr-cussionist!")</span>
+
+<span class="sd">        See `ChatSambanovaCloud.with_structured_output()` for more.</span>
 
 <span class="sd">    Token usage:</span>
 <span class="sd">        .. code-block:: python</span>
-<span class="sd">        response = chat.invoke(messages)</span>
-<span class="sd">        print(response.response_metadata["usage"]["prompt_tokens"]</span>
-<span class="sd">        print(response.response_metadata["usage"]["total_tokens"]</span>
+
+<span class="sd">            response = chat.invoke(messages)</span>
+<span class="sd">            print(response.response_metadata["usage"]["prompt_tokens"]</span>
+<span class="sd">            print(response.response_metadata["usage"]["total_tokens"]</span>
 
 <span class="sd">    Response metadata</span>
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">        response = chat.invoke(messages)</span>
-<span class="sd">        print(response.response_metadata)</span>
+<span class="sd">            response = chat.invoke(messages)</span>
+<span class="sd">            print(response.response_metadata)</span>
+
 <span class="sd">    """</span>
 
     <span class="n">sambanova_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
@@ -394,8 +491,11 @@
     <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""model top k"""</span>
 
-    <span class="n">stream_options</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+    <span class="n">stream_options</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="w">    </span><span class="sd">"""stream options, include usage to get generation metrics"""</span>
+
+    <span class="n">additional_headers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">{})</span>
+<span class="w">    </span><span class="sd">"""Additional headers to sent in request"""</span>
 
 <div class="viewcode-block" id="ChatSambaNovaCloud.Config">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sambanova.ChatSambaNovaCloud.html#langchain_community.chat_models.sambanova.ChatSambaNovaCloud.Config">[docs]</a>
@@ -447,36 +547,415 @@
         <span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
+<div class="viewcode-block" id="ChatSambaNovaCloud.bind_tools">
+<a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sambanova.ChatSambaNovaCloud.html#langchain_community.chat_models.sambanova.ChatSambaNovaCloud.bind_tools">[docs]</a>
+    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">BaseTool</span><span class="p">]],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parallel_tool_calls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Bind tool-like objects to this chat model</span>
+
+<span class="sd">        tool_choice: does not currently support "any", choice like</span>
+<span class="sd">        should be one of ["auto", "none", "required"]</span>
+<span class="sd">        """</span>
+
+        <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="c1"># tool_choice is a tool/function name</span>
+                <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"none"</span><span class="p">,</span> <span class="s2">"required"</span><span class="p">):</span>
+                    <span class="n">tool_choice</span> <span class="o">=</span> <span class="s2">"auto"</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
+                    <span class="n">tool_choice</span> <span class="o">=</span> <span class="s2">"required"</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"tool_choice must be one of ['auto', 'none', 'required']"</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Unrecognized tool_choice type. Expected str, bool"</span>
+                    <span class="sa">f</span><span class="s2">"Received: </span><span class="si">{</span><span class="n">tool_choice</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tool_choice</span> <span class="o">=</span> <span class="s2">"auto"</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tool_choice"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tool_choice</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"parallel_tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parallel_tool_calls</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ChatSambaNovaCloud.with_structured_output">
+<a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sambanova.ChatSambaNovaCloud.html#langchain_community.chat_models.sambanova.ChatSambaNovaCloud.with_structured_output">[docs]</a>
+    <span class="k">def</span> <span class="nf">with_structured_output</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">"function_calling"</span><span class="p">,</span> <span class="s2">"json_mode"</span><span class="p">,</span> <span class="s2">"json_schema"</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">"function_calling"</span><span class="p">,</span>
+        <span class="n">include_raw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">BaseModel</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Model wrapper that returns outputs formatted to match the given schema.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            schema:</span>
+<span class="sd">                The output schema. Can be passed in as:</span>
+<span class="sd">                    - an OpenAI function/tool schema,</span>
+<span class="sd">                    - a JSON Schema,</span>
+<span class="sd">                    - a TypedDict class,</span>
+<span class="sd">                    - or a Pydantic.BaseModel class.</span>
+<span class="sd">                If `schema` is a Pydantic class then the model output will be a</span>
+<span class="sd">                Pydantic instance of that class, and the model-generated fields will be</span>
+<span class="sd">                validated by the Pydantic class. Otherwise the model output will be a</span>
+<span class="sd">                dict and will not be validated. See :meth:`langchain_core.utils.function_calling.convert_to_openai_tool`</span>
+<span class="sd">                for more on how to properly specify types and descriptions of</span>
+<span class="sd">                schema fields when specifying a Pydantic or TypedDict class.</span>
+
+<span class="sd">            method:</span>
+<span class="sd">                The method for steering model generation, either "function_calling"</span>
+<span class="sd">                "json_mode" or "json_schema".</span>
+<span class="sd">                If "function_calling" then the schema will be converted</span>
+<span class="sd">                to an OpenAI function and the returned model will make use of the</span>
+<span class="sd">                function-calling API. If "json_mode" or "json_schema" then OpenAI's</span>
+<span class="sd">                JSON mode will be used.</span>
+<span class="sd">                Note that if using "json_mode" or "json_schema" then you must include instructions</span>
+<span class="sd">                for formatting the output into the desired schema into the model call.</span>
+
+<span class="sd">            include_raw:</span>
+<span class="sd">                If False then only the parsed structured output is returned. If</span>
+<span class="sd">                an error occurs during model output parsing it will be raised. If True</span>
+<span class="sd">                then both the raw model response (a BaseMessage) and the parsed model</span>
+<span class="sd">                response will be returned. If an error occurs during output parsing it</span>
+<span class="sd">                will be caught and returned as well. The final output is always a dict</span>
+<span class="sd">                with keys "raw", "parsed", and "parsing_error".</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A Runnable that takes same inputs as a :class:`langchain_core.language_models.chat.BaseChatModel`.</span>
+
+<span class="sd">            If `include_raw` is False and `schema` is a Pydantic class, Runnable outputs</span>
+<span class="sd">            an instance of `schema` (i.e., a Pydantic object).</span>
+
+<span class="sd">            Otherwise, if `include_raw` is False then Runnable outputs a dict.</span>
+
+<span class="sd">            If `include_raw` is True, then Runnable outputs a dict with keys:</span>
+<span class="sd">                - `"raw"`: BaseMessage</span>
+<span class="sd">                - `"parsed"`: None if there was a parsing error, otherwise the type depends on the `schema` as described above.</span>
+<span class="sd">                - `"parsing_error"`: Optional[BaseException]</span>
+
+<span class="sd">        Example: schema=Pydantic class, method="function_calling", include_raw=False:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                from typing import Optional</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+<span class="sd">                from pydantic import BaseModel, Field</span>
+
+
+<span class="sd">                class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
+<span class="sd">                    answer: str</span>
+<span class="sd">                    justification: str = Field(</span>
+<span class="sd">                        description="A justification for the answer."</span>
+<span class="sd">                    )</span>
+
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification)</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
+
+<span class="sd">                # -&gt; AnswerWithJustification(</span>
+<span class="sd">                #     answer='They weigh the same',</span>
+<span class="sd">                #     justification='A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same.'</span>
+<span class="sd">                # )</span>
+
+<span class="sd">        Example: schema=Pydantic class, method="function_calling", include_raw=True:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+<span class="sd">                from pydantic import BaseModel</span>
+
+
+<span class="sd">                class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
+<span class="sd">                    answer: str</span>
+<span class="sd">                    justification: str</span>
+
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(</span>
+<span class="sd">                    AnswerWithJustification, include_raw=True</span>
+<span class="sd">                )</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'raw': AIMessage(content='', additional_kwargs={'tool_calls': [{'function': {'arguments': '{"answer": "They weigh the same.", "justification": "A pound is a unit of weight or mass, so one pound of bricks and one pound of feathers both weigh the same amount."}', 'name': 'AnswerWithJustification'}, 'id': 'call_17a431fc6a4240e1bd', 'type': 'function'}]}, response_metadata={'finish_reason': 'tool_calls', 'usage': {'acceptance_rate': 5, 'completion_tokens': 53, 'completion_tokens_after_first_per_sec': 343.7964936837758, 'completion_tokens_after_first_per_sec_first_ten': 439.1205661878638, 'completion_tokens_per_sec': 162.8511306784833, 'end_time': 1731527851.0698032, 'is_last_response': True, 'prompt_tokens': 213, 'start_time': 1731527850.7137961, 'time_to_first_token': 0.20475482940673828, 'total_latency': 0.32545061111450196, 'total_tokens': 266, 'total_tokens_per_sec': 817.3283162354066}, 'model_name': 'Meta-Llama-3.1-70B-Instruct', 'system_fingerprint': 'fastcoe', 'created': 1731527850}, id='95667eaf-447f-4b53-bb6e-b6e1094ded88', tool_calls=[{'name': 'AnswerWithJustification', 'args': {'answer': 'They weigh the same.', 'justification': 'A pound is a unit of weight or mass, so one pound of bricks and one pound of feathers both weigh the same amount.'}, 'id': 'call_17a431fc6a4240e1bd', 'type': 'tool_call'}]),</span>
+<span class="sd">                #     'parsed': AnswerWithJustification(answer='They weigh the same.', justification='A pound is a unit of weight or mass, so one pound of bricks and one pound of feathers both weigh the same amount.'),</span>
+<span class="sd">                #     'parsing_error': None</span>
+<span class="sd">                # }</span>
+
+<span class="sd">        Example: schema=TypedDict class, method="function_calling", include_raw=False:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                # IMPORTANT: If you are using Python &lt;=3.8, you need to import Annotated</span>
+<span class="sd">                # from typing_extensions, not from typing.</span>
+<span class="sd">                from typing_extensions import Annotated, TypedDict</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+
+
+<span class="sd">                class AnswerWithJustification(TypedDict):</span>
+<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
+<span class="sd">                    answer: str</span>
+<span class="sd">                    justification: Annotated[</span>
+<span class="sd">                        Optional[str], None, "A justification for the answer."</span>
+<span class="sd">                    ]</span>
+
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification)</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'answer': 'They weigh the same',</span>
+<span class="sd">                #     'justification': 'A pound is a unit of weight or mass, so one pound of bricks and one pound of feathers both weigh the same amount.'</span>
+<span class="sd">                # }</span>
+
+<span class="sd">        Example: schema=OpenAI function schema, method="function_calling", include_raw=False:</span>
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+
+<span class="sd">                oai_schema = {</span>
+<span class="sd">                    'name': 'AnswerWithJustification',</span>
+<span class="sd">                    'description': 'An answer to the user question along with justification for the answer.',</span>
+<span class="sd">                    'parameters': {</span>
+<span class="sd">                        'type': 'object',</span>
+<span class="sd">                        'properties': {</span>
+<span class="sd">                            'answer': {'type': 'string'},</span>
+<span class="sd">                            'justification': {'description': 'A justification for the answer.', 'type': 'string'}</span>
+<span class="sd">                        },</span>
+<span class="sd">                       'required': ['answer']</span>
+<span class="sd">                   }</span>
+<span class="sd">                }</span>
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(oai_schema)</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'answer': 'They weigh the same',</span>
+<span class="sd">                #     'justification': 'A pound is a unit of weight or mass, so one pound of bricks and one pound of feathers both weigh the same amount.'</span>
+<span class="sd">                # }</span>
+
+<span class="sd">        Example: schema=Pydantic class, method="json_mode", include_raw=True:</span>
+<span class="sd">            .. code-block::</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+<span class="sd">                from pydantic import BaseModel</span>
+
+<span class="sd">                class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                    answer: str</span>
+<span class="sd">                    justification: str</span>
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(</span>
+<span class="sd">                    AnswerWithJustification,</span>
+<span class="sd">                    method="json_mode",</span>
+<span class="sd">                    include_raw=True</span>
+<span class="sd">                )</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "Answer the following question. "</span>
+<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
+<span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'raw': AIMessage(content='{\n  "answer": "They are the same weight",\n  "justification": "A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities."\n}', additional_kwargs={}, response_metadata={'finish_reason': 'stop', 'usage': {'acceptance_rate': 5.3125, 'completion_tokens': 79, 'completion_tokens_after_first_per_sec': 292.65701089829776, 'completion_tokens_after_first_per_sec_first_ten': 346.43324678555325, 'completion_tokens_per_sec': 200.012158915008, 'end_time': 1731528071.1708555, 'is_last_response': True, 'prompt_tokens': 70, 'start_time': 1731528070.737394, 'time_to_first_token': 0.16693782806396484, 'total_latency': 0.3949759876026827, 'total_tokens': 149, 'total_tokens_per_sec': 377.2381225105847}, 'model_name': 'Meta-Llama-3.1-70B-Instruct', 'system_fingerprint': 'fastcoe', 'created': 1731528070}, id='83208297-3eb9-4021-a856-ca78a15758df'),</span>
+<span class="sd">                #     'parsed': AnswerWithJustification(answer='They are the same weight', justification='A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities.'),</span>
+<span class="sd">                #     'parsing_error': None</span>
+<span class="sd">                # }</span>
+
+<span class="sd">        Example: schema=None, method="json_mode", include_raw=True:</span>
+<span class="sd">            .. code-block::</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(method="json_mode", include_raw=True)</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "Answer the following question. "</span>
+<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
+<span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'raw': AIMessage(content='{\n  "answer": "They are the same weight",\n  "justification": "A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities."\n}', additional_kwargs={}, response_metadata={'finish_reason': 'stop', 'usage': {'acceptance_rate': 4.722222222222222, 'completion_tokens': 79, 'completion_tokens_after_first_per_sec': 357.1315485254867, 'completion_tokens_after_first_per_sec_first_ten': 416.83279609305305, 'completion_tokens_per_sec': 240.92819585198137, 'end_time': 1731528164.8474727, 'is_last_response': True, 'prompt_tokens': 70, 'start_time': 1731528164.4906917, 'time_to_first_token': 0.13837409019470215, 'total_latency': 0.3278985247892492, 'total_tokens': 149, 'total_tokens_per_sec': 454.4088757208256}, 'model_name': 'Meta-Llama-3.1-70B-Instruct', 'system_fingerprint': 'fastcoe', 'created': 1731528164}, id='15261eaf-8a25-42ef-8ed5-f63d8bf5b1b0'),</span>
+<span class="sd">                #     'parsed': {</span>
+<span class="sd">                #         'answer': 'They are the same weight',</span>
+<span class="sd">                #         'justification': 'A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities.'},</span>
+<span class="sd">                #     },</span>
+<span class="sd">                #     'parsing_error': None</span>
+<span class="sd">                # }</span>
+
+<span class="sd">        Example: schema=None, method="json_schema", include_raw=True:</span>
+<span class="sd">            .. code-block::</span>
+
+<span class="sd">                from langchain_community.chat_models import ChatSambaNovaCloud</span>
+
+<span class="sd">                class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                    answer: str</span>
+<span class="sd">                    justification: str</span>
+
+<span class="sd">                llm = ChatSambaNovaCloud(model="Meta-Llama-3.1-70B-Instruct", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification, method="json_schema", include_raw=True)</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "Answer the following question. "</span>
+<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
+<span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
+<span class="sd">                )</span>
+<span class="sd">                # -&gt; {</span>
+<span class="sd">                #     'raw': AIMessage(content='{\n  "answer": "They are the same weight",\n  "justification": "A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities."\n}', additional_kwargs={}, response_metadata={'finish_reason': 'stop', 'usage': {'acceptance_rate': 5.3125, 'completion_tokens': 79, 'completion_tokens_after_first_per_sec': 292.65701089829776, 'completion_tokens_after_first_per_sec_first_ten': 346.43324678555325, 'completion_tokens_per_sec': 200.012158915008, 'end_time': 1731528071.1708555, 'is_last_response': True, 'prompt_tokens': 70, 'start_time': 1731528070.737394, 'time_to_first_token': 0.16693782806396484, 'total_latency': 0.3949759876026827, 'total_tokens': 149, 'total_tokens_per_sec': 377.2381225105847}, 'model_name': 'Meta-Llama-3.1-70B-Instruct', 'system_fingerprint': 'fastcoe', 'created': 1731528070}, id='83208297-3eb9-4021-a856-ca78a15758df'),</span>
+<span class="sd">                #     'parsed': AnswerWithJustification(answer='They are the same weight', justification='A pound is a unit of weight or mass, so a pound of bricks and a pound of feathers both weigh the same amount, one pound. The difference is in their density and volume. A pound of feathers would take up more space than a pound of bricks due to the difference in their densities.'),</span>
+<span class="sd">                #     'parsing_error': None</span>
+<span class="sd">                # }</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
+        <span class="k">if</span> <span class="n">kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="n">_is_pydantic_class</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"function_calling"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"`schema` must be specified when method is `function_calling`. "</span>
+                    <span class="s2">"Received None."</span>
+                <span class="p">)</span>
+            <span class="n">tool_name</span> <span class="o">=</span> <span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
+                <span class="n">output_parser</span><span class="p">:</span> <span class="n">OutputParserLike</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">PydanticToolsParser</span><span class="p">(</span>
+                    <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">schema</span><span class="p">],</span>
+                    <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputKeyToolsParser</span><span class="p">(</span>
+                    <span class="n">key_name</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_mode"</span><span class="p">:</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="c1"># TODO bind response format when json mode available by API</span>
+            <span class="c1"># llm = self.bind(response_format={"type": "json_object"})</span>
+            <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">schema</span><span class="p">)</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"`schema` must be specified when method is not `json_mode`. "</span>
+                    <span class="s2">"Received None."</span>
+                <span class="p">)</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="c1"># TODO bind response format when json schema available by API,</span>
+            <span class="c1"># update example</span>
+            <span class="c1"># llm = self.bind(</span>
+            <span class="c1">#   response_format={"type": "json_object", "json_schema": schema}</span>
+            <span class="c1"># )</span>
+            <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">schema</span><span class="p">)</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Unrecognized method argument. Expected one of `function_calling` or "</span>
+                <span class="sa">f</span><span class="s2">"`json_mode`. Received: `</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">`"</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">include_raw</span><span class="p">:</span>
+            <span class="n">parser_assign</span> <span class="o">=</span> <span class="n">RunnablePassthrough</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+                <span class="n">parsed</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="s2">"raw"</span><span class="p">)</span> <span class="o">|</span> <span class="n">output_parser</span><span class="p">,</span> <span class="n">parsing_error</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="n">parser_none</span> <span class="o">=</span> <span class="n">RunnablePassthrough</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">parsed</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">parser_with_fallback</span> <span class="o">=</span> <span class="n">parser_assign</span><span class="o">.</span><span class="n">with_fallbacks</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">parser_none</span><span class="p">],</span> <span class="n">exception_key</span><span class="o">=</span><span class="s2">"parsing_error"</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">RunnableMap</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">llm</span><span class="p">)</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">output_parser</span></div>
+
+
     <span class="k">def</span> <span class="nf">_handle_request</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Performs a post request to the LLM API.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            messages_dicts: List of role / content dicts to use as input.</span>
 <span class="sd">            stop: list of stop tokens</span>
+<span class="sd">            streaming: wether to do a streaming call</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            An iterator of response dicts.</span>
 <span class="sd">        """</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"messages"</span><span class="p">:</span> <span class="n">messages_dicts</span><span class="p">,</span>
-            <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
-            <span class="s2">"stop"</span><span class="p">:</span> <span class="n">stop</span><span class="p">,</span>
-            <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
-            <span class="s2">"temperature"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-            <span class="s2">"top_p"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
-            <span class="s2">"top_k"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
-        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"messages"</span><span class="p">:</span> <span class="n">messages_dicts</span><span class="p">,</span>
+                <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
+                <span class="s2">"stop"</span><span class="p">:</span> <span class="n">stop</span><span class="p">,</span>
+                <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="s2">"temperature"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="s2">"top_p"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
+                <span class="s2">"top_k"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
+                <span class="s2">"stream"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">"stream_options"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_options</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"messages"</span><span class="p">:</span> <span class="n">messages_dicts</span><span class="p">,</span>
+                <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
+                <span class="s2">"stop"</span><span class="p">:</span> <span class="n">stop</span><span class="p">,</span>
+                <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="s2">"temperature"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="s2">"top_p"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
+                <span class="s2">"top_k"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">}</span>
         <span class="n">http_session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
         <span class="n">response</span> <span class="o">=</span> <span class="n">http_session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sambanova_url</span><span class="p">,</span>
             <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
                 <span class="s2">"Authorization"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Bearer </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sambanova_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
                 <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
+                <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">additional_headers</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="n">json</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">stream</span><span class="o">=</span><span class="n">streaming</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -484,27 +963,78 @@
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="n">response_dict</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"error"</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Sambanova /complete call failed with status code "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response_dict</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">response_dict</span>
+        <span class="k">return</span> <span class="n">response</span>
 
-    <span class="k">def</span> <span class="nf">_handle_streaming_request</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">messages_dicts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">_process_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Performs an streaming post request to the LLM API.</span>
+<span class="sd">        Process a non streaming response from the api</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            messages_dicts: List of role / content dicts to use as input.</span>
-<span class="sd">            stop: list of stop tokens</span>
+<span class="sd">            response: A request Response object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">            generation: an AIMessage with model generation</span>
+<span class="sd">        """</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response_dict</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"error"</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Sambanova /complete call failed with status code "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response_dict</span><span class="si">}</span><span class="s2">."</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Sambanova /complete call failed couldn't get JSON response </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
+                <span class="sa">f</span><span class="s2">"response: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"message"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="n">additional_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">invalid_tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">raw_tool_calls</span> <span class="o">=</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"message"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">raw_tool_calls</span><span class="p">:</span>
+            <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_tool_calls</span>
+            <span class="k">for</span> <span class="n">raw_tool_call</span> <span class="ow">in</span> <span class="n">raw_tool_calls</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"arguments"</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">raw_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"arguments"</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+                        <span class="n">raw_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parse_tool_call</span><span class="p">(</span><span class="n">raw_tool_call</span><span class="p">,</span> <span class="n">return_id</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">invalid_tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">make_invalid_tool_call</span><span class="p">(</span><span class="n">raw_tool_call</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                    <span class="p">)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+            <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">additional_kwargs</span><span class="p">,</span>
+            <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
+            <span class="n">invalid_tool_calls</span><span class="o">=</span><span class="n">invalid_tool_calls</span><span class="p">,</span>
+            <span class="n">response_metadata</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"finish_reason"</span><span class="p">],</span>
+                <span class="s2">"usage"</span><span class="p">:</span> <span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">),</span>
+                <span class="s2">"model_name"</span><span class="p">:</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+                <span class="s2">"system_fingerprint"</span><span class="p">:</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"system_fingerprint"</span><span class="p">],</span>
+                <span class="s2">"created"</span><span class="p">:</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"created"</span><span class="p">],</span>
+            <span class="p">},</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">response_dict</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">message</span>
+
+    <span class="k">def</span> <span class="nf">_process_stream_response</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Response</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Process a streaming response from the api</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            response: An iterable request Response object</span>
 
 <span class="sd">        Yields:</span>
-<span class="sd">            An iterator of response dicts.</span>
+<span class="sd">            generation: an AIMessageChunk with model partial generation</span>
 <span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">sseclient</span>
@@ -513,36 +1043,8 @@
                 <span class="s2">"could not import sseclient library"</span>
                 <span class="s2">"Please install it with `pip install sseclient-py`."</span>
             <span class="p">)</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"messages"</span><span class="p">:</span> <span class="n">messages_dicts</span><span class="p">,</span>
-            <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
-            <span class="s2">"stop"</span><span class="p">:</span> <span class="n">stop</span><span class="p">,</span>
-            <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
-            <span class="s2">"temperature"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-            <span class="s2">"top_p"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
-            <span class="s2">"top_k"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
-            <span class="s2">"stream"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s2">"stream_options"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_options</span><span class="p">,</span>
-        <span class="p">}</span>
-        <span class="n">http_session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">http_session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sambanova_url</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"Authorization"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Bearer </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sambanova_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-                <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-            <span class="p">},</span>
-            <span class="n">json</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
 
         <span class="n">client</span> <span class="o">=</span> <span class="n">sseclient</span><span class="o">.</span><span class="n">SSEClient</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="mi">200</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Sambanova /complete call failed with status code "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">."</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">client</span><span class="o">.</span><span class="n">events</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s2">"error_event"</span><span class="p">:</span>
@@ -570,7 +1072,31 @@
                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">."</span>
                             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="si">}</span><span class="s2">."</span>
                         <span class="p">)</span>
-                    <span class="k">yield</span> <span class="n">data</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"finish_reason"</span><span class="p">)</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"delta"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span>
+                        <span class="nb">id</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+                        <span class="n">chunk</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
+                            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span> <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{}</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
+                        <span class="nb">id</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+                        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">finish_reason</span><span class="p">,</span>
+                            <span class="s2">"usage"</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">),</span>
+                            <span class="s2">"model_name"</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
+                            <span class="s2">"system_fingerprint"</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">"system_fingerprint"</span><span class="p">],</span>
+                            <span class="s2">"created"</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">"created"</span><span class="p">],</span>
+                        <span class="p">}</span>
+                        <span class="n">chunk</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
+                            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+                            <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+                            <span class="n">response_metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+                            <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{},</span>
+                        <span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">chunk</span>
+
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Error getting content chunk raw streamed response: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
@@ -607,21 +1133,14 @@
             <span class="k">if</span> <span class="n">stream_iter</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">generate_from_stream</span><span class="p">(</span><span class="n">stream_iter</span><span class="p">)</span>
         <span class="n">messages_dicts</span> <span class="o">=</span> <span class="n">_create_message_dicts</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">(</span><span class="n">messages_dicts</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
-        <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
-            <span class="n">content</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"message"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">],</span>
-            <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{},</span>
-            <span class="n">response_metadata</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"finish_reason"</span><span class="p">],</span>
-                <span class="s2">"usage"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">),</span>
-                <span class="s2">"model_name"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
-                <span class="s2">"system_fingerprint"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="s2">"system_fingerprint"</span><span class="p">],</span>
-                <span class="s2">"created"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="s2">"created"</span><span class="p">],</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">(</span><span class="n">messages_dicts</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">generation</span> <span class="o">=</span> <span class="n">ChatGeneration</span><span class="p">(</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+            <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">response_metadata</span><span class="p">[</span><span class="s2">"finish_reason"</span><span class="p">]</span>
             <span class="p">},</span>
-            <span class="nb">id</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span>
         <span class="p">)</span>
-
-        <span class="n">generation</span> <span class="o">=</span> <span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">generation</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
@@ -648,34 +1167,9 @@
 <span class="sd">            chunk: ChatGenerationChunk with model partial generation</span>
 <span class="sd">        """</span>
         <span class="n">messages_dicts</span> <span class="o">=</span> <span class="n">_create_message_dicts</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">finish_reason</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">partial_response</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_streaming_request</span><span class="p">(</span><span class="n">messages_dicts</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">partial_response</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"finish_reason"</span><span class="p">)</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"delta"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span>
-                <span class="nb">id</span> <span class="o">=</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
-                <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span> <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{})</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
-                <span class="nb">id</span> <span class="o">=</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
-                <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">finish_reason</span><span class="p">,</span>
-                    <span class="s2">"usage"</span><span class="p">:</span> <span class="n">partial_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">),</span>
-                    <span class="s2">"model_name"</span><span class="p">:</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span>
-                    <span class="s2">"system_fingerprint"</span><span class="p">:</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"system_fingerprint"</span><span class="p">],</span>
-                    <span class="s2">"created"</span><span class="p">:</span> <span class="n">partial_response</span><span class="p">[</span><span class="s2">"created"</span><span class="p">],</span>
-                <span class="p">}</span>
-                <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span>
-                        <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
-                        <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-                        <span class="n">response_metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-                        <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{},</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_request</span><span class="p">(</span><span class="n">messages_dicts</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ai_message_chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_stream_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">ai_message_chunk</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">chunk</span></div>
@@ -837,10 +1331,10 @@
     <span class="n">process_prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""whether process prompt (for CoE generic v1 and v2 endpoints)"""</span>
 
-    <span class="n">stream_options</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+    <span class="n">stream_options</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 <span class="w">    </span><span class="sd">"""stream options, include usage to get generation metrics"""</span>
 
-    <span class="n">special_tokens</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+    <span class="n">special_tokens</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default</span><span class="o">=</span><span class="p">{</span>
             <span class="s2">"start"</span><span class="p">:</span> <span class="s2">"&lt;|begin_of_text|&gt;"</span><span class="p">,</span>
             <span class="s2">"start_role"</span><span class="p">:</span> <span class="s2">"&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;</span><span class="si">{role}</span><span class="s2">&lt;|end_header_id|&gt;"</span><span class="p">,</span>
