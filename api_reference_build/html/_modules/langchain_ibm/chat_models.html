@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 01, 2024" name="docbuild:last-update"/>
+<meta content="Dec 02, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -644,7 +644,8 @@
 <span class="w">    </span><span class="sd">"""ID of the Watson Studio space."""</span>
 
     <span class="n">url</span><span class="p">:</span> <span class="n">SecretStr</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="n">alias</span><span class="o">=</span><span class="s2">"url"</span><span class="p">,</span> <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"WATSONX_URL"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">alias</span><span class="o">=</span><span class="s2">"url"</span><span class="p">,</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"WATSONX_URL"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>  <span class="c1"># type: ignore[assignment]</span>
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""URL to the Watson Machine Learning or CPD instance."""</span>
 
@@ -721,6 +722,9 @@
 <span class="sd">    </span>
 <span class="sd">    We generally recommend altering this or top_p but not both."""</span>
 
+    <span class="n">response_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""The chat response format parameters."""</span>
+
     <span class="n">top_p</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""An alternative to sampling with temperature, called nucleus sampling, </span>
 <span class="sd">    where the model considers the results of the tokens with top_p probability </span>
@@ -728,6 +732,10 @@
 <span class="sd">    are considered.</span>
 
 <span class="sd">    We generally recommend altering this or temperature but not both."""</span>
+
+    <span class="n">time_limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Time limit in milliseconds - if not completed within this time, </span>
+<span class="sd">    generation will stop."""</span>
 
     <span class="n">verify</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""You can pass one of following as verify:</span>
@@ -810,8 +818,10 @@
                     <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
                     <span class="s2">"n"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span>
                     <span class="s2">"presence_penalty"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">presence_penalty</span><span class="p">,</span>
+                    <span class="s2">"response_format"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_format</span><span class="p">,</span>
                     <span class="s2">"temperature"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
                     <span class="s2">"top_p"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
+                    <span class="s2">"time_limit"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_limit</span><span class="p">,</span>
                 <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="p">}</span>
@@ -833,7 +843,15 @@
             <span class="n">check_for_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">,</span> <span class="s2">"WATSONX_URL"</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="s2">"cloud.ibm.com"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">():</span>
-                <span class="n">check_for_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apikey</span><span class="p">,</span> <span class="s2">"apikey"</span><span class="p">,</span> <span class="s2">"WATSONX_APIKEY"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">apikey</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">"Did not find 'apikey' or 'token',"</span>
+                        <span class="s2">" please add an environment variable"</span>
+                        <span class="s2">" `WATSONX_APIKEY` or 'WATSONX_TOKEN' "</span>
+                        <span class="s2">"which contains it,"</span>
+                        <span class="s2">" or pass 'apikey' or 'token'"</span>
+                        <span class="s2">" as a named parameter."</span>
+                    <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">apikey</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -967,8 +985,10 @@
             <span class="s2">"max_tokens"</span><span class="p">,</span>
             <span class="s2">"n"</span><span class="p">,</span>
             <span class="s2">"presence_penalty"</span><span class="p">,</span>
+            <span class="s2">"response_format"</span><span class="p">,</span>
             <span class="s2">"temperature"</span><span class="p">,</span>
             <span class="s2">"top_p"</span><span class="p">,</span>
+            <span class="s2">"time_limit"</span><span class="p">,</span>
         <span class="p">]:</span>
             <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">param_updates</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
