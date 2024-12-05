@@ -46,7 +46,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 04, 2024" name="docbuild:last-update"/>
+<meta content="Dec 05, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -287,7 +287,7 @@
 </a>
 </li>
 <li class="breadcrumb-item"><a class="nav-link" href="../../reference.html">LangChain Python API Reference</a></li>
-<li class="breadcrumb-item"><a class="nav-link" href="../index.html">langchain-tests: 0.3.4</a></li>
+<li class="breadcrumb-item"><a class="nav-link" href="../index.html">langchain-tests: 0.3.5</a></li>
 <li class="breadcrumb-item"><a class="nav-link" href="../integration_tests.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">integration_tests</span></code></a></li>
 <li aria-current="page" class="breadcrumb-item active"><span class="ellipsis">ReadWriteTestSuite</span></li>
 </ul>
@@ -303,13 +303,59 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">langchain_tests.integration_tests.vectorstores.</span></span><span class="sig-name descname"><span class="pre">ReadWriteTestSuite</span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite" title="Link to this definition">#</a></dt>
-<dd><p>Test suite for checking the read-write API of a vectorstore.</p>
-<p>This test suite verifies the basic read-write API of a vectorstore.</p>
-<p>The test suite is designed for synchronous vectorstores.</p>
+<dd><p>Test suite for checking the synchronous read-write API of a vector store.</p>
 <p>Implementers should subclass this test suite and provide a fixture
-that returns an empty vectorstore for each test.</p>
-<p>The fixture should use the <cite>get_embeddings</cite> method to get a pre-defined
+that returns an empty vector store for each test.</p>
+<p>The fixture should use the <code class="docutils literal notranslate"><span class="pre">get_embeddings</span></code> method to get a pre-defined
 embeddings model that should be used for this test suite.</p>
+<p>Here is a template:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generator</span>
+
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span> <span class="nn">langchain_parrot_link.vectorstores</span> <span class="kn">import</span> <span class="n">ParrotVectorStore</span>
+<span class="kn">from</span> <span class="nn">langchain_tests.integration_tests.vectorstores</span> <span class="kn">import</span> <span class="n">ReadWriteTestSuite</span>
+
+
+<span class="k">class</span> <span class="nc">TestSync</span><span class="p">(</span><span class="n">ReadWriteTestSuite</span><span class="p">):</span>
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">vectorstore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">VectorStore</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>  <span class="c1"># type: ignore</span>
+<span class="w">        </span><span class="sd">"""Get an empty vectorstore."""</span>
+        <span class="n">store</span> <span class="o">=</span> <span class="n">ParrotVectorStore</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_embeddings</span><span class="p">())</span>
+        <span class="c1"># note: store should be EMPTY at this point</span>
+        <span class="c1"># if you need to delete data, you may do so here</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">store</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># cleanup operations, or deleting data</span>
+            <span class="k">pass</span>
+</pre></div>
+</div>
+<p>In the fixture, before the <code class="docutils literal notranslate"><span class="pre">yield</span></code> we instantiate an empty vector store. In the
+<code class="docutils literal notranslate"><span class="pre">finally</span></code> block, we call whatever logic is necessary to bring the vector store
+to a clean state.</p>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Generator</span>
+
+<span class="kn">import</span> <span class="nn">pytest</span>
+<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span> <span class="nn">langchain_tests.integration_tests.vectorstores</span> <span class="kn">import</span> <span class="n">ReadWriteTestSuite</span>
+
+<span class="kn">from</span> <span class="nn">langchain_chroma</span> <span class="kn">import</span> <span class="n">Chroma</span>
+
+
+<span class="k">class</span> <span class="nc">TestSync</span><span class="p">(</span><span class="n">ReadWriteTestSuite</span><span class="p">):</span>
+    <span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">vectorstore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">VectorStore</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>  <span class="c1"># type: ignore</span>
+<span class="w">        </span><span class="sd">"""Get an empty vectorstore."""</span>
+        <span class="n">store</span> <span class="o">=</span> <span class="n">Chroma</span><span class="p">(</span><span class="n">embedding_function</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_embeddings</span><span class="p">())</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">store</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">store</span><span class="o">.</span><span class="n">delete_collection</span><span class="p">()</span>
+            <span class="k">pass</span>
+</pre></div>
+</div>
 <p class="rubric">Methods</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
 <tbody>
@@ -329,7 +375,7 @@ embeddings model that should be used for this test suite.</p>
 <td><p>Run add_documents tests.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_existing_ids" title="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_existing_ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_add_documents_with_existing_ids</span></code></a>(vectorstore)</p></td>
-<td><p>Test that add_documentsing with existing IDs is idempotent.</p></td>
+<td><p>Test that add_documents with existing IDs is idempotent.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_ids_is_idempotent" title="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_ids_is_idempotent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">test_add_documents_with_ids_is_idempotent</span></code></a>(...)</p></td>
 <td><p>Adding by ID should be idempotent.</p></td>
@@ -372,6 +418,9 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.get_embeddings">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_embeddings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><a class="reference internal" href="../../core/embeddings/langchain_core.embeddings.embeddings.Embeddings.html#langchain_core.embeddings.embeddings.Embeddings" title="langchain_core.embeddings.embeddings.Embeddings"><span class="pre">Embeddings</span></a></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.get_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.get_embeddings" title="Link to this definition">#</a></dt>
 <dd><p>A pre-defined embeddings model that should be used for this test.</p>
+<p>This currently uses <code class="docutils literal notranslate"><span class="pre">DeterministicFakeEmbedding</span></code> from <code class="docutils literal notranslate"><span class="pre">langchain-core</span></code>,
+which uses numpy to generate random numbers based on a hash of the input text.</p>
+<p>The resulting embeddings are not meaningful, but they are deterministic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="../../core/embeddings/langchain_core.embeddings.embeddings.Embeddings.html#langchain_core.embeddings.embeddings.Embeddings" title="langchain_core.embeddings.embeddings.Embeddings"><em>Embeddings</em></a></p>
@@ -382,7 +431,17 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents">
 <span class="sig-name descname"><span class="pre">test_add_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_add_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents" title="Link to this definition">#</a></dt>
 <dd><p>Test adding documents into the vectorstore.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that:</p>
+<ol class="arabic simple">
+<li><p class="sd-card-text">We correctly initialize an empty vector store in the <code class="docutils literal notranslate"><span class="pre">vectorestore</span></code> fixture.</p></li>
+<li><p class="sd-card-text">Calling <code class="docutils literal notranslate"><span class="pre">.similarity_search</span></code> for the top <code class="docutils literal notranslate"><span class="pre">k</span></code> similar documents does not threshold by score.</p></li>
+<li><p class="sd-card-text">We do not mutate the original document object when adding it to the vector store (e.g., by adding an ID).</p></li>
+</ol>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -395,7 +454,14 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_by_id_with_mutation">
 <span class="sig-name descname"><span class="pre">test_add_documents_by_id_with_mutation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_add_documents_by_id_with_mutation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_by_id_with_mutation" title="Link to this definition">#</a></dt>
 <dd><p>Test that we can overwrite by ID using add_documents.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that when <code class="docutils literal notranslate"><span class="pre">add_documents</span></code> is called with an
+ID that already exists in the vector store, the content is updated
+rather than duplicated.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -408,7 +474,26 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_documents">
 <span class="sig-name descname"><span class="pre">test_add_documents_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_add_documents_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_documents" title="Link to this definition">#</a></dt>
 <dd><p>Run add_documents tests.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> is implemented and returns
+documents in the same order as the IDs passed in.</p>
+<p class="sd-card-text">Check also that <code class="docutils literal notranslate"><span class="pre">add_documents</span></code> will correctly generate string IDs if
+none are provided.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> was added to the <code class="docutils literal notranslate"><span class="pre">VectorStore</span></code> interface in
+<code class="docutils literal notranslate"><span class="pre">langchain-core</span></code> version 0.2.11. If difficult to implement, this
+test can be skipped using a pytest <code class="docutils literal notranslate"><span class="pre">xfail</span></code> on the test class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">xfail</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="p">(</span><span class="s2">"get_by_ids not implemented."</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">test_add_documents_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">test_add_documents_documents</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -420,8 +505,30 @@ embeddings model that should be used for this test suite.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_existing_ids">
 <span class="sig-name descname"><span class="pre">test_add_documents_with_existing_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_add_documents_with_existing_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_existing_ids" title="Link to this definition">#</a></dt>
-<dd><p>Test that add_documentsing with existing IDs is idempotent.</p>
-<dl class="field-list simple">
+<dd><p>Test that add_documents with existing IDs is idempotent.</p>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> is implemented and returns
+documents in the same order as the IDs passed in.</p>
+<p class="sd-card-text">This test also verifies that:</p>
+<ol class="arabic simple">
+<li><p class="sd-card-text">IDs specified in the <code class="docutils literal notranslate"><span class="pre">Document.id</span></code> field are assigned when adding documents.</p></li>
+<li><p class="sd-card-text">If some documents include IDs and others don’t string IDs are generated for the latter.</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> was added to the <code class="docutils literal notranslate"><span class="pre">VectorStore</span></code> interface in
+<code class="docutils literal notranslate"><span class="pre">langchain-core</span></code> version 0.2.11. If difficult to implement, this
+test can be skipped using a pytest <code class="docutils literal notranslate"><span class="pre">xfail</span></code> on the test class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">xfail</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="p">(</span><span class="s2">"get_by_ids not implemented."</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">test_add_documents_with_existing_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">test_add_documents_with_existing_ids</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -434,7 +541,14 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_ids_is_idempotent">
 <span class="sig-name descname"><span class="pre">test_add_documents_with_ids_is_idempotent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_add_documents_with_ids_is_idempotent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_ids_is_idempotent" title="Link to this definition">#</a></dt>
 <dd><p>Adding by ID should be idempotent.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that adding the same document twice with the
+same IDs has the same effect as adding it once (i.e., it does not
+duplicate the documents).</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -447,7 +561,13 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_delete_missing_content">
 <span class="sig-name descname"><span class="pre">test_delete_missing_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_delete_missing_content"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_delete_missing_content" title="Link to this definition">#</a></dt>
 <dd><p>Deleting missing content should not raise an exception.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">delete</span></code> does not raise an exception
+when deleting IDs that do not exist.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -460,7 +580,13 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_bulk_documents">
 <span class="sig-name descname"><span class="pre">test_deleting_bulk_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_deleting_bulk_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_bulk_documents" title="Link to this definition">#</a></dt>
 <dd><p>Test that we can delete several documents at once.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">delete</span></code> correctly removes multiple
+documents when given a list of IDs.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -473,7 +599,14 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_documents">
 <span class="sig-name descname"><span class="pre">test_deleting_documents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_deleting_documents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_documents" title="Link to this definition">#</a></dt>
 <dd><p>Test deleting documents from the vectorstore.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">add_documents</span></code> preserves identifiers
+passed in through <code class="docutils literal notranslate"><span class="pre">ids</span></code>, and that <code class="docutils literal notranslate"><span class="pre">delete</span></code> correctly removes
+documents.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -486,7 +619,25 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids">
 <span class="sig-name descname"><span class="pre">test_get_by_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_get_by_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids" title="Link to this definition">#</a></dt>
 <dd><p>Test get by IDs.</p>
-<dl class="field-list simple">
+<p>This test requires that <code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> be implemented on the vector store.</p>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> is implemented and returns
+documents in the same order as the IDs passed in.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> was added to the <code class="docutils literal notranslate"><span class="pre">VectorStore</span></code> interface in
+<code class="docutils literal notranslate"><span class="pre">langchain-core</span></code> version 0.2.11. If difficult to implement, this
+test can be skipped using a pytest <code class="docutils literal notranslate"><span class="pre">xfail</span></code> on the test class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">xfail</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="p">(</span><span class="s2">"get_by_ids not implemented."</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">test_get_by_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">test_get_by_ids</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -499,7 +650,24 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids_missing">
 <span class="sig-name descname"><span class="pre">test_get_by_ids_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_get_by_ids_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids_missing" title="Link to this definition">#</a></dt>
 <dd><p>Test get by IDs with missing IDs.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that <code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> is implemented and does not
+raise an exception when given IDs that do not exist.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">get_by_ids</span></code> was added to the <code class="docutils literal notranslate"><span class="pre">VectorStore</span></code> interface in
+<code class="docutils literal notranslate"><span class="pre">langchain-core</span></code> version 0.2.11. If difficult to implement, this
+test can be skipped using a pytest <code class="docutils literal notranslate"><span class="pre">xfail</span></code> on the test class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">xfail</span><span class="p">(</span><span class="n">reason</span><span class="o">=</span><span class="p">(</span><span class="s2">"get_by_ids not implemented."</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">test_get_by_ids_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">test_get_by_ids_missing</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -522,7 +690,14 @@ embeddings model that should be used for this test suite.</p>
 <dt class="sig sig-object py" id="langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_vectorstore_is_empty">
 <span class="sig-name descname"><span class="pre">test_vectorstore_is_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vectorstore</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><span class="pre">VectorStore</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../../_modules/langchain_tests/integration_tests/vectorstores.html#ReadWriteTestSuite.test_vectorstore_is_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_vectorstore_is_empty" title="Link to this definition">#</a></dt>
 <dd><p>Test that the vectorstore is empty.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that the test class (i.e., sub class of
+<code class="docutils literal notranslate"><span class="pre">ReadWriteTestSuite</span></code>) initializes an empty vector store in the
+<code class="docutils literal notranslate"><span class="pre">vectorestore</span></code> fixture.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>
@@ -537,7 +712,14 @@ embeddings model that should be used for this test suite.</p>
 <dd><p>This test should follow a test that adds documents.</p>
 <p>This just verifies that the fixture is set up properly to be empty
 after each test.</p>
-<dl class="field-list simple">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Troubleshooting</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg aria-hidden="true" class="sd-octicon sd-octicon-chevron-right" height="1.5em" version="1.1" viewbox="0 0 24 24" width="1.5em"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If this test fails, check that the test class (i.e., sub class of
+<code class="docutils literal notranslate"><span class="pre">ReadWriteTestSuite</span></code>) correctly clears the vector store in the
+<code class="docutils literal notranslate"><span class="pre">finally</span></code> block.</p>
+</div>
+</details><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>vectorstore</strong> (<a class="reference internal" href="../../core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore" title="langchain_core.vectorstores.base.VectorStore"><em>VectorStore</em></a>)</p>
 </dd>

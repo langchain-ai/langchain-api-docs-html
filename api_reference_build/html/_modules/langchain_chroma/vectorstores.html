@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 04, 2024" name="docbuild:last-update"/>
+<meta content="Dec 05, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -228,6 +228,7 @@
     <span class="n">Iterable</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
+    <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Tuple</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
@@ -748,6 +749,11 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Assign strings to any null IDs</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ids</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ids</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">texts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1294,6 +1300,41 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">"include"</span><span class="p">]</span> <span class="o">=</span> <span class="n">include</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore</span></div>
+
+
+<div class="viewcode-block" id="Chroma.get_by_ids">
+<a class="viewcode-back" href="../../chroma/vectorstores/langchain_chroma.vectorstores.Chroma.html#langchain_chroma.vectorstores.Chroma.get_by_ids">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_by_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Get documents by their IDs.</span>
+
+<span class="sd">        The returned documents are expected to have the ID field set to the ID of the</span>
+<span class="sd">        document in the vector store.</span>
+
+<span class="sd">        Fewer documents may be returned than requested if some IDs are not found or</span>
+<span class="sd">        if there are duplicated IDs.</span>
+
+<span class="sd">        Users should not assume that the order of the returned documents matches</span>
+<span class="sd">        the order of the input IDs. Instead, users should rely on the ID field of the</span>
+<span class="sd">        returned documents.</span>
+
+<span class="sd">        This method should **NOT** raise exceptions if no documents are found for</span>
+<span class="sd">        some IDs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ids: List of ids to retrieve.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of Documents.</span>
+
+<span class="sd">        .. versionadded:: 0.2.1</span>
+<span class="sd">        """</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">doc_id</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">doc_id</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">results</span><span class="p">[</span><span class="s2">"documents"</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s2">"metadatas"</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s2">"ids"</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="Chroma.update_document">

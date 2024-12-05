@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 04, 2024" name="docbuild:last-update"/>
+<meta content="Dec 05, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -229,18 +229,68 @@
 <div class="viewcode-block" id="ReadWriteTestSuite">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite">[docs]</a>
 <span class="k">class</span> <span class="nc">ReadWriteTestSuite</span><span class="p">(</span><span class="n">BaseStandardTests</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Test suite for checking the read-write API of a vectorstore.</span>
-
-<span class="sd">    This test suite verifies the basic read-write API of a vectorstore.</span>
-
-<span class="sd">    The test suite is designed for synchronous vectorstores.</span>
+<span class="w">    </span><span class="sd">"""Test suite for checking the synchronous read-write API of a vector store.</span>
 
 <span class="sd">    Implementers should subclass this test suite and provide a fixture</span>
-<span class="sd">    that returns an empty vectorstore for each test.</span>
+<span class="sd">    that returns an empty vector store for each test.</span>
 
-<span class="sd">    The fixture should use the `get_embeddings` method to get a pre-defined</span>
+<span class="sd">    The fixture should use the ``get_embeddings`` method to get a pre-defined</span>
 <span class="sd">    embeddings model that should be used for this test suite.</span>
-<span class="sd">    """</span>
+
+<span class="sd">    Here is a template:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from typing import Generator</span>
+
+<span class="sd">        import pytest</span>
+<span class="sd">        from langchain_core.vectorstores import VectorStore</span>
+<span class="sd">        from langchain_parrot_link.vectorstores import ParrotVectorStore</span>
+<span class="sd">        from langchain_tests.integration_tests.vectorstores import ReadWriteTestSuite</span>
+
+
+<span class="sd">        class TestSync(ReadWriteTestSuite):</span>
+<span class="sd">            @pytest.fixture()</span>
+<span class="sd">            def vectorstore(self) -&gt; Generator[VectorStore, None, None]:  # type: ignore</span>
+<span class="sd">                \"\"\"Get an empty vectorstore.\"\"\"</span>
+<span class="sd">                store = ParrotVectorStore(self.get_embeddings())</span>
+<span class="sd">                # note: store should be EMPTY at this point</span>
+<span class="sd">                # if you need to delete data, you may do so here</span>
+<span class="sd">                try:</span>
+<span class="sd">                    yield store</span>
+<span class="sd">                finally:</span>
+<span class="sd">                    # cleanup operations, or deleting data</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">    In the fixture, before the ``yield`` we instantiate an empty vector store. In the</span>
+<span class="sd">    ``finally`` block, we call whatever logic is necessary to bring the vector store</span>
+<span class="sd">    to a clean state.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from typing import Generator</span>
+
+<span class="sd">        import pytest</span>
+<span class="sd">        from langchain_core.vectorstores import VectorStore</span>
+<span class="sd">        from langchain_tests.integration_tests.vectorstores import ReadWriteTestSuite</span>
+
+<span class="sd">        from langchain_chroma import Chroma</span>
+
+
+<span class="sd">        class TestSync(ReadWriteTestSuite):</span>
+<span class="sd">            @pytest.fixture()</span>
+<span class="sd">            def vectorstore(self) -&gt; Generator[VectorStore, None, None]:  # type: ignore</span>
+<span class="sd">                \"\"\"Get an empty vectorstore.\"\"\"</span>
+<span class="sd">                store = Chroma(embedding_function=self.get_embeddings())</span>
+<span class="sd">                try:</span>
+<span class="sd">                    yield store</span>
+<span class="sd">                finally:</span>
+<span class="sd">                    store.delete_collection()</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
 <div class="viewcode-block" id="ReadWriteTestSuite.vectorstore">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.vectorstore">[docs]</a>
@@ -257,7 +307,13 @@
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.get_embeddings">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_embeddings</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""A pre-defined embeddings model that should be used for this test."""</span>
+<span class="w">        </span><span class="sd">"""A pre-defined embeddings model that should be used for this test.</span>
+
+<span class="sd">        This currently uses ``DeterministicFakeEmbedding`` from ``langchain-core``,</span>
+<span class="sd">        which uses numpy to generate random numbers based on a hash of the input text.</span>
+
+<span class="sd">        The resulting embeddings are not meaningful, but they are deterministic.</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">DeterministicFakeEmbedding</span><span class="p">(</span>
             <span class="n">size</span><span class="o">=</span><span class="n">EMBEDDING_SIZE</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -266,14 +322,30 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_vectorstore_is_empty">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_vectorstore_is_empty">[docs]</a>
     <span class="k">def</span> <span class="nf">test_vectorstore_is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that the vectorstore is empty."""</span>
+<span class="w">        </span><span class="sd">"""Test that the vectorstore is empty.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that the test class (i.e., sub class of</span>
+<span class="sd">            ``ReadWriteTestSuite``) initializes an empty vector store in the</span>
+<span class="sd">            ``vectorestore`` fixture.</span>
+<span class="sd">        """</span>
         <span class="k">assert</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span></div>
 
 
 <div class="viewcode-block" id="ReadWriteTestSuite.test_add_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents">[docs]</a>
     <span class="k">def</span> <span class="nf">test_add_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test adding documents into the vectorstore."""</span>
+<span class="w">        </span><span class="sd">"""Test adding documents into the vectorstore.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that:</span>
+
+<span class="sd">            1. We correctly initialize an empty vector store in the ``vectorestore`` fixture.</span>
+<span class="sd">            2. Calling ``.similarity_search`` for the top ``k`` similar documents does not threshold by score.</span>
+<span class="sd">            3. We do not mutate the original document object when adding it to the vector store (e.g., by adding an ID).</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">original_documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -299,6 +371,12 @@
 
 <span class="sd">        This just verifies that the fixture is set up properly to be empty</span>
 <span class="sd">        after each test.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that the test class (i.e., sub class of</span>
+<span class="sd">            ``ReadWriteTestSuite``) correctly clears the vector store in the</span>
+<span class="sd">            ``finally`` block.</span>
 <span class="sd">        """</span>
         <span class="k">assert</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span></div>
 
@@ -306,7 +384,14 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_deleting_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_documents">[docs]</a>
     <span class="k">def</span> <span class="nf">test_deleting_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test deleting documents from the vectorstore."""</span>
+<span class="w">        </span><span class="sd">"""Test deleting documents from the vectorstore.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``add_documents`` preserves identifiers</span>
+<span class="sd">            passed in through ``ids``, and that ``delete`` correctly removes</span>
+<span class="sd">            documents.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -321,7 +406,13 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_deleting_bulk_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_deleting_bulk_documents">[docs]</a>
     <span class="k">def</span> <span class="nf">test_deleting_bulk_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that we can delete several documents at once."""</span>
+<span class="w">        </span><span class="sd">"""Test that we can delete several documents at once.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``delete`` correctly removes multiple</span>
+<span class="sd">            documents when given a list of IDs.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -337,7 +428,13 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_delete_missing_content">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_delete_missing_content">[docs]</a>
     <span class="k">def</span> <span class="nf">test_delete_missing_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Deleting missing content should not raise an exception."""</span>
+<span class="w">        </span><span class="sd">"""Deleting missing content should not raise an exception.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``delete`` does not raise an exception</span>
+<span class="sd">            when deleting IDs that do not exist.</span>
+<span class="sd">        """</span>
         <span class="n">vectorstore</span><span class="o">.</span><span class="n">delete</span><span class="p">([</span><span class="s2">"1"</span><span class="p">])</span>
         <span class="n">vectorstore</span><span class="o">.</span><span class="n">delete</span><span class="p">([</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">])</span></div>
 
@@ -347,7 +444,14 @@
     <span class="k">def</span> <span class="nf">test_add_documents_with_ids_is_idempotent</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Adding by ID should be idempotent."""</span>
+<span class="w">        </span><span class="sd">"""Adding by ID should be idempotent.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that adding the same document twice with the</span>
+<span class="sd">            same IDs has the same effect as adding it once (i.e., it does not</span>
+<span class="sd">            duplicate the documents).</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -364,7 +468,14 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_add_documents_by_id_with_mutation">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_by_id_with_mutation">[docs]</a>
     <span class="k">def</span> <span class="nf">test_add_documents_by_id_with_mutation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that we can overwrite by ID using add_documents."""</span>
+<span class="w">        </span><span class="sd">"""Test that we can overwrite by ID using add_documents.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that when ``add_documents`` is called with an</span>
+<span class="sd">            ID that already exists in the vector store, the content is updated</span>
+<span class="sd">            rather than duplicated.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -396,7 +507,26 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_get_by_ids">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids">[docs]</a>
     <span class="k">def</span> <span class="nf">test_get_by_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test get by IDs."""</span>
+<span class="w">        </span><span class="sd">"""Test get by IDs.</span>
+
+<span class="sd">        This test requires that ``get_by_ids`` be implemented on the vector store.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    def test_get_by_ids(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        super().test_get_by_ids(vectorstore)</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -412,7 +542,24 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_get_by_ids_missing">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_get_by_ids_missing">[docs]</a>
     <span class="k">def</span> <span class="nf">test_get_by_ids_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test get by IDs with missing IDs."""</span>
+<span class="w">        </span><span class="sd">"""Test get by IDs with missing IDs.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and does not</span>
+<span class="sd">            raise an exception when given IDs that do not exist.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    def test_get_by_ids_missing(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        super().test_get_by_ids_missing(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="c1"># This should not raise an exception</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">get_by_ids</span><span class="p">([</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">documents</span> <span class="o">==</span> <span class="p">[]</span></div>
@@ -421,7 +568,27 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_add_documents_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_documents">[docs]</a>
     <span class="k">def</span> <span class="nf">test_add_documents_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Run add_documents tests."""</span>
+<span class="w">        </span><span class="sd">"""Run add_documents tests.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            Check also that ``add_documents`` will correctly generate string IDs if</span>
+<span class="sd">            none are provided.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    def test_add_documents_documents(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        super().test_add_documents_documents(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -436,7 +603,29 @@
 <div class="viewcode-block" id="ReadWriteTestSuite.test_add_documents_with_existing_ids">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.ReadWriteTestSuite.test_add_documents_with_existing_ids">[docs]</a>
     <span class="k">def</span> <span class="nf">test_add_documents_with_existing_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that add_documentsing with existing IDs is idempotent."""</span>
+<span class="w">        </span><span class="sd">"""Test that add_documents with existing IDs is idempotent.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            This test also verifies that:</span>
+
+<span class="sd">            1. IDs specified in the ``Document.id`` field are assigned when adding documents.</span>
+<span class="sd">            2. If some documents include IDs and others don't string IDs are generated for the latter.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    def test_add_documents_with_existing_ids(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        super().test_add_documents_with_existing_ids(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -454,18 +643,68 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite">[docs]</a>
 <span class="k">class</span> <span class="nc">AsyncReadWriteTestSuite</span><span class="p">(</span><span class="n">BaseStandardTests</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Test suite for checking the **async** read-write API of a vectorstore.</span>
-
-<span class="sd">    This test suite verifies the basic read-write API of a vectorstore.</span>
-
-<span class="sd">    The test suite is designed for asynchronous vectorstores.</span>
+<span class="w">    </span><span class="sd">"""Test suite for checking the async read-write API of a vector store.</span>
 
 <span class="sd">    Implementers should subclass this test suite and provide a fixture</span>
-<span class="sd">    that returns an empty vectorstore for each test.</span>
+<span class="sd">    that returns an empty vector store for each test.</span>
 
-<span class="sd">    The fixture should use the `get_embeddings` method to get a pre-defined</span>
+<span class="sd">    The fixture should use the ``get_embeddings`` method to get a pre-defined</span>
 <span class="sd">    embeddings model that should be used for this test suite.</span>
-<span class="sd">    """</span>
+
+<span class="sd">    Here is a template:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from typing import AsyncGenerator</span>
+
+<span class="sd">        import pytest</span>
+<span class="sd">        from langchain_core.vectorstores import VectorStore</span>
+<span class="sd">        from langchain_parrot_link.vectorstores import ParrotVectorStore</span>
+<span class="sd">        from langchain_tests.integration_tests.vectorstores import AsyncReadWriteTestSuite</span>
+
+
+<span class="sd">        class TestAsync(AsyncReadWriteTestSuite):</span>
+<span class="sd">            @pytest.fixture()</span>
+<span class="sd">            def vectorstore(self) -&gt; AsyncGenerator[VectorStore, None]:  # type: ignore</span>
+<span class="sd">                \"\"\"Get an empty vectorstore.\"\"\"</span>
+<span class="sd">                store = ParrotVectorStore(self.get_embeddings())</span>
+<span class="sd">                # note: store should be EMPTY at this point</span>
+<span class="sd">                # if you need to delete data, you may do so here</span>
+<span class="sd">                try:</span>
+<span class="sd">                    yield store</span>
+<span class="sd">                finally:</span>
+<span class="sd">                    # cleanup operations, or deleting data</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">    In the fixture, before the ``yield`` we instantiate an empty vector store. In the</span>
+<span class="sd">    ``finally`` block, we call whatever logic is necessary to bring the vector store</span>
+<span class="sd">    to a clean state.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        from typing import AsyncGenerator, Generator</span>
+
+<span class="sd">        import pytest</span>
+<span class="sd">        from langchain_core.vectorstores import VectorStore</span>
+<span class="sd">        from langchain_tests.integration_tests.vectorstores import AsyncReadWriteTestSuite</span>
+
+<span class="sd">        from langchain_chroma import Chroma</span>
+
+
+<span class="sd">        class TestAsync(AsyncReadWriteTestSuite):</span>
+<span class="sd">            @pytest.fixture()</span>
+<span class="sd">            async def vectorstore(self) -&gt; AsyncGenerator[VectorStore, None]:  # type: ignore</span>
+<span class="sd">                \"\"\"Get an empty vectorstore for unit tests.\"\"\"</span>
+<span class="sd">                store = Chroma(embedding_function=self.get_embeddings())</span>
+<span class="sd">                try:</span>
+<span class="sd">                    yield store</span>
+<span class="sd">                finally:</span>
+<span class="sd">                    store.delete_collection()</span>
+<span class="sd">                    pass</span>
+
+<span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.vectorstore">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.vectorstore">[docs]</a>
@@ -482,7 +721,13 @@
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.get_embeddings">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_embeddings</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""A pre-defined embeddings model that should be used for this test."""</span>
+<span class="w">        </span><span class="sd">"""A pre-defined embeddings model that should be used for this test.</span>
+
+<span class="sd">        This currently uses ``DeterministicFakeEmbedding`` from ``langchain-core``,</span>
+<span class="sd">        which uses numpy to generate random numbers based on a hash of the input text.</span>
+
+<span class="sd">        The resulting embeddings are not meaningful, but they are deterministic.</span>
+<span class="sd">        """</span>
         <span class="k">return</span> <span class="n">DeterministicFakeEmbedding</span><span class="p">(</span>
             <span class="n">size</span><span class="o">=</span><span class="n">EMBEDDING_SIZE</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -491,14 +736,30 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_vectorstore_is_empty">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_vectorstore_is_empty">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_vectorstore_is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that the vectorstore is empty."""</span>
+<span class="w">        </span><span class="sd">"""Test that the vectorstore is empty.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that the test class (i.e., sub class of</span>
+<span class="sd">            ``AsyncReadWriteTestSuite``) initializes an empty vector store in the</span>
+<span class="sd">            ``vectorestore`` fixture.</span>
+<span class="sd">        """</span>
         <span class="k">assert</span> <span class="k">await</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">asimilarity_search</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span></div>
 
 
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_add_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_add_documents">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_add_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test adding documents into the vectorstore."""</span>
+<span class="w">        </span><span class="sd">"""Test adding documents into the vectorstore.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that:</span>
+
+<span class="sd">            1. We correctly initialize an empty vector store in the ``vectorestore`` fixture.</span>
+<span class="sd">            2. Calling ``.asimilarity_search`` for the top ``k`` similar documents does not threshold by score.</span>
+<span class="sd">            3. We do not mutate the original document object when adding it to the vector store (e.g., by adding an ID).</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">original_documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -525,6 +786,12 @@
 
 <span class="sd">        This just verifies that the fixture is set up properly to be empty</span>
 <span class="sd">        after each test.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that the test class (i.e., sub class of</span>
+<span class="sd">            ``AsyncReadWriteTestSuite``) correctly clears the vector store in the</span>
+<span class="sd">            ``finally`` block.</span>
 <span class="sd">        """</span>
         <span class="k">assert</span> <span class="k">await</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">asimilarity_search</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span></div>
 
@@ -532,7 +799,14 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_deleting_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_deleting_documents">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_deleting_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test deleting documents from the vectorstore."""</span>
+<span class="w">        </span><span class="sd">"""Test deleting documents from the vectorstore.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``aadd_documents`` preserves identifiers</span>
+<span class="sd">            passed in through ``ids``, and that ``delete`` correctly removes</span>
+<span class="sd">            documents.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -547,7 +821,13 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_deleting_bulk_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_deleting_bulk_documents">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_deleting_bulk_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that we can delete several documents at once."""</span>
+<span class="w">        </span><span class="sd">"""Test that we can delete several documents at once.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``adelete`` correctly removes multiple</span>
+<span class="sd">            documents when given a list of IDs.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -563,7 +843,13 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_delete_missing_content">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_delete_missing_content">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_delete_missing_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Deleting missing content should not raise an exception."""</span>
+<span class="w">        </span><span class="sd">"""Deleting missing content should not raise an exception.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``adelete`` does not raise an exception</span>
+<span class="sd">            when deleting IDs that do not exist.</span>
+<span class="sd">        """</span>
         <span class="k">await</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">adelete</span><span class="p">([</span><span class="s2">"1"</span><span class="p">])</span>
         <span class="k">await</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">adelete</span><span class="p">([</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">])</span></div>
 
@@ -573,7 +859,14 @@
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_add_documents_with_ids_is_idempotent</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Adding by ID should be idempotent."""</span>
+<span class="w">        </span><span class="sd">"""Adding by ID should be idempotent.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that adding the same document twice with the</span>
+<span class="sd">            same IDs has the same effect as adding it once (i.e., it does not</span>
+<span class="sd">            duplicate the documents).</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -592,7 +885,14 @@
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_add_documents_by_id_with_mutation</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that we can overwrite by ID using add_documents."""</span>
+<span class="w">        </span><span class="sd">"""Test that we can overwrite by ID using add_documents.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that when ``aadd_documents`` is called with an</span>
+<span class="sd">            ID that already exists in the vector store, the content is updated</span>
+<span class="sd">            rather than duplicated.</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -624,7 +924,26 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_get_by_ids">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_get_by_ids">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_get_by_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test get by IDs."""</span>
+<span class="w">        </span><span class="sd">"""Test get by IDs.</span>
+
+<span class="sd">        This test requires that ``get_by_ids`` be implemented on the vector store.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    async def test_get_by_ids(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        await super().test_get_by_ids(vectorstore)</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -640,7 +959,24 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_get_by_ids_missing">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_get_by_ids_missing">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_get_by_ids_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test get by IDs with missing IDs."""</span>
+<span class="w">        </span><span class="sd">"""Test get by IDs with missing IDs.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and does not</span>
+<span class="sd">            raise an exception when given IDs that do not exist.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    async def test_get_by_ids_missing(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        await super().test_get_by_ids_missing(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="c1"># This should not raise an exception</span>
         <span class="k">assert</span> <span class="k">await</span> <span class="n">vectorstore</span><span class="o">.</span><span class="n">aget_by_ids</span><span class="p">([</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">])</span> <span class="o">==</span> <span class="p">[]</span></div>
 
@@ -648,7 +984,27 @@
 <div class="viewcode-block" id="AsyncReadWriteTestSuite.test_add_documents_documents">
 <a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.html#langchain_tests.integration_tests.vectorstores.AsyncReadWriteTestSuite.test_add_documents_documents">[docs]</a>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_add_documents_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Run add_documents tests."""</span>
+<span class="w">        </span><span class="sd">"""Run add_documents tests.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            Check also that ``aadd_documents`` will correctly generate string IDs if</span>
+<span class="sd">            none are provided.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    async def test_add_documents_documents(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        await super().test_add_documents_documents(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
@@ -665,7 +1021,29 @@
     <span class="k">async</span> <span class="k">def</span> <span class="nf">test_add_documents_with_existing_ids</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Test that add_documentsing with existing IDs is idempotent."""</span>
+<span class="w">        </span><span class="sd">"""Test that add_documents with existing IDs is idempotent.</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check that ``get_by_ids`` is implemented and returns</span>
+<span class="sd">            documents in the same order as the IDs passed in.</span>
+
+<span class="sd">            This test also verifies that:</span>
+
+<span class="sd">            1. IDs specified in the ``Document.id`` field are assigned when adding documents.</span>
+<span class="sd">            2. If some documents include IDs and others don't string IDs are generated for the latter.</span>
+
+<span class="sd">            .. note::</span>
+<span class="sd">                ``get_by_ids`` was added to the ``VectorStore`` interface in</span>
+<span class="sd">                ``langchain-core`` version 0.2.11. If difficult to implement, this</span>
+<span class="sd">                test can be skipped using a pytest ``xfail`` on the test class:</span>
+
+<span class="sd">                .. code-block:: python</span>
+
+<span class="sd">                    @pytest.mark.xfail(reason=("get_by_ids not implemented."))</span>
+<span class="sd">                    async def test_add_documents_with_existing_ids(self, vectorstore: VectorStore) -&gt; None:</span>
+<span class="sd">                        await super().test_add_documents_with_existing_ids(vectorstore)</span>
+<span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">page_content</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}),</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="s2">"bar"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"id"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}),</span>
