@@ -26,7 +26,7 @@
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../_static/css/custom.css?v=540515bc" rel="stylesheet" type="text/css"/>
+<link href="../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 05, 2024" name="docbuild:last-update"/>
+<meta content="Dec 06, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -239,7 +239,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">TypedDict</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span><span class="p">,</span> <span class="n">TypedDict</span>
 
 <span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
@@ -397,6 +397,18 @@
             <span class="bp">cls</span><span class="o">.</span><span class="n">_aget_relevant_documents</span> <span class="o">=</span> <span class="n">aswap</span>  <span class="c1"># type: ignore[assignment]</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_get_relevant_documents</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_new_arg_supported</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_manager"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_new_arg_supported</span>
+            <span class="ow">and</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_aget_relevant_documents</span> <span class="o">==</span> <span class="n">BaseRetriever</span><span class="o">.</span><span class="n">_aget_relevant_documents</span>
+        <span class="p">):</span>
+            <span class="c1"># we need to tolerate no run_manager in _aget_relevant_documents signature</span>
+            <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_relevant_documents</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="k">await</span> <span class="n">run_in_executor</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_relevant_documents</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_aget_relevant_documents</span> <span class="o">=</span> <span class="n">_aget_relevant_documents</span>  <span class="c1"># type: ignore[assignment]</span>
+
         <span class="c1"># If a V1 retriever broke the interface and expects additional arguments</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_expects_other_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="p">{</span><span class="s2">"self"</span><span class="p">,</span> <span class="s2">"query"</span><span class="p">,</span> <span class="s2">"run_manager"</span><span class="p">})</span> <span class="o">&gt;</span> <span class="mi">0</span>
