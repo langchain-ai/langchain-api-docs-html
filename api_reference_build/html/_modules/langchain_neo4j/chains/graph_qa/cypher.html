@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 08, 2024" name="docbuild:last-update"/>
+<meta content="Dec 09, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -218,7 +218,6 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">langchain.chains.base</span> <span class="kn">import</span> <span class="n">Chain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
 <span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">CallbackManagerForChainRun</span>
 <span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
 <span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
@@ -388,8 +387,8 @@
 <span class="sd">    """</span>
 
     <span class="n">graph</span><span class="p">:</span> <span class="n">GraphStore</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">cypher_generation_chain</span><span class="p">:</span> <span class="n">LLMChain</span>
-    <span class="n">qa_chain</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LLMChain</span><span class="p">,</span> <span class="n">Runnable</span><span class="p">]</span>
+    <span class="n">cypher_generation_chain</span><span class="p">:</span> <span class="n">Runnable</span>
+    <span class="n">qa_chain</span><span class="p">:</span> <span class="n">Runnable</span>
     <span class="n">graph_schema</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">input_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"query"</span>  <span class="c1">#: :meta private:</span>
     <span class="n">output_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"result"</span>  <span class="c1">#: :meta private:</span>
@@ -486,28 +485,34 @@
                 <span class="s2">"You can specify up to two of 'cypher_llm', 'qa_llm'"</span>
                 <span class="s2">", and 'llm', but not all three simultaneously."</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">cypher_prompt</span> <span class="ow">and</span> <span class="n">cypher_llm_kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Specifying cypher_prompt and cypher_llm_kwargs together is"</span>
-                <span class="s2">" not allowed. Please pass prompt via cypher_llm_kwargs."</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">qa_prompt</span> <span class="ow">and</span> <span class="n">qa_llm_kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Specifying qa_prompt and qa_llm_kwargs together is"</span>
-                <span class="s2">" not allowed. Please pass prompt via qa_llm_kwargs."</span>
-            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cypher_prompt</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cypher_llm_kwargs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Specifying cypher_prompt and cypher_llm_kwargs together is"</span>
+                    <span class="s2">" not allowed. Please pass prompt via cypher_llm_kwargs."</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cypher_llm_kwargs</span><span class="p">:</span>
+                <span class="n">cypher_prompt</span> <span class="o">=</span> <span class="n">cypher_llm_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
+                    <span class="s2">"prompt"</span><span class="p">,</span> <span class="n">CYPHER_GENERATION_PROMPT</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cypher_prompt</span> <span class="o">=</span> <span class="n">CYPHER_GENERATION_PROMPT</span>
+        <span class="k">if</span> <span class="n">qa_prompt</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">qa_llm_kwargs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Specifying qa_prompt and qa_llm_kwargs together is"</span>
+                    <span class="s2">" not allowed. Please pass prompt via qa_llm_kwargs."</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">qa_llm_kwargs</span><span class="p">:</span>
+                <span class="n">qa_prompt</span> <span class="o">=</span> <span class="n">qa_llm_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"prompt"</span><span class="p">,</span> <span class="n">CYPHER_QA_PROMPT</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">qa_prompt</span> <span class="o">=</span> <span class="n">CYPHER_QA_PROMPT</span>
         <span class="n">use_qa_llm_kwargs</span> <span class="o">=</span> <span class="n">qa_llm_kwargs</span> <span class="k">if</span> <span class="n">qa_llm_kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="n">use_cypher_llm_kwargs</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cypher_llm_kwargs</span> <span class="k">if</span> <span class="n">cypher_llm_kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="s2">"prompt"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">use_qa_llm_kwargs</span><span class="p">:</span>
-            <span class="n">use_qa_llm_kwargs</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">qa_prompt</span> <span class="k">if</span> <span class="n">qa_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">CYPHER_QA_PROMPT</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="s2">"prompt"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">use_cypher_llm_kwargs</span><span class="p">:</span>
-            <span class="n">use_cypher_llm_kwargs</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cypher_prompt</span> <span class="k">if</span> <span class="n">cypher_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">CYPHER_GENERATION_PROMPT</span>
-            <span class="p">)</span>
 
         <span class="n">qa_llm</span> <span class="o">=</span> <span class="n">qa_llm</span> <span class="ow">or</span> <span class="n">llm</span>
         <span class="k">if</span> <span class="n">use_function_response</span><span class="p">:</span>
@@ -524,11 +529,11 @@
             <span class="k">except</span> <span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Provided LLM does not support native tools/functions"</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">qa_chain</span> <span class="o">=</span> <span class="n">LLMChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">qa_llm</span><span class="p">,</span> <span class="o">**</span><span class="n">use_qa_llm_kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">qa_chain</span> <span class="o">=</span> <span class="n">qa_prompt</span> <span class="o">|</span> <span class="n">qa_llm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">use_qa_llm_kwargs</span><span class="p">)</span> <span class="o">|</span> <span class="n">StrOutputParser</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
 
-        <span class="n">cypher_generation_chain</span> <span class="o">=</span> <span class="n">LLMChain</span><span class="p">(</span>
-            <span class="n">llm</span><span class="o">=</span><span class="n">cypher_llm</span> <span class="ow">or</span> <span class="n">llm</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
-            <span class="o">**</span><span class="n">use_cypher_llm_kwargs</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="n">cypher_llm</span> <span class="o">=</span> <span class="n">cypher_llm</span> <span class="ow">or</span> <span class="n">llm</span>
+        <span class="n">cypher_generation_chain</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">cypher_prompt</span> <span class="o">|</span> <span class="n">cypher_llm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">use_cypher_llm_kwargs</span><span class="p">)</span> <span class="o">|</span> <span class="n">StrOutputParser</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">exclude_types</span> <span class="ow">and</span> <span class="n">include_types</span><span class="p">:</span>
@@ -575,7 +580,9 @@
 
         <span class="n">intermediate_steps</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">generated_cypher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cypher_generation_chain</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">)</span>
+        <span class="n">generated_cypher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cypher_generation_chain</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span>
+            <span class="n">args</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span>
+        <span class="p">)</span>
 
         <span class="c1"># Extract Cypher code if it is wrapped in backticks</span>
         <span class="n">generated_cypher</span> <span class="o">=</span> <span class="n">extract_cypher</span><span class="p">(</span><span class="n">generated_cypher</span><span class="p">)</span>
@@ -617,7 +624,7 @@
                     <span class="p">{</span><span class="s2">"question"</span><span class="p">:</span> <span class="n">question</span><span class="p">,</span> <span class="s2">"context"</span><span class="p">:</span> <span class="n">context</span><span class="p">},</span>
                     <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">final_result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">qa_chain</span><span class="o">.</span><span class="n">output_key</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
+                <span class="n">final_result</span> <span class="o">=</span> <span class="n">result</span>  <span class="c1"># type: ignore</span>
 
         <span class="n">chain_result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_key</span><span class="p">:</span> <span class="n">final_result</span><span class="p">}</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_intermediate_steps</span><span class="p">:</span>

@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 08, 2024" name="docbuild:last-update"/>
+<meta content="Dec 09, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -281,6 +281,31 @@
 <span class="sd">        crowding_column (str, optional): Column to use for crowding.</span>
 <span class="sd">        distance_measure_type (str, optional): Distance measure type (default:</span>
 <span class="sd">            DOT_PRODUCT_DISTANCE).</span>
+<span class="sd">        enable_private_service_connect (bool, optional): Whether to enable Private </span>
+<span class="sd">            Service Connect for the online store at creation time. Defaults to False. </span>
+<span class="sd">        transport (Optional[Union[str, FeatureOnlineStoreServiceTransport, </span>
+<span class="sd">            Callable[..., FeatureOnlineStoreServiceTransport]]]): Transport </span>
+<span class="sd">            configuration for API requests. Can be a transport instance, string</span>
+<span class="sd">            identifier, or callable that returns a transport.</span>
+<span class="sd">            Required when using Private Service Connect for querying. Example:</span>
+<span class="sd">                ```python</span>
+<span class="sd">                import grpc</span>
+<span class="sd">                from google.cloud.aiplatform_v1.services.feature_online_store_service.\</span>
+<span class="sd">                    transports.grpc import FeatureOnlineStoreServiceGrpcTransport</span>
+
+<span class="sd">                transport = FeatureOnlineStoreServiceGrpcTransport(</span>
+<span class="sd">                    channel=grpc.insecure_channel("10.128.0.1:10002")</span>
+<span class="sd">                )</span>
+<span class="sd">                vertex_fs = VertexFSVectorStore(</span>
+<span class="sd">                    transport=transport,</span>
+<span class="sd">                    Your other params....</span>
+<span class="sd">                )</span>
+<span class="sd">                vertex_fs.similarity_search("My query") </span>
+<span class="sd">                ```</span>
+<span class="sd">        project_allowlist (List[str], optional): Only needed when </span>
+<span class="sd">            `enable_private_service_connect` is set to true. List of projects allowed </span>
+<span class="sd">            to access the online store. Required at creation time. </span>
+<span class="sd">            Defaults to empty list.</span>
 <span class="sd">    """</span>
 
     <span class="n">online_store_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -292,6 +317,9 @@
     <span class="n">crowding_column</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">distance_measure_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">online_store</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">enable_private_service_connect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">transport</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">project_allowlist</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">_user_agent</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="n">feature_view</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">_admin_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
@@ -299,9 +327,13 @@
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_initialize_bq_vector_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">vertexai</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1beta1</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1</span> <span class="kn">import</span> <span class="p">(</span>
             <span class="n">FeatureOnlineStoreAdminServiceClient</span><span class="p">,</span>
-            <span class="n">FeatureOnlineStoreServiceClient</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># ruff: noqa: E501</span>
+        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1.services.feature_online_store_service.transports.base</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="n">FeatureOnlineStoreServiceTransport</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="kn">from</span> <span class="nn">vertexai.resources.preview.feature_store</span> <span class="kn">import</span> <span class="p">(</span>
             <span class="n">utils</span><span class="p">,</span>  <span class="c1"># type: ignore[import-untyped]</span>
@@ -318,25 +350,25 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_name</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">view_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">view_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="p">,</span> <span class="n">FeatureOnlineStoreServiceTransport</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Transport must be an instance of "</span>
+                    <span class="s2">"FeatureOnlineStoreServiceTransport"</span>
+                <span class="p">)</span>
 
         <span class="n">api_endpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">-aiplatform.googleapis.com"</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_admin_client</span> <span class="o">=</span> <span class="n">FeatureOnlineStoreAdminServiceClient</span><span class="p">(</span>
             <span class="n">client_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_endpoint"</span><span class="p">:</span> <span class="n">api_endpoint</span><span class="p">},</span>
             <span class="n">client_info</span><span class="o">=</span><span class="n">get_client_info</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span> <span class="o">=</span> <span class="n">_create_online_store</span><span class="p">(</span>
-            <span class="n">project_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span>
-            <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-            <span class="n">online_store_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span><span class="p">,</span>
-            <span class="n">_admin_client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_admin_client</span><span class="p">,</span>
-            <span class="n">_logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_online_store</span><span class="p">()</span>
+
         <span class="n">gca_resource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="o">.</span><span class="n">gca_resource</span>
-        <span class="n">endpoint</span> <span class="o">=</span> <span class="n">gca_resource</span><span class="o">.</span><span class="n">dedicated_serving_endpoint</span><span class="o">.</span><span class="n">public_endpoint_domain_name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_search_client</span> <span class="o">=</span> <span class="n">FeatureOnlineStoreServiceClient</span><span class="p">(</span>
-            <span class="n">client_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_endpoint"</span><span class="p">:</span> <span class="n">endpoint</span><span class="p">},</span>
-            <span class="n">client_info</span><span class="o">=</span><span class="n">get_client_info</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">),</span>
+        <span class="n">public_endpoint</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">gca_resource</span><span class="o">.</span><span class="n">dedicated_serving_endpoint</span><span class="o">.</span><span class="n">public_endpoint_domain_name</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_search_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_search_client</span><span class="p">(</span><span class="n">public_endpoint</span><span class="o">=</span><span class="n">public_endpoint</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_view</span> <span class="o">=</span> <span class="n">_get_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">view_name</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -345,16 +377,22 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">_init_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1beta1</span> <span class="kn">import</span> <span class="n">FeatureOnlineStoreServiceClient</span>
+    <span class="k">def</span> <span class="nf">_get_search_client</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">public_endpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1</span> <span class="kn">import</span> <span class="n">FeatureOnlineStoreServiceClient</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_online_store</span><span class="p">()</span>
-        <span class="n">gca_resource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="o">.</span><span class="n">gca_resource</span>
-        <span class="n">endpoint</span> <span class="o">=</span> <span class="n">gca_resource</span><span class="o">.</span><span class="n">dedicated_serving_endpoint</span><span class="o">.</span><span class="n">public_endpoint_domain_name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_search_client</span> <span class="o">=</span> <span class="n">FeatureOnlineStoreServiceClient</span><span class="p">(</span>
-            <span class="n">client_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_endpoint"</span><span class="p">:</span> <span class="n">endpoint</span><span class="p">},</span>
+        <span class="k">return</span> <span class="n">FeatureOnlineStoreServiceClient</span><span class="p">(</span>
+            <span class="n">transport</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="p">,</span>
+            <span class="n">client_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_endpoint"</span><span class="p">:</span> <span class="n">public_endpoint</span><span class="p">},</span>
             <span class="n">client_info</span><span class="o">=</span><span class="n">get_client_info</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">),</span>
         <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_online_store</span><span class="p">()</span>
+        <span class="n">gca_resource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="o">.</span><span class="n">gca_resource</span>
+        <span class="n">public_endpoint</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">gca_resource</span><span class="o">.</span><span class="n">dedicated_serving_endpoint</span><span class="o">.</span><span class="n">public_endpoint_domain_name</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_search_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_search_client</span><span class="p">(</span><span class="n">public_endpoint</span><span class="o">=</span><span class="n">public_endpoint</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_feature_view</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_validate_bq_existing_source</span><span class="p">(</span>
@@ -435,12 +473,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_wait_until_dummy_query_success</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">"""Performs a similarity search using vector embeddings</span>
@@ -459,7 +496,6 @@
 <span class="sd">                                "int_property": 123</span>
 <span class="sd">                            }</span>
 <span class="sd">            k: The number of top results to return for each query.</span>
-<span class="sd">            batch_size: The size of batches to process embeddings.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A list of lists of lists. Each inner list represents the results for a</span>
@@ -613,7 +649,7 @@
         <span class="n">leaf_nodes_search_fraction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableSequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
         <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">aiplatform</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1beta1.types</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1.types</span> <span class="kn">import</span> <span class="p">(</span>
             <span class="n">NearestNeighborQuery</span><span class="p">,</span>
             <span class="n">feature_online_store_service</span><span class="p">,</span>
         <span class="p">)</span>
@@ -643,14 +679,36 @@
 
     <span class="k">def</span> <span class="nf">_create_online_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="c1"># Search for existing Online store</span>
+        <span class="kn">import</span> <span class="nn">vertexai</span>
+
+        <span class="n">stores_list</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
+            <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span>
+            <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">store</span>
+
+        <span class="c1"># Create it otherwise</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">_create_online_store</span><span class="p">(</span>
-                <span class="n">project_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span>
+            <span class="n">fos</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">create_optimized_store</span><span class="p">(</span>
+                <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span>
                 <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-                <span class="n">online_store_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span><span class="p">,</span>
-                <span class="n">_admin_client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_admin_client</span><span class="p">,</span>
-                <span class="n">_logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">online_store_name</span><span class="p">,</span>
+                <span class="n">enable_private_service_connect</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_private_service_connect</span><span class="p">,</span>
+                <span class="n">project_allowlist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_allowlist</span><span class="p">,</span>
+                <span class="n">credentials</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_private_service_connect</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">"Optimized Store created with Private Service Connect Enabled. "</span>
+                    <span class="s2">"Please follow instructions in "</span>
+                    <span class="s2">"https://cloud.google.com/vertex-ai/docs/featurestore/latest/"</span>
+                    <span class="s2">"serve-feature-values#optimized_serving_private to setup PSC. "</span>
+                    <span class="s2">"Note that Service attachment string will be available after "</span>
+                    <span class="s2">"the first feature view creation and sync."</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">fos</span>
 
     <span class="k">def</span> <span class="nf">_create_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">vertexai</span>
@@ -751,47 +809,6 @@
         <span class="k">return</span> <span class="n">bq_obj</span></div>
 </div>
 
-
-
-<span class="k">def</span> <span class="nf">_create_online_store</span><span class="p">(</span>
-    <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">online_store_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">_logger</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">_admin_client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="c1"># Search for existing Online store</span>
-    <span class="kn">import</span> <span class="nn">vertexai</span>
-    <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1beta1.types</span> <span class="kn">import</span> <span class="p">(</span>
-        <span class="n">feature_online_store</span> <span class="k">as</span> <span class="n">feature_online_store_pb2</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">stores_list</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
-        <span class="n">project</span><span class="o">=</span><span class="n">project_id</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores_list</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">online_store_name</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">store</span>
-
-    <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Creating feature store online store"</span><span class="p">)</span>
-    <span class="c1"># Create it otherwise</span>
-
-    <span class="n">online_store_config</span> <span class="o">=</span> <span class="n">feature_online_store_pb2</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="p">(</span>
-        <span class="n">optimized</span><span class="o">=</span><span class="n">feature_online_store_pb2</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">Optimized</span><span class="p">()</span>
-    <span class="p">)</span>
-    <span class="n">create_store_lro</span> <span class="o">=</span> <span class="n">_admin_client</span><span class="o">.</span><span class="n">create_feature_online_store</span><span class="p">(</span>
-        <span class="n">parent</span><span class="o">=</span><span class="sa">f</span><span class="s2">"projects/</span><span class="si">{</span><span class="n">project_id</span><span class="si">}</span><span class="s2">/locations/</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-        <span class="n">feature_online_store_id</span><span class="o">=</span><span class="n">online_store_name</span><span class="p">,</span>
-        <span class="n">feature_online_store</span><span class="o">=</span><span class="n">online_store_config</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">create_store_lro</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
-    <span class="n">_logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">create_store_lro</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
-    <span class="n">stores_list</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
-        <span class="n">project</span><span class="o">=</span><span class="n">project_id</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores_list</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">store</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">online_store_name</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">store</span>
 
 
 <span class="k">def</span> <span class="nf">_get_feature_view</span><span class="p">(</span><span class="n">online_store</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
