@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 11, 2024" name="docbuild:last-update"/>
+<meta content="Dec 12, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -521,7 +521,7 @@
         <span class="k">if</span> <span class="n">table_to_query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">embeddings_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">            with embeddings as (</span>
-<span class="s2">            SELECT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_field</span><span class="si">}</span><span class="s2">, ROW_NUMBER() OVER() as row_num</span>
+<span class="s2">            SELECT </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_field</span><span class="si">}</span><span class="s2">, row_num</span>
 <span class="s2">            from `</span><span class="si">{</span><span class="n">table_to_query</span><span class="si">}</span><span class="s2">`</span>
 <span class="s2">            )"""</span>
 
@@ -610,6 +610,7 @@
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([])</span>
 
         <span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">embeddings</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">"row_num"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)))</span>
         <span class="n">table_id</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="si">}</span><span class="s2">."</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">temp_dataset_name</span><span class="si">}</span><span class="s2">."</span>
@@ -617,7 +618,8 @@
         <span class="p">)</span>
 
         <span class="n">schema</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">bigquery</span><span class="o">.</span><span class="n">SchemaField</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_field</span><span class="p">,</span> <span class="s2">"FLOAT64"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"REPEATED"</span><span class="p">)</span>
+            <span class="n">bigquery</span><span class="o">.</span><span class="n">SchemaField</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_field</span><span class="p">,</span> <span class="s2">"FLOAT64"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"REPEATED"</span><span class="p">),</span>
+            <span class="n">bigquery</span><span class="o">.</span><span class="n">SchemaField</span><span class="p">(</span><span class="s2">"row_num"</span><span class="p">,</span> <span class="s2">"INT64"</span><span class="p">),</span>
         <span class="p">]</span>
         <span class="n">table_ref</span> <span class="o">=</span> <span class="n">bigquery</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">table_id</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
         <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bq_client</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span><span class="n">table_ref</span><span class="p">)</span>
@@ -705,7 +707,7 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">queries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span><span class="n">queries</span><span class="p">)</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="k">for</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">embeddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Could not obtain embeddings - value is None."</span><span class="p">)</span>

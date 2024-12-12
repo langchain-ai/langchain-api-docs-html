@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 11, 2024" name="docbuild:last-update"/>
+<meta content="Dec 12, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -240,15 +240,25 @@
 <span class="k">def</span> <span class="nf">_get_anthropic_claude_token_cost</span><span class="p">(</span>
     <span class="n">prompt_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">completion_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">model_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">model_id</span><span class="p">:</span>
+        <span class="c1"># The model ID can be a cross-region (system-defined) inference profile ID,</span>
+        <span class="c1"># which has a prefix indicating the region (e.g., 'us', 'eu') but</span>
+        <span class="c1"># shares the same token costs as the "base model".</span>
+        <span class="c1"># By extracting the "base model ID", by taking the last two segments</span>
+        <span class="c1"># of the model ID, we can map cross-region inference profile IDs to</span>
+        <span class="c1"># their corresponding cost entries.</span>
+        <span class="n">base_model_id</span> <span class="o">=</span> <span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"."</span> <span class="o">+</span> <span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">base_model_id</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Get the cost of tokens for the Claude model."""</span>
-    <span class="k">if</span> <span class="n">model_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MODEL_COST_PER_1K_INPUT_TOKENS</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">base_model_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MODEL_COST_PER_1K_INPUT_TOKENS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Unknown model: </span><span class="si">{</span><span class="n">model_id</span><span class="si">}</span><span class="s2">. Please provide a valid Anthropic model name."</span>
             <span class="s2">"Known models are: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MODEL_COST_PER_1K_INPUT_TOKENS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">prompt_tokens</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">*</span> <span class="n">MODEL_COST_PER_1K_INPUT_TOKENS</span><span class="p">[</span><span class="n">model_id</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">prompt_tokens</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">*</span> <span class="n">MODEL_COST_PER_1K_INPUT_TOKENS</span><span class="p">[</span><span class="n">base_model_id</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span>
         <span class="n">completion_tokens</span> <span class="o">/</span> <span class="mi">1000</span>
-    <span class="p">)</span> <span class="o">*</span> <span class="n">MODEL_COST_PER_1K_OUTPUT_TOKENS</span><span class="p">[</span><span class="n">model_id</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">*</span> <span class="n">MODEL_COST_PER_1K_OUTPUT_TOKENS</span><span class="p">[</span><span class="n">base_model_id</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="BedrockAnthropicTokenUsageCallbackHandler">

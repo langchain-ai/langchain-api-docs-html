@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 11, 2024" name="docbuild:last-update"/>
+<meta content="Dec 12, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -260,7 +260,9 @@
     <span class="n">VECTOR_IVF</span> <span class="o">=</span> <span class="s2">"vector-ivf"</span>
 <span class="w">    </span><span class="sd">"""IVF vector index"""</span>
     <span class="n">VECTOR_HNSW</span> <span class="o">=</span> <span class="s2">"vector-hnsw"</span>
-<span class="w">    </span><span class="sd">"""HNSW vector index"""</span></div>
+<span class="w">    </span><span class="sd">"""HNSW vector index"""</span>
+    <span class="n">VECTOR_DISKANN</span> <span class="o">=</span> <span class="s2">"vector-diskann"</span>
+<span class="w">    </span><span class="sd">"""DISKANN vector index"""</span></div>
 
 
 
@@ -418,6 +420,8 @@
         <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"vector-ivf"</span><span class="p">,</span>
         <span class="n">m</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
         <span class="n">ef_construction</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Creates an index using the index name specified at</span>
 <span class="sd">            instance construction</span>
@@ -452,6 +456,7 @@
 <span class="sd">                    - vector-ivf</span>
 <span class="sd">                    - vector-hnsw: available as a preview feature only,</span>
 <span class="sd">                                   to enable visit https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/preview-features</span>
+<span class="sd">                    - vector-diskann: available as a preview feature only</span>
 <span class="sd">            num_lists: This integer is the number of clusters that the</span>
 <span class="sd">                inverted file (IVF) index uses to group the vector data.</span>
 <span class="sd">                We recommend that numLists is set to documentCount/1000</span>
@@ -476,6 +481,12 @@
 <span class="sd">                            better index quality and higher accuracy, but it will</span>
 <span class="sd">                            also increase the time required to build the index.</span>
 <span class="sd">                            ef_construction has to be at least 2 * m</span>
+<span class="sd">            max_degree: Max number of neighbors.</span>
+<span class="sd">                Default value is 32, range from 20 to 2048.</span>
+<span class="sd">                Only vector-diskann search supports this for now.</span>
+<span class="sd">            l_build: l value for index building.</span>
+<span class="sd">                Default value is 50, range from 10 to 500.</span>
+<span class="sd">                Only vector-diskann search supports this for now.</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            An object describing the created index</span>
 
@@ -490,6 +501,10 @@
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_HNSW</span><span class="p">:</span>
             <span class="n">create_index_commands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_vector_index_hnsw</span><span class="p">(</span>
                 <span class="n">kind</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">ef_construction</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">dimensions</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_DISKANN</span><span class="p">:</span>
+            <span class="n">create_index_commands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_vector_index_diskann</span><span class="p">(</span>
+                <span class="n">kind</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">,</span> <span class="n">l_build</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">dimensions</span>
             <span class="p">)</span>
 
         <span class="c1"># retrieve the database object</span>
@@ -536,6 +551,27 @@
                         <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
                         <span class="s2">"m"</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span>
                         <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="n">ef_construction</span><span class="p">,</span>
+                        <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
+                        <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
+                    <span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">command</span>
+
+    <span class="k">def</span> <span class="nf">_get_vector_index_diskann</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"createIndexes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"indexes"</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_name</span><span class="p">,</span>
+                    <span class="s2">"key"</span><span class="p">:</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">:</span> <span class="s2">"cosmosSearch"</span><span class="p">},</span>
+                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+                        <span class="s2">"maxDegree"</span><span class="p">:</span> <span class="n">max_degree</span><span class="p">,</span>
+                        <span class="s2">"lBuild"</span><span class="p">:</span> <span class="n">l_build</span><span class="p">,</span>
                         <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
                         <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
                     <span class="p">},</span>
@@ -674,6 +710,7 @@
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Returns a list of documents with their scores</span>
@@ -686,12 +723,16 @@
 <span class="sd">                    - vector-ivf</span>
 <span class="sd">                    - vector-hnsw: available as a preview feature only,</span>
 <span class="sd">                                   to enable visit https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/preview-features</span>
+<span class="sd">                    - vector-diskann: available as a preview feature only</span>
 <span class="sd">            ef_search: The size of the dynamic candidate list for search</span>
 <span class="sd">                       (40 by default). A higher value provides better</span>
 <span class="sd">                       recall at the cost of speed.</span>
 <span class="sd">            score_threshold: (Optional[float], optional): Maximum vector distance</span>
 <span class="sd">                between selected documents and the query vector. Defaults to None.</span>
 <span class="sd">                Only vector-ivf search supports this for now.</span>
+<span class="sd">            l_search: l value for index searching.</span>
+<span class="sd">                Default value is 40, range from 10 to 10000.</span>
+<span class="sd">                Only vector-diskann search supports this.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A list of documents closest to the query vector</span>
@@ -702,6 +743,10 @@
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_HNSW</span><span class="p">:</span>
             <span class="n">pipeline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pipeline_vector_hnsw</span><span class="p">(</span>
                 <span class="n">embeddings</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">ef_search</span><span class="p">,</span> <span class="n">pre_filter</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_DISKANN</span><span class="p">:</span>
+            <span class="n">pipeline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pipeline_vector_diskann</span><span class="p">(</span>
+                <span class="n">embeddings</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l_search</span><span class="p">,</span> <span class="n">pre_filter</span>
             <span class="p">)</span>
 
         <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span><span class="n">pipeline</span><span class="p">)</span>
@@ -714,6 +759,9 @@
             <span class="n">document_object_field</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"document"</span><span class="p">)</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">document_object_field</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="p">)</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="n">document_object_field</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s2">"_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">document_object_field</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
+                <span class="s2">"_id"</span>
+            <span class="p">)</span>  <span class="c1"># '_id' is in new position</span>
             <span class="k">if</span> <span class="n">with_embedding</span><span class="p">:</span>
                 <span class="n">metadata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">document_object_field</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span>
@@ -780,6 +828,37 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">pipeline</span>
 
+    <span class="k">def</span> <span class="nf">_get_pipeline_vector_diskann</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
+        <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"vector"</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span>
+            <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">,</span>
+            <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
+            <span class="s2">"lSearch"</span><span class="p">:</span> <span class="n">l_search</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">pre_filter</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">"filter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pre_filter</span>
+
+        <span class="n">pipeline</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">"$search"</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">"cosmosSearch"</span><span class="p">:</span> <span class="n">params</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">"$project"</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">"similarityScore"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"$meta"</span><span class="p">:</span> <span class="s2">"searchScore"</span><span class="p">},</span>
+                    <span class="s2">"document"</span><span class="p">:</span> <span class="s2">"$$ROOT"</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">},</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">pipeline</span>
+
 <div class="viewcode-block" id="AzureCosmosDBVectorSearch.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db.AzureCosmosDBVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db.AzureCosmosDBVectorSearch.similarity_search_with_score">[docs]</a>
     <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
@@ -790,6 +869,7 @@
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -800,6 +880,7 @@
             <span class="n">pre_filter</span><span class="o">=</span><span class="n">pre_filter</span><span class="p">,</span>
             <span class="n">ef_search</span><span class="o">=</span><span class="n">ef_search</span><span class="p">,</span>
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+            <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span></div>
@@ -815,6 +896,7 @@
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
@@ -825,6 +907,7 @@
             <span class="n">pre_filter</span><span class="o">=</span><span class="n">pre_filter</span><span class="p">,</span>
             <span class="n">ef_search</span><span class="o">=</span><span class="n">ef_search</span><span class="p">,</span>
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+            <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_and_scores</span><span class="p">]</span></div>
@@ -842,6 +925,7 @@
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
@@ -854,6 +938,7 @@
             <span class="n">pre_filter</span><span class="o">=</span><span class="n">pre_filter</span><span class="p">,</span>
             <span class="n">ef_search</span><span class="o">=</span><span class="n">ef_search</span><span class="p">,</span>
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+            <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -880,6 +965,7 @@
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
@@ -895,6 +981,7 @@
             <span class="n">pre_filter</span><span class="o">=</span><span class="n">pre_filter</span><span class="p">,</span>
             <span class="n">ef_search</span><span class="o">=</span><span class="n">ef_search</span><span class="p">,</span>
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+            <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span></div>

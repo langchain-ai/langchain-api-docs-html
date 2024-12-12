@@ -44,7 +44,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 11, 2024" name="docbuild:last-update"/>
+<meta content="Dec 12, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1647,8 +1647,11 @@
 <span class="sd">            conditions for documents.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Callable[[Dict[str, Any]], bool]: A function that takes Document's metadata</span>
-<span class="sd">            and returns True if it satisfies the filter conditions, otherwise False.</span>
+<span class="sd">            A function that takes Document's metadata and returns True if it</span>
+<span class="sd">            satisfies the filter conditions, otherwise False.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the filter is invalid or contains unsuported operators.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">filter</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">filter</span>
@@ -1658,15 +1661,121 @@
                 <span class="sa">f</span><span class="s2">"filter must be a dict of metadata or a callable, not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">filter_func</span><span class="p">(</span><span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
-                <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">in</span> <span class="n">value</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-                <span class="k">else</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">==</span> <span class="n">value</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">filter</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
-            <span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">eq</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="n">gt</span><span class="p">,</span> <span class="n">le</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="n">ne</span>
 
-        <span class="k">return</span> <span class="n">filter_func</span></div>
+        <span class="n">COMPARISON_OPERATORS</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"$eq"</span><span class="p">:</span> <span class="n">eq</span><span class="p">,</span>
+            <span class="s2">"$neq"</span><span class="p">:</span> <span class="n">ne</span><span class="p">,</span>
+            <span class="s2">"$gt"</span><span class="p">:</span> <span class="n">gt</span><span class="p">,</span>
+            <span class="s2">"$lt"</span><span class="p">:</span> <span class="n">lt</span><span class="p">,</span>
+            <span class="s2">"$gte"</span><span class="p">:</span> <span class="n">ge</span><span class="p">,</span>
+            <span class="s2">"$lte"</span><span class="p">:</span> <span class="n">le</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">SEQUENCE_OPERATORS</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"$in"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">b</span><span class="p">,</span>
+            <span class="s2">"$nin"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">b</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">OPERATIONS</span> <span class="o">=</span> <span class="n">COMPARISON_OPERATORS</span> <span class="o">|</span> <span class="n">SEQUENCE_OPERATORS</span>
+        <span class="n">VALID_OPERATORS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">OPERATIONS</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"$and"</span><span class="p">,</span> <span class="s2">"$or"</span><span class="p">,</span> <span class="s2">"$not"</span><span class="p">])</span>
+        <span class="n">SET_CONVERT_THRESHOLD</span> <span class="o">=</span> <span class="mi">10</span>
+
+        <span class="c1"># Validate top-level filter operators.</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="ow">and</span> <span class="n">op</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"$"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_OPERATORS</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"filter contains unsupported operator: </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">filter_func_cond</span><span class="p">(</span>
+            <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">"""</span>
+<span class="sd">            Creates a filter function based on field and condition.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                field: The document field to filter on</span>
+<span class="sd">                condition: Filter condition (dict for operators, list for in,</span>
+<span class="sd">                           or direct value for equality)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                A filter function that takes a document and returns boolean</span>
+<span class="sd">            """</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">operators</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">condition</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">OPERATIONS</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"filter contains unsupported operator: </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">operators</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">OPERATIONS</span><span class="p">[</span><span class="n">op</span><span class="p">],</span> <span class="n">value</span><span class="p">))</span>
+
+                <span class="k">def</span> <span class="nf">filter_fn</span><span class="p">(</span><span class="n">doc</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">                    </span><span class="sd">"""</span>
+<span class="sd">                    Evaluates a document against a set of predefined operators</span>
+<span class="sd">                    and their values. This function applies multiple</span>
+<span class="sd">                    comparison/sequence operators to a specific field value</span>
+<span class="sd">                    from the document. All conditions must be satisfied for the</span>
+<span class="sd">                    function to return True.</span>
+
+<span class="sd">                    Args:</span>
+<span class="sd">                        doc (Dict[str, Any]): The document to evaluate, containing</span>
+<span class="sd">                        key-value pairs where keys are field names and values</span>
+<span class="sd">                        are the field values. The document must contain the field</span>
+<span class="sd">                        being filtered.</span>
+
+<span class="sd">                    Returns:</span>
+<span class="sd">                        bool: True if the document's field value satisfies all</span>
+<span class="sd">                            operator conditions, False otherwise.</span>
+<span class="sd">                    """</span>
+                    <span class="n">doc_value</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">op</span><span class="p">(</span><span class="n">doc_value</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">operators</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">filter_fn</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">SET_CONVERT_THRESHOLD</span><span class="p">:</span>
+                    <span class="n">condition_set</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="ow">in</span> <span class="n">condition_set</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="ow">in</span> <span class="n">condition</span>
+
+            <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="o">==</span> <span class="n">condition</span>
+
+        <span class="k">def</span> <span class="nf">filter_func</span><span class="p">(</span><span class="nb">filter</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">"""</span>
+<span class="sd">            Creates a filter function that evaluates documents against specified</span>
+<span class="sd">            filter conditions.</span>
+
+<span class="sd">            This function processes a dictionary of filter conditions and returns</span>
+<span class="sd">            a callable that can evaluate documents against these conditions. It</span>
+<span class="sd">            supports logical operators ($and, $or, $not) and field-level filtering.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                filter (Dict[str, Any]): A dictionary containing filter conditions.</span>
+<span class="sd">                Can include:</span>
+<span class="sd">                    - Logical operators ($and, $or, $not) with lists of sub-filters</span>
+<span class="sd">                    - Field-level conditions with comparison or sequence operators</span>
+<span class="sd">                    - Direct field-value mappings for equality comparison</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                Callable[[Dict[str, Any]], bool]: A function that takes a document</span>
+<span class="sd">                (as a dictionary) and returns True if the document matches all</span>
+<span class="sd">                filter conditions, False otherwise.</span>
+<span class="sd">            """</span>
+            <span class="k">if</span> <span class="s2">"$and"</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">:</span>
+                <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">filter_func</span><span class="p">(</span><span class="n">sub_filter</span><span class="p">)</span> <span class="k">for</span> <span class="n">sub_filter</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">[</span><span class="s2">"$and"</span><span class="p">]]</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">"$or"</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">:</span>
+                <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">filter_func</span><span class="p">(</span><span class="n">sub_filter</span><span class="p">)</span> <span class="k">for</span> <span class="n">sub_filter</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">[</span><span class="s2">"$or"</span><span class="p">]]</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">"$not"</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">:</span>
+                <span class="n">cond</span> <span class="o">=</span> <span class="n">filter_func</span><span class="p">(</span><span class="nb">filter</span><span class="p">[</span><span class="s2">"$not"</span><span class="p">])</span>
+                <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="ow">not</span> <span class="n">cond</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+
+            <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">filter_func_cond</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">condition</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">condition</span> <span class="ow">in</span> <span class="nb">filter</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="k">return</span> <span class="k">lambda</span> <span class="n">doc</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">condition</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span> <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">filter_func</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span></div>
 
 </pre></div>
 </article>
