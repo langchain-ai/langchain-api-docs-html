@@ -221,7 +221,7 @@
 <article class="bd-article">
 <h1>Source code for langchain_voyageai.embeddings</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">voyageai</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
@@ -261,8 +261,10 @@
     <span class="n">_aclient</span><span class="p">:</span> <span class="n">voyageai</span><span class="o">.</span><span class="n">client_async</span><span class="o">.</span><span class="n">AsyncClient</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">()</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="n">output_dimension</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">2048</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">show_progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">truncation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">truncation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">voyage_api_key</span><span class="p">:</span> <span class="n">SecretStr</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">alias</span><span class="o">=</span><span class="s2">"api_key"</span><span class="p">,</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span>
@@ -331,15 +333,14 @@
 
         <span class="n">_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_iter</span><span class="p">:</span>
-            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
-                    <span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">],</span>
-                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
-                    <span class="n">input_type</span><span class="o">=</span><span class="s2">"document"</span><span class="p">,</span>
-                    <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span><span class="p">,</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">embeddings</span>
-            <span class="p">)</span>
-
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
+                <span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">],</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">input_type</span><span class="o">=</span><span class="s2">"document"</span><span class="p">,</span>
+                <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span><span class="p">,</span>
+                <span class="n">output_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dimension</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">embeddings</span>
+            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">Iterable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="n">r</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">embeddings</span></div>
 
 
@@ -347,9 +348,14 @@
 <a class="viewcode-back" href="../../voyageai/embeddings/langchain_voyageai.embeddings.VoyageAIEmbeddings.html#langchain_voyageai.embeddings.VoyageAIEmbeddings.embed_query">[docs]</a>
     <span class="k">def</span> <span class="nf">embed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Embed query text."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">text</span><span class="p">],</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">input_type</span><span class="o">=</span><span class="s2">"query"</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">text</span><span class="p">],</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">input_type</span><span class="o">=</span><span class="s2">"query"</span><span class="p">,</span>
+            <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span><span class="p">,</span>
+            <span class="n">output_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dimension</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">r</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="VoyageAIEmbeddings.aembed_documents">
@@ -364,8 +370,9 @@
                 <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">input_type</span><span class="o">=</span><span class="s2">"document"</span><span class="p">,</span>
                 <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span><span class="p">,</span>
+                <span class="n">output_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dimension</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">embeddings</span><span class="p">)</span>
+            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">Iterable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="n">r</span><span class="o">.</span><span class="n">embeddings</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">embeddings</span></div>
 
@@ -378,8 +385,9 @@
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
             <span class="n">input_type</span><span class="o">=</span><span class="s2">"query"</span><span class="p">,</span>
             <span class="n">truncation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation</span><span class="p">,</span>
+            <span class="n">output_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dimension</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">r</span><span class="o">.</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 </div>
 
 </pre></div>
