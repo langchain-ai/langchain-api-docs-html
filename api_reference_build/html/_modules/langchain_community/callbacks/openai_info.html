@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 19, 2024" name="docbuild:last-update"/>
+<meta content="Dec 20, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,8 +223,10 @@
 <span></span><span class="sd">"""Callback Handler that prints to std out."""</span>
 
 <span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
+<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">warn_deprecated</span>
 <span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">BaseCallbackHandler</span>
 <span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">AIMessage</span>
 <span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">LLMResult</span>
@@ -232,26 +234,34 @@
 <span class="n">MODEL_COST_PER_1K_TOKENS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="c1"># OpenAI o1-preview input</span>
     <span class="s2">"o1-preview"</span><span class="p">:</span> <span class="mf">0.015</span><span class="p">,</span>
+    <span class="s2">"o1-preview-cached"</span><span class="p">:</span> <span class="mf">0.0075</span><span class="p">,</span>
     <span class="s2">"o1-preview-2024-09-12"</span><span class="p">:</span> <span class="mf">0.015</span><span class="p">,</span>
+    <span class="s2">"o1-preview-2024-09-12-cached"</span><span class="p">:</span> <span class="mf">0.0075</span><span class="p">,</span>
     <span class="c1"># OpenAI o1-preview output</span>
     <span class="s2">"o1-preview-completion"</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span>
     <span class="s2">"o1-preview-2024-09-12-completion"</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span>
     <span class="c1"># OpenAI o1-mini input</span>
     <span class="s2">"o1-mini"</span><span class="p">:</span> <span class="mf">0.003</span><span class="p">,</span>
+    <span class="s2">"o1-mini-cached"</span><span class="p">:</span> <span class="mf">0.0015</span><span class="p">,</span>
     <span class="s2">"o1-mini-2024-09-12"</span><span class="p">:</span> <span class="mf">0.003</span><span class="p">,</span>
+    <span class="s2">"o1-mini-2024-09-12-cached"</span><span class="p">:</span> <span class="mf">0.0015</span><span class="p">,</span>
     <span class="c1"># OpenAI o1-mini output</span>
     <span class="s2">"o1-mini-completion"</span><span class="p">:</span> <span class="mf">0.012</span><span class="p">,</span>
     <span class="s2">"o1-mini-2024-09-12-completion"</span><span class="p">:</span> <span class="mf">0.012</span><span class="p">,</span>
     <span class="c1"># GPT-4o-mini input</span>
     <span class="s2">"gpt-4o-mini"</span><span class="p">:</span> <span class="mf">0.00015</span><span class="p">,</span>
+    <span class="s2">"gpt-4o-mini-cached"</span><span class="p">:</span> <span class="mf">0.000075</span><span class="p">,</span>
     <span class="s2">"gpt-4o-mini-2024-07-18"</span><span class="p">:</span> <span class="mf">0.00015</span><span class="p">,</span>
+    <span class="s2">"gpt-4o-mini-2024-07-18-cached"</span><span class="p">:</span> <span class="mf">0.000075</span><span class="p">,</span>
     <span class="c1"># GPT-4o-mini output</span>
     <span class="s2">"gpt-4o-mini-completion"</span><span class="p">:</span> <span class="mf">0.0006</span><span class="p">,</span>
     <span class="s2">"gpt-4o-mini-2024-07-18-completion"</span><span class="p">:</span> <span class="mf">0.0006</span><span class="p">,</span>
     <span class="c1"># GPT-4o input</span>
     <span class="s2">"gpt-4o"</span><span class="p">:</span> <span class="mf">0.0025</span><span class="p">,</span>
+    <span class="s2">"gpt-4o-cached"</span><span class="p">:</span> <span class="mf">0.00125</span><span class="p">,</span>
     <span class="s2">"gpt-4o-2024-05-13"</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span>
     <span class="s2">"gpt-4o-2024-08-06"</span><span class="p">:</span> <span class="mf">0.0025</span><span class="p">,</span>
+    <span class="s2">"gpt-4o-2024-08-06-cached"</span><span class="p">:</span> <span class="mf">0.00125</span><span class="p">,</span>
     <span class="s2">"gpt-4o-2024-11-20"</span><span class="p">:</span> <span class="mf">0.0025</span><span class="p">,</span>
     <span class="c1"># GPT-4o output</span>
     <span class="s2">"gpt-4o-completion"</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
@@ -362,11 +372,24 @@
 <span class="p">}</span>
 
 
+<div class="viewcode-block" id="TokenType">
+<a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.openai_info.TokenType.html#langchain_community.callbacks.openai_info.TokenType">[docs]</a>
+<span class="k">class</span> <span class="nc">TokenType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Token type enum."""</span>
+
+    <span class="n">PROMPT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">PROMPT_CACHED</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">COMPLETION</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></div>
+
+
+
 <div class="viewcode-block" id="standardize_model_name">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.openai_info.standardize_model_name.html#langchain_community.callbacks.openai_info.standardize_model_name">[docs]</a>
 <span class="k">def</span> <span class="nf">standardize_model_name</span><span class="p">(</span>
     <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">is_completion</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">token_type</span><span class="p">:</span> <span class="n">TokenType</span> <span class="o">=</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">PROMPT</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Standardize the model name to a format that can be used in the OpenAI API.</span>
@@ -374,12 +397,24 @@
 <span class="sd">    Args:</span>
 <span class="sd">        model_name: Model name to standardize.</span>
 <span class="sd">        is_completion: Whether the model is used for completion or not.</span>
-<span class="sd">            Defaults to False.</span>
+<span class="sd">            Defaults to False. Deprecated in favor of ``token_type``.</span>
+<span class="sd">        token_type: Token type. Defaults to ``TokenType.PROMPT``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Standardized model name.</span>
 
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">is_completion</span><span class="p">:</span>
+        <span class="n">warn_deprecated</span><span class="p">(</span>
+            <span class="n">since</span><span class="o">=</span><span class="s2">"0.3.13"</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"is_completion is deprecated. Use token_type instead. Example:</span><span class="se">\n\n</span><span class="s2">"</span>
+                <span class="s2">"from langchain_community.callbacks.openai_info import TokenType</span><span class="se">\n\n</span><span class="s2">"</span>
+                <span class="s2">"standardize_model_name('gpt-4o', token_type=TokenType.COMPLETION)</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="p">),</span>
+            <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">token_type</span> <span class="o">=</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">COMPLETION</span>
     <span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">if</span> <span class="s2">".ft-"</span> <span class="ow">in</span> <span class="n">model_name</span><span class="p">:</span>
         <span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">".ft-"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"-azure-finetuned"</span>
@@ -387,7 +422,7 @@
         <span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"-finetuned-legacy"</span>
     <span class="k">if</span> <span class="s2">"ft:"</span> <span class="ow">in</span> <span class="n">model_name</span><span class="p">:</span>
         <span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"-finetuned"</span>
-    <span class="k">if</span> <span class="n">is_completion</span> <span class="ow">and</span> <span class="p">(</span>
+    <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">COMPLETION</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-4"</span><span class="p">)</span>
         <span class="ow">or</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-3.5"</span><span class="p">)</span>
         <span class="ow">or</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-35"</span><span class="p">)</span>
@@ -395,6 +430,10 @@
         <span class="ow">or</span> <span class="p">(</span><span class="s2">"finetuned"</span> <span class="ow">in</span> <span class="n">model_name</span> <span class="ow">and</span> <span class="s2">"legacy"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_name</span><span class="p">)</span>
     <span class="p">):</span>
         <span class="k">return</span> <span class="n">model_name</span> <span class="o">+</span> <span class="s2">"-completion"</span>
+    <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">PROMPT_CACHED</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-4o"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"o1"</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">model_name</span> <span class="o">+</span> <span class="s2">"-cached"</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">model_name</span></div>
 
@@ -403,7 +442,11 @@
 <div class="viewcode-block" id="get_openai_token_cost_for_model">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.openai_info.get_openai_token_cost_for_model.html#langchain_community.callbacks.openai_info.get_openai_token_cost_for_model">[docs]</a>
 <span class="k">def</span> <span class="nf">get_openai_token_cost_for_model</span><span class="p">(</span>
-    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_completion</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">num_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">is_completion</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">token_type</span><span class="p">:</span> <span class="n">TokenType</span> <span class="o">=</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">PROMPT</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get the cost in USD for a given model and number of tokens.</span>
@@ -412,12 +455,24 @@
 <span class="sd">        model_name: Name of the model</span>
 <span class="sd">        num_tokens: Number of tokens.</span>
 <span class="sd">        is_completion: Whether the model is used for completion or not.</span>
-<span class="sd">            Defaults to False.</span>
+<span class="sd">            Defaults to False. Deprecated in favor of ``token_type``.</span>
+<span class="sd">        token_type: Token type. Defaults to ``TokenType.PROMPT``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Cost in USD.</span>
 <span class="sd">    """</span>
-    <span class="n">model_name</span> <span class="o">=</span> <span class="n">standardize_model_name</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">is_completion</span><span class="o">=</span><span class="n">is_completion</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_completion</span><span class="p">:</span>
+        <span class="n">warn_deprecated</span><span class="p">(</span>
+            <span class="n">since</span><span class="o">=</span><span class="s2">"0.3.13"</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"is_completion is deprecated. Use token_type instead. Example:</span><span class="se">\n\n</span><span class="s2">"</span>
+                <span class="s2">"from langchain_community.callbacks.openai_info import TokenType</span><span class="se">\n\n</span><span class="s2">"</span>
+                <span class="s2">"get_openai_token_cost_for_model('gpt-4o', 10, token_type=TokenType.COMPLETION)</span><span class="se">\n</span><span class="s2">"</span>  <span class="c1"># noqa: E501</span>
+            <span class="p">),</span>
+            <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">token_type</span> <span class="o">=</span> <span class="n">TokenType</span><span class="o">.</span><span class="n">COMPLETION</span>
+    <span class="n">model_name</span> <span class="o">=</span> <span class="n">standardize_model_name</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">model_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MODEL_COST_PER_1K_TOKENS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Unknown model: </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">. Please provide a valid OpenAI model name."</span>
@@ -434,7 +489,9 @@
 
     <span class="n">total_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">prompt_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">prompt_tokens_cached</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">completion_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">reasoning_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">successful_requests</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_cost</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
 
@@ -449,7 +506,9 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Tokens Used: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_tokens</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="s2">Prompt Tokens: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt_tokens</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="se">\t\t</span><span class="s2">Prompt Tokens Cached: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prompt_tokens_cached</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="s2">Completion Tokens: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">completion_tokens</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="se">\t\t</span><span class="s2">Reasoning Tokens: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">reasoning_tokens</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"Successful Requests: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">successful_requests</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
             <span class="sa">f</span><span class="s2">"Total Cost (USD): $</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_cost</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
@@ -499,6 +558,10 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">usage_metadata</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">response_metadata</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">prompt_tokens_cached</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">reasoning_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+
         <span class="k">if</span> <span class="n">usage_metadata</span><span class="p">:</span>
             <span class="n">token_usage</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"total_tokens"</span><span class="p">:</span> <span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">]}</span>
             <span class="n">completion_tokens</span> <span class="o">=</span> <span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"output_tokens"</span><span class="p">]</span>
@@ -511,7 +574,12 @@
                 <span class="n">model_name</span> <span class="o">=</span> <span class="n">standardize_model_name</span><span class="p">(</span>
                     <span class="n">response</span><span class="o">.</span><span class="n">llm_output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_name"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
                 <span class="p">)</span>
-
+            <span class="k">if</span> <span class="s2">"cache_read"</span> <span class="ow">in</span> <span class="n">usage_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"input_token_details"</span><span class="p">,</span> <span class="p">{}):</span>
+                <span class="n">prompt_tokens_cached</span> <span class="o">=</span> <span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"input_token_details"</span><span class="p">][</span>
+                    <span class="s2">"cache_read"</span>
+                <span class="p">]</span>
+            <span class="k">if</span> <span class="s2">"reasoning"</span> <span class="ow">in</span> <span class="n">usage_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output_token_details"</span><span class="p">,</span> <span class="p">{}):</span>
+                <span class="n">reasoning_tokens</span> <span class="o">=</span> <span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"output_token_details"</span><span class="p">][</span><span class="s2">"reasoning"</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">llm_output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
@@ -528,11 +596,19 @@
             <span class="n">model_name</span> <span class="o">=</span> <span class="n">standardize_model_name</span><span class="p">(</span>
                 <span class="n">response</span><span class="o">.</span><span class="n">llm_output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_name"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
             <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">model_name</span> <span class="ow">in</span> <span class="n">MODEL_COST_PER_1K_TOKENS</span><span class="p">:</span>
-            <span class="n">completion_cost</span> <span class="o">=</span> <span class="n">get_openai_token_cost_for_model</span><span class="p">(</span>
-                <span class="n">model_name</span><span class="p">,</span> <span class="n">completion_tokens</span><span class="p">,</span> <span class="n">is_completion</span><span class="o">=</span><span class="kc">True</span>
+            <span class="n">uncached_prompt_tokens</span> <span class="o">=</span> <span class="n">prompt_tokens</span> <span class="o">-</span> <span class="n">prompt_tokens_cached</span>
+            <span class="n">uncached_prompt_cost</span> <span class="o">=</span> <span class="n">get_openai_token_cost_for_model</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="p">,</span> <span class="n">uncached_prompt_tokens</span><span class="p">,</span> <span class="n">token_type</span><span class="o">=</span><span class="n">TokenType</span><span class="o">.</span><span class="n">PROMPT</span>
             <span class="p">)</span>
-            <span class="n">prompt_cost</span> <span class="o">=</span> <span class="n">get_openai_token_cost_for_model</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">prompt_tokens</span><span class="p">)</span>
+            <span class="n">cached_prompt_cost</span> <span class="o">=</span> <span class="n">get_openai_token_cost_for_model</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="p">,</span> <span class="n">prompt_tokens_cached</span><span class="p">,</span> <span class="n">token_type</span><span class="o">=</span><span class="n">TokenType</span><span class="o">.</span><span class="n">PROMPT_CACHED</span>
+            <span class="p">)</span>
+            <span class="n">prompt_cost</span> <span class="o">=</span> <span class="n">uncached_prompt_cost</span> <span class="o">+</span> <span class="n">cached_prompt_cost</span>
+            <span class="n">completion_cost</span> <span class="o">=</span> <span class="n">get_openai_token_cost_for_model</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="p">,</span> <span class="n">completion_tokens</span><span class="p">,</span> <span class="n">token_type</span><span class="o">=</span><span class="n">TokenType</span><span class="o">.</span><span class="n">COMPLETION</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">completion_cost</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">prompt_cost</span> <span class="o">=</span> <span class="mi">0</span>
@@ -542,7 +618,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">+=</span> <span class="n">prompt_cost</span> <span class="o">+</span> <span class="n">completion_cost</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">total_tokens</span> <span class="o">+=</span> <span class="n">token_usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"total_tokens"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prompt_tokens</span> <span class="o">+=</span> <span class="n">prompt_tokens</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prompt_tokens_cached</span> <span class="o">+=</span> <span class="n">prompt_tokens_cached</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">completion_tokens</span> <span class="o">+=</span> <span class="n">completion_tokens</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reasoning_tokens</span> <span class="o">+=</span> <span class="n">reasoning_tokens</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">successful_requests</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
 

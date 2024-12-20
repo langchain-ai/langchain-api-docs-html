@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 19, 2024" name="docbuild:last-update"/>
+<meta content="Dec 20, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,6 +223,7 @@
 <span></span><span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
@@ -290,11 +291,10 @@
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">ConfigDict</span><span class="p">,</span>
     <span class="n">Field</span><span class="p">,</span>
-    <span class="n">PrivateAttr</span><span class="p">,</span>
     <span class="n">SecretStr</span><span class="p">,</span>
     <span class="n">model_validator</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">NotRequired</span><span class="p">,</span> <span class="n">Self</span>
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">NotRequired</span>
 
 <span class="kn">from</span> <span class="nn">langchain_anthropic.output_parsers</span> <span class="kn">import</span> <span class="n">extract_tool_calls</span>
 
@@ -765,9 +765,6 @@
         <span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">_client</span><span class="p">:</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Client</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">_async_client</span><span class="p">:</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">AsyncClient</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">alias</span><span class="o">=</span><span class="s2">"model_name"</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""Model name to use."""</span>
 
@@ -885,13 +882,11 @@
         <span class="n">values</span> <span class="o">=</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">values</span>
 
-    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">post_init</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="n">api_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anthropic_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span>
-        <span class="n">api_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anthropic_api_url</span>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_client_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">client_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"api_key"</span><span class="p">:</span> <span class="n">api_key</span><span class="p">,</span>
-            <span class="s2">"base_url"</span><span class="p">:</span> <span class="n">api_url</span><span class="p">,</span>
+            <span class="s2">"api_key"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">anthropic_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(),</span>
+            <span class="s2">"base_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">anthropic_api_url</span><span class="p">,</span>
             <span class="s2">"max_retries"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span><span class="p">,</span>
             <span class="s2">"default_headers"</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_headers</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">}</span>
@@ -901,9 +896,15 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_request_timeout</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_request_timeout</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">client_params</span><span class="p">[</span><span class="s2">"timeout"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_request_timeout</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="o">**</span><span class="n">client_params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_async_client</span> <span class="o">=</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="o">**</span><span class="n">client_params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="n">client_params</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Client</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_client_params</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_async_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_client_params</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_request_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

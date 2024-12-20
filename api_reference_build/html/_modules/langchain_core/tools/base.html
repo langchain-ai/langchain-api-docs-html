@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 19, 2024" name="docbuild:last-update"/>
+<meta content="Dec 20, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -844,6 +844,9 @@
     <span class="k">def</span> <span class="nf">_to_args_and_kwargs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">tool_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="n">tool_call_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args_schema</span><span class="p">):</span>
+            <span class="c1"># StructuredTool with no args</span>
+            <span class="k">return</span> <span class="p">(),</span> <span class="p">{}</span>
         <span class="n">tool_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_input</span><span class="p">(</span><span class="n">tool_input</span><span class="p">,</span> <span class="n">tool_call_id</span><span class="p">)</span>
         <span class="c1"># For backwards compatibility, if run_input is a string,</span>
         <span class="c1"># pass as a positional argument.</span>
@@ -925,9 +928,9 @@
             <span class="n">context</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">_set_config_context</span><span class="p">,</span> <span class="n">child_config</span><span class="p">)</span>
             <span class="n">tool_args</span><span class="p">,</span> <span class="n">tool_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_args_and_kwargs</span><span class="p">(</span><span class="n">tool_input</span><span class="p">,</span> <span class="n">tool_call_id</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_manager"</span><span class="p">):</span>
-                <span class="n">tool_kwargs</span><span class="p">[</span><span class="s2">"run_manager"</span><span class="p">]</span> <span class="o">=</span> <span class="n">run_manager</span>
+                <span class="n">tool_kwargs</span> <span class="o">=</span> <span class="n">tool_kwargs</span> <span class="o">|</span> <span class="p">{</span><span class="s2">"run_manager"</span><span class="p">:</span> <span class="n">run_manager</span><span class="p">}</span>
             <span class="k">if</span> <span class="n">config_param</span> <span class="o">:=</span> <span class="n">_get_runnable_config_param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">):</span>
-                <span class="n">tool_kwargs</span><span class="p">[</span><span class="n">config_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+                <span class="n">tool_kwargs</span> <span class="o">=</span> <span class="n">tool_kwargs</span> <span class="o">|</span> <span class="p">{</span><span class="n">config_param</span><span class="p">:</span> <span class="n">config</span><span class="p">}</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">,</span> <span class="o">*</span><span class="n">tool_args</span><span class="p">,</span> <span class="o">**</span><span class="n">tool_kwargs</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_format</span> <span class="o">==</span> <span class="s2">"content_and_artifact"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
