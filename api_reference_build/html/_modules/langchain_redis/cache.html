@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Dec 29, 2024" name="docbuild:last-update"/>
+<meta content="Dec 30, 2024" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -868,6 +868,84 @@
 <span class="sd">              interactions with the Redis database outside of this cache interface.</span>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="RedisSemanticCache.alookup">
+<a class="viewcode-back" href="../../redis/cache/langchain_redis.cache.RedisSemanticCache.html#langchain_redis.cache.RedisSemanticCache.alookup">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">alookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RETURN_VAL_TYPE</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Async look up based on prompt and llm_string.</span>
+
+<span class="sd">        A cache implementation is expected to generate a key from the 2-tuple</span>
+<span class="sd">        of prompt and llm_string (e.g., by concatenating them with a delimiter).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prompt: a string representation of the prompt.</span>
+<span class="sd">                In the case of a Chat model, the prompt is a non-trivial</span>
+<span class="sd">                serialization of the prompt into the language model.</span>
+<span class="sd">            llm_string: A string representation of the LLM configuration.</span>
+<span class="sd">                This is used to capture the invocation parameters of the LLM</span>
+<span class="sd">                (e.g., model name, temperature, stop tokens, max tokens, etc.).</span>
+<span class="sd">                These invocation parameters are serialized into a string</span>
+<span class="sd">                representation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            On a cache miss, return None. On a cache hit, return the cached value.</span>
+<span class="sd">            The cached value is a list of Generations (or subclasses).</span>
+<span class="sd">        """</span>
+        <span class="n">vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">_avectorize_prompt</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">acheck</span><span class="p">(</span><span class="n">vector</span><span class="o">=</span><span class="n">vector</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"llm_string"</span><span class="p">)</span> <span class="o">==</span> <span class="n">llm_string</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="p">[</span>
+                            <span class="n">loads</span><span class="p">(</span><span class="n">gen_str</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">gen_str</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">))</span>
+                        <span class="p">]</span>
+                    <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="RedisSemanticCache.aupdate">
+<a class="viewcode-back" href="../../redis/cache/langchain_redis.cache.RedisSemanticCache.html#langchain_redis.cache.RedisSemanticCache.aupdate">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">aupdate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_val</span><span class="p">:</span> <span class="n">RETURN_VAL_TYPE</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Async update cache based on prompt and llm_string.</span>
+
+<span class="sd">        The prompt and llm_string are used to generate a key for the cache.</span>
+<span class="sd">        The key should match that of the look up method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prompt: a string representation of the prompt.</span>
+<span class="sd">                In the case of a Chat model, the prompt is a non-trivial</span>
+<span class="sd">                serialization of the prompt into the language model.</span>
+<span class="sd">            llm_string: A string representation of the LLM configuration.</span>
+<span class="sd">                This is used to capture the invocation parameters of the LLM</span>
+<span class="sd">                (e.g., model name, temperature, stop tokens, max tokens, etc.).</span>
+<span class="sd">                These invocation parameters are serialized into a string</span>
+<span class="sd">                representation.</span>
+<span class="sd">            return_val: The value to be cached. The value is a list of Generations</span>
+<span class="sd">                (or subclasses).</span>
+<span class="sd">        """</span>
+        <span class="n">serialized_response</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="n">dumps</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span> <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="n">return_val</span><span class="p">])</span>
+        <span class="n">vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">_vectorize_prompt</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">astore</span><span class="p">(</span>
+            <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+            <span class="n">response</span><span class="o">=</span><span class="n">serialized_response</span><span class="p">,</span>
+            <span class="n">vector</span><span class="o">=</span><span class="n">vector</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"llm_string"</span><span class="p">:</span> <span class="n">llm_string</span><span class="p">},</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RedisSemanticCache.aclear">
+<a class="viewcode-back" href="../../redis/cache/langchain_redis.cache.RedisSemanticCache.html#langchain_redis.cache.RedisSemanticCache.aclear">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Async clear cache that can take additional keyword arguments."""</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">aclear</span><span class="p">()</span></div>
 </div>
 
 </pre></div>
