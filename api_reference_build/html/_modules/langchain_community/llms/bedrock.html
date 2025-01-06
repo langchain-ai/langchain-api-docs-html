@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,11 +220,11 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.llms.bedrock</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncGenerator</span><span class="p">,</span>
     <span class="n">AsyncIterator</span><span class="p">,</span>
@@ -236,18 +236,18 @@
     <span class="n">Tuple</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api.deprecation</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api.deprecation</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.llms</span> <span class="kn">import</span> <span class="n">LLM</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">GenerationChunk</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">GenerationChunk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.llms.utils</span> <span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
-<span class="kn">from</span> <span class="nn">langchain_community.utilities.anthropic</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.llms.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.utilities.anthropic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_num_tokens_anthropic</span><span class="p">,</span>
     <span class="n">get_token_ids_anthropic</span><span class="p">,</span>
 <span class="p">)</span>
@@ -261,7 +261,7 @@
 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_add_newlines_before_ha</span><span class="p">(</span><span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_newlines_before_ha</span><span class="p">(</span><span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">new_text</span> <span class="o">=</span> <span class="n">input_text</span>
     <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"Human:"</span><span class="p">,</span> <span class="s2">"Assistant:"</span><span class="p">]:</span>
         <span class="n">new_text</span> <span class="o">=</span> <span class="n">new_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span> <span class="o">+</span> <span class="n">word</span><span class="p">)</span>
@@ -270,7 +270,7 @@
     <span class="k">return</span> <span class="n">new_text</span>
 
 
-<span class="k">def</span> <span class="nf">_human_assistant_format</span><span class="p">(</span><span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_human_assistant_format</span><span class="p">(</span><span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">input_text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"Human:"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span>
         <span class="n">input_text</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"Human:"</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">input_text</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"Assistant:"</span><span class="p">)</span>
         <span class="ow">and</span> <span class="s2">"Assistant:"</span> <span class="ow">in</span> <span class="n">input_text</span>
@@ -301,7 +301,7 @@
     <span class="k">return</span> <span class="n">input_text</span>
 
 
-<span class="k">def</span> <span class="nf">_stream_response_to_generation_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_stream_response_to_generation_chunk</span><span class="p">(</span>
     <span class="n">stream_response</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationChunk</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a stream response to a generation chunk."""</span>
@@ -317,7 +317,7 @@
 
 <div class="viewcode-block" id="LLMInputOutputAdapter">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.LLMInputOutputAdapter.html#langchain_community.llms.bedrock.LLMInputOutputAdapter">[docs]</a>
-<span class="k">class</span> <span class="nc">LLMInputOutputAdapter</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LLMInputOutputAdapter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Adapter class to prepare the inputs from Langchain to a format</span>
 <span class="sd">    that LLM model expects.</span>
 
@@ -335,7 +335,7 @@
 <div class="viewcode-block" id="LLMInputOutputAdapter.prepare_input">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.LLMInputOutputAdapter.html#langchain_community.llms.bedrock.LLMInputOutputAdapter.prepare_input">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">prepare_input</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare_input</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">model_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -371,7 +371,7 @@
 <div class="viewcode-block" id="LLMInputOutputAdapter.prepare_output">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.LLMInputOutputAdapter.html#langchain_community.llms.bedrock.LLMInputOutputAdapter.prepare_output">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">prepare_output</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare_output</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
             <span class="n">response_body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
@@ -411,7 +411,7 @@
 <div class="viewcode-block" id="LLMInputOutputAdapter.prepare_output_stream">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.LLMInputOutputAdapter.html#langchain_community.llms.bedrock.LLMInputOutputAdapter.prepare_output_stream">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">prepare_output_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare_output_stream</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -485,7 +485,7 @@
 <div class="viewcode-block" id="LLMInputOutputAdapter.aprepare_output_stream">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.LLMInputOutputAdapter.html#langchain_community.llms.bedrock.LLMInputOutputAdapter.aprepare_output_stream">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aprepare_output_stream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aprepare_output_stream</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">GenerationChunk</span><span class="p">]:</span>
         <span class="n">stream</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span>
@@ -531,7 +531,7 @@
 
 <div class="viewcode-block" id="BedrockBase">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.BedrockBase.html#langchain_community.llms.bedrock.BedrockBase">[docs]</a>
-<span class="k">class</span> <span class="nc">BedrockBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BedrockBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base class for Bedrock models."""</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">protected_namespaces</span><span class="o">=</span><span class="p">())</span>
@@ -633,7 +633,7 @@
 <div class="viewcode-block" id="BedrockBase.validate_environment">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.BedrockBase.html#langchain_community.llms.bedrock.BedrockBase.validate_environment">[docs]</a>
     <span class="nd">@pre_init</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that AWS credentials to and python package exists in environment."""</span>
 
         <span class="c1"># Skip creating new client if passed in constructor</span>
@@ -641,7 +641,7 @@
             <span class="k">return</span> <span class="n">values</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">boto3</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
 
             <span class="k">if</span> <span class="n">values</span><span class="p">[</span><span class="s2">"credentials_profile_name"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="s2">"credentials_profile_name"</span><span class="p">])</span>
@@ -678,20 +678,20 @@
                 <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
                 <span class="s2">"Please check that credentials in the specified "</span>
                 <span class="sa">f</span><span class="s2">"profile name are valid. Bedrock error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="k">return</span> <span class="n">values</span></div>
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the identifying parameters."""</span>
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="o">**</span><span class="p">{</span><span class="s2">"model_kwargs"</span><span class="p">:</span> <span class="n">_model_kwargs</span><span class="p">},</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_get_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">provider</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">provider</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"arn"</span><span class="p">):</span>
@@ -703,11 +703,11 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_model_is_anthropic</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_model_is_anthropic</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_provider</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"anthropic"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_guardrails_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_guardrails_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Determines if guardrails are enabled and correctly configured.</span>
 <span class="sd">        Checks if 'guardrails' is a dictionary with non-empty 'id' and 'version' keys.</span>
@@ -728,9 +728,9 @@
         <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="s2">"Guardrails must be a dictionary with 'id' and 'version' keys."</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
-    <span class="k">def</span> <span class="nf">_get_guardrails_canonical</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_guardrails_canonical</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        The canonical way to pass in guardrails to the bedrock service</span>
 <span class="sd">        adheres to the following format:</span>
@@ -747,7 +747,7 @@
             <span class="p">}</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_input_and_invoke</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_input_and_invoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">system</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -813,7 +813,7 @@
 
         <span class="k">return</span> <span class="n">text</span><span class="p">,</span> <span class="n">usage_info</span>
 
-    <span class="k">def</span> <span class="nf">_get_bedrock_services_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_bedrock_services_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        This function checks the response body for an interrupt flag or message that indicates</span>
 <span class="sd">        whether any of the Bedrock services have intervened in the processing flow. It is</span>
@@ -838,10 +838,10 @@
             <span class="s2">"trace"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_is_guardrails_intervention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_guardrails_intervention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">GUARDRAILS_BODY_KEY</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"GUARDRAIL_INTERVENED"</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_input_and_invoke_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_input_and_invoke_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">system</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -908,7 +908,7 @@
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">chunk</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aprepare_input_and_invoke_stream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aprepare_input_and_invoke_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -962,7 +962,7 @@
 <span class="nd">@deprecated</span><span class="p">(</span>
     <span class="n">since</span><span class="o">=</span><span class="s2">"0.0.34"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="n">alternative_import</span><span class="o">=</span><span class="s2">"langchain_aws.BedrockLLM"</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">Bedrock</span><span class="p">(</span><span class="n">LLM</span><span class="p">,</span> <span class="n">BedrockBase</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Bedrock</span><span class="p">(</span><span class="n">LLM</span><span class="p">,</span> <span class="n">BedrockBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Bedrock models.</span>
 
 <span class="sd">    To authenticate, the AWS client uses the following methods to</span>
@@ -993,7 +993,7 @@
 <div class="viewcode-block" id="Bedrock.validate_environment">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.Bedrock.html#langchain_community.llms.bedrock.Bedrock.validate_environment">[docs]</a>
     <span class="nd">@pre_init</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
         <span class="n">model_id</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">"model_id"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">model_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"anthropic.claude-3"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1005,22 +1005,22 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of llm."""</span>
         <span class="k">return</span> <span class="s2">"amazon_bedrock"</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this model can be serialized by Langchain."""</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the namespace of the langchain object."""</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"langchain"</span><span class="p">,</span> <span class="s2">"llms"</span><span class="p">,</span> <span class="s2">"bedrock"</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">attributes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">:</span>
@@ -1032,7 +1032,7 @@
         <span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1059,7 +1059,7 @@
             <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1094,7 +1094,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">text</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1120,7 +1120,7 @@
         <span class="p">):</span>
             <span class="k">yield</span> <span class="n">chunk</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_acall</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acall</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1155,7 +1155,7 @@
 
 <div class="viewcode-block" id="Bedrock.get_num_tokens">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.Bedrock.html#langchain_community.llms.bedrock.Bedrock.get_num_tokens">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">get_num_tokens_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1164,7 +1164,7 @@
 
 <div class="viewcode-block" id="Bedrock.get_token_ids">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.bedrock.Bedrock.html#langchain_community.llms.bedrock.Bedrock.get_token_ids">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">get_token_ids_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

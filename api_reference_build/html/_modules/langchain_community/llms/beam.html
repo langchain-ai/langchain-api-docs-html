@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,20 +220,20 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.llms.beam</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">textwrap</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">textwrap</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.llms</span> <span class="kn">import</span> <span class="n">LLM</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">get_fields</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -243,7 +243,7 @@
 
 <div class="viewcode-block" id="Beam">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.beam.Beam.html#langchain_community.llms.beam.Beam">[docs]</a>
-<span class="k">class</span> <span class="nc">Beam</span><span class="p">(</span><span class="n">LLM</span><span class="p">):</span>  <span class="c1"># type: ignore[override, override, override, override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Beam</span><span class="p">(</span><span class="n">LLM</span><span class="p">):</span>  <span class="c1"># type: ignore[override, override, override, override]</span>
 <span class="w">    </span><span class="sd">"""Beam API for gpt2 large language model.</span>
 
 <span class="sd">    To use, you should have the ``beam-sdk`` python package installed,</span>
@@ -303,7 +303,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build extra kwargs from additional params that were passed in."""</span>
         <span class="n">all_required_field_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">field</span><span class="o">.</span><span class="n">alias</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">get_fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
 
@@ -323,7 +323,7 @@
 <div class="viewcode-block" id="Beam.validate_environment">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.beam.Beam.html#langchain_community.llms.beam.Beam.validate_environment">[docs]</a>
     <span class="nd">@pre_init</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key and python package exists in environment."""</span>
         <span class="n">beam_client_id</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span>
             <span class="n">values</span><span class="p">,</span> <span class="s2">"beam_client_id"</span><span class="p">,</span> <span class="s2">"BEAM_CLIENT_ID"</span>
@@ -337,7 +337,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the identifying parameters."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"model_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
@@ -352,13 +352,13 @@
         <span class="p">}</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of llm."""</span>
         <span class="k">return</span> <span class="s2">"beam"</span>
 
 <div class="viewcode-block" id="Beam.app_creation">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.beam.Beam.html#langchain_community.llms.beam.Beam.app_creation">[docs]</a>
-    <span class="k">def</span> <span class="nf">app_creation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">app_creation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Creates a Python file which will contain your Beam app definition."""</span>
         <span class="n">script</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span>
 <span class="w">            </span><span class="sd">"""\</span>
@@ -399,7 +399,7 @@
 
 <div class="viewcode-block" id="Beam.run_creation">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.beam.Beam.html#langchain_community.llms.beam.Beam.run_creation">[docs]</a>
-    <span class="k">def</span> <span class="nf">run_creation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_creation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Creates a Python file which will be deployed on beam."""</span>
         <span class="n">script</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span>
 <span class="w">            </span><span class="sd">"""</span>
@@ -431,10 +431,10 @@
             <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">script</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">))</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_deploy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Call to Beam."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">beam</span>  <span class="c1"># type: ignore</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">beam</span>  <span class="c1"># type: ignore</span>
 
             <span class="k">if</span> <span class="n">beam</span><span class="o">.</span><span class="n">__path__</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ImportError</span>
@@ -471,14 +471,14 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Deployment failed. Error: </span><span class="si">{</span><span class="n">process</span><span class="o">.</span><span class="n">stderr</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">authorization</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">authorization</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_client_id</span><span class="p">:</span>
             <span class="n">credential_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_client_id</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_client_secret</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">credential_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_client_secret</span>
         <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">credential_str</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

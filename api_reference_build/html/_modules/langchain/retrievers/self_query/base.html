@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,70 +222,70 @@
 <h1>Source code for langchain.retrievers.self_query.base</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Retriever that generates and executes structured queries over its own data source."""</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForRetrieverRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.retrievers</span> <span class="kn">import</span> <span class="n">BaseRetriever</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span>
-<span class="kn">from</span> <span class="nn">langchain_core.structured_query</span> <span class="kn">import</span> <span class="n">StructuredQuery</span><span class="p">,</span> <span class="n">Visitor</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.retrievers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.structured_query</span><span class="w"> </span><span class="kn">import</span> <span class="n">StructuredQuery</span><span class="p">,</span> <span class="n">Visitor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain.chains.query_constructor.base</span> <span class="kn">import</span> <span class="n">load_query_constructor_runnable</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.query_constructor.schema</span> <span class="kn">import</span> <span class="n">AttributeInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.query_constructor.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_query_constructor_runnable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.query_constructor.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">AttributeInfo</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">QUERY_CONSTRUCTOR_RUN_NAME</span> <span class="o">=</span> <span class="s2">"query_constructor"</span>
 
 
-<span class="k">def</span> <span class="nf">_get_builtin_translator</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Visitor</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_builtin_translator</span><span class="p">(</span><span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Visitor</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get the translator class corresponding to the vector store class."""</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">langchain_community</span>  <span class="c1"># noqa: F401</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">langchain_community</span>  <span class="c1"># noqa: F401</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"The langchain-community package must be installed to use this feature."</span>
             <span class="s2">" Please install it using `pip install langchain-community`."</span>
         <span class="p">)</span>
 
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.astradb</span> <span class="kn">import</span> <span class="n">AstraDBTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.chroma</span> <span class="kn">import</span> <span class="n">ChromaTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.dashvector</span> <span class="kn">import</span> <span class="n">DashvectorTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.databricks_vector_search</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.astradb</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDBTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.chroma</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChromaTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.dashvector</span><span class="w"> </span><span class="kn">import</span> <span class="n">DashvectorTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.databricks_vector_search</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">DatabricksVectorSearchTranslator</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.deeplake</span> <span class="kn">import</span> <span class="n">DeepLakeTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.dingo</span> <span class="kn">import</span> <span class="n">DingoDBTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.elasticsearch</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.deeplake</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeepLakeTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.dingo</span><span class="w"> </span><span class="kn">import</span> <span class="n">DingoDBTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.elasticsearch</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ElasticsearchTranslator</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.milvus</span> <span class="kn">import</span> <span class="n">MilvusTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.mongodb_atlas</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.milvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">MilvusTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.mongodb_atlas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">MongoDBAtlasTranslator</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.myscale</span> <span class="kn">import</span> <span class="n">MyScaleTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.neo4j</span> <span class="kn">import</span> <span class="n">Neo4jTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.opensearch</span> <span class="kn">import</span> <span class="n">OpenSearchTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.pgvector</span> <span class="kn">import</span> <span class="n">PGVectorTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.pinecone</span> <span class="kn">import</span> <span class="n">PineconeTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.qdrant</span> <span class="kn">import</span> <span class="n">QdrantTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.redis</span> <span class="kn">import</span> <span class="n">RedisTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.supabase</span> <span class="kn">import</span> <span class="n">SupabaseVectorTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.tencentvectordb</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.myscale</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyScaleTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neo4jTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.opensearch</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenSearchTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.pgvector</span><span class="w"> </span><span class="kn">import</span> <span class="n">PGVectorTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">PineconeTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.qdrant</span><span class="w"> </span><span class="kn">import</span> <span class="n">QdrantTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.redis</span><span class="w"> </span><span class="kn">import</span> <span class="n">RedisTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.supabase</span><span class="w"> </span><span class="kn">import</span> <span class="n">SupabaseVectorTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.tencentvectordb</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">TencentVectorDBTranslator</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.timescalevector</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.timescalevector</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">TimescaleVectorTranslator</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.vectara</span> <span class="kn">import</span> <span class="n">VectaraTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.weaviate</span> <span class="kn">import</span> <span class="n">WeaviateTranslator</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.vectara</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectaraTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.weaviate</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeaviateTranslator</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">AstraDB</span><span class="p">,</span>
         <span class="n">DashVector</span><span class="p">,</span>
         <span class="n">DatabricksVectorSearch</span><span class="p">,</span>
@@ -304,16 +304,16 @@
         <span class="n">Vectara</span><span class="p">,</span>
         <span class="n">Weaviate</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">Chroma</span> <span class="k">as</span> <span class="n">CommunityChroma</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ElasticsearchStore</span> <span class="k">as</span> <span class="n">ElasticsearchStoreCommunity</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">MongoDBAtlasVectorSearch</span> <span class="k">as</span> <span class="n">CommunityMongoDBAtlasVectorSearch</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">Pinecone</span> <span class="k">as</span> <span class="n">CommunityPinecone</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -352,7 +352,7 @@
         <span class="k">return</span> <span class="n">BUILTIN_TRANSLATORS</span><span class="p">[</span><span class="n">vectorstore</span><span class="o">.</span><span class="vm">__class__</span><span class="p">]()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_astradb.vectorstores</span> <span class="kn">import</span> <span class="n">AstraDBVectorStore</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDBVectorStore</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -360,7 +360,7 @@
                 <span class="k">return</span> <span class="n">AstraDBTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_elasticsearch.vectorstores</span> <span class="kn">import</span> <span class="n">ElasticsearchStore</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_elasticsearch.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElasticsearchStore</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -368,7 +368,7 @@
                 <span class="k">return</span> <span class="n">ElasticsearchTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_pinecone</span> <span class="kn">import</span> <span class="n">PineconeVectorStore</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">PineconeVectorStore</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -376,7 +376,7 @@
                 <span class="k">return</span> <span class="n">PineconeTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_mongodb</span> <span class="kn">import</span> <span class="n">MongoDBAtlasVectorSearch</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_mongodb</span><span class="w"> </span><span class="kn">import</span> <span class="n">MongoDBAtlasVectorSearch</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -384,7 +384,7 @@
                 <span class="k">return</span> <span class="n">MongoDBAtlasTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_neo4j</span> <span class="kn">import</span> <span class="n">Neo4jVector</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neo4jVector</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -393,7 +393,7 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Trying langchain_chroma import if exists</span>
-            <span class="kn">from</span> <span class="nn">langchain_chroma</span> <span class="kn">import</span> <span class="n">Chroma</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_chroma</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chroma</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -401,8 +401,8 @@
                 <span class="k">return</span> <span class="n">ChromaTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_postgres</span> <span class="kn">import</span> <span class="n">PGVector</span>  <span class="c1"># type: ignore[no-redef]</span>
-            <span class="kn">from</span> <span class="nn">langchain_postgres</span> <span class="kn">import</span> <span class="n">PGVectorTranslator</span> <span class="k">as</span> <span class="n">NewPGVectorTranslator</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_postgres</span><span class="w"> </span><span class="kn">import</span> <span class="n">PGVector</span>  <span class="c1"># type: ignore[no-redef]</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_postgres</span><span class="w"> </span><span class="kn">import</span> <span class="n">PGVectorTranslator</span> <span class="k">as</span> <span class="n">NewPGVectorTranslator</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -410,7 +410,7 @@
                 <span class="k">return</span> <span class="n">NewPGVectorTranslator</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">langchain_qdrant</span> <span class="kn">import</span> <span class="n">QdrantVectorStore</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_qdrant</span><span class="w"> </span><span class="kn">import</span> <span class="n">QdrantVectorStore</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -419,8 +419,8 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Added in langchain-community==0.2.11</span>
-            <span class="kn">from</span> <span class="nn">langchain_community.query_constructors.hanavector</span> <span class="kn">import</span> <span class="n">HanaTranslator</span>
-            <span class="kn">from</span> <span class="nn">langchain_community.vectorstores</span> <span class="kn">import</span> <span class="n">HanaDB</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.query_constructors.hanavector</span><span class="w"> </span><span class="kn">import</span> <span class="n">HanaTranslator</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">HanaDB</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -429,7 +429,7 @@
 
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Trying langchain_weaviate (weaviate v4) import if exists</span>
-            <span class="kn">from</span> <span class="nn">langchain_weaviate.vectorstores</span> <span class="kn">import</span> <span class="n">WeaviateVectorStore</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_weaviate.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeaviateVectorStore</span>
 
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">pass</span>
@@ -445,7 +445,7 @@
 
 <div class="viewcode-block" id="SelfQueryRetriever">
 <a class="viewcode-back" href="../../../../langchain/retrievers/langchain.retrievers.self_query.base.SelfQueryRetriever.html#langchain.retrievers.self_query.base.SelfQueryRetriever">[docs]</a>
-<span class="k">class</span> <span class="nc">SelfQueryRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SelfQueryRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Retriever that uses a vector store and an LLM to generate</span>
 <span class="sd">    the vector store queries."""</span>
 
@@ -473,7 +473,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_translator</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_translator</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate translator."""</span>
         <span class="k">if</span> <span class="s2">"structured_query_translator"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
             <span class="n">values</span><span class="p">[</span><span class="s2">"structured_query_translator"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_builtin_translator</span><span class="p">(</span>
@@ -482,11 +482,11 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">llm_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">llm_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""llm_chain is legacy name kept for backwards compatibility."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_constructor</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_query</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_query</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">structured_query</span><span class="p">:</span> <span class="n">StructuredQuery</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="n">new_query</span><span class="p">,</span> <span class="n">new_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured_query_translator</span><span class="o">.</span><span class="n">visit_structured_query</span><span class="p">(</span>
@@ -499,19 +499,19 @@
         <span class="n">search_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">new_kwargs</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">new_query</span><span class="p">,</span> <span class="n">search_kwargs</span>
 
-    <span class="k">def</span> <span class="nf">_get_docs_with_query</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_docs_with_query</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span> <span class="o">**</span><span class="n">search_kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_docs_with_query</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_docs_with_query</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">asearch</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span> <span class="o">**</span><span class="n">search_kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span>
 
-    <span class="k">def</span> <span class="nf">_get_relevant_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">:</span> <span class="n">CallbackManagerForRetrieverRun</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get documents relevant for a query.</span>
@@ -531,7 +531,7 @@
         <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_docs_with_query</span><span class="p">(</span><span class="n">new_query</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_relevant_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">:</span> <span class="n">AsyncCallbackManagerForRetrieverRun</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get documents relevant for a query.</span>
@@ -554,7 +554,7 @@
 <div class="viewcode-block" id="SelfQueryRetriever.from_llm">
 <a class="viewcode-back" href="../../../../langchain/retrievers/langchain.retrievers.self_query.base.SelfQueryRetriever.html#langchain.retrievers.self_query.base.SelfQueryRetriever.from_llm">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_llm</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_llm</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="n">vectorstore</span><span class="p">:</span> <span class="n">VectorStore</span><span class="p">,</span>

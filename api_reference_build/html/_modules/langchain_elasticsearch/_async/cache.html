@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,12 +220,12 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_elasticsearch._async.cache</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">cached_property</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncIterator</span><span class="p">,</span>
@@ -237,21 +237,21 @@
     <span class="n">Tuple</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="kn">import</span> <span class="n">AsyncElasticsearch</span><span class="p">,</span> <span class="n">exceptions</span><span class="p">,</span> <span class="n">helpers</span>
-<span class="kn">from</span> <span class="nn">elasticsearch.helpers</span> <span class="kn">import</span> <span class="n">BulkIndexError</span>
-<span class="kn">from</span> <span class="nn">langchain_core.caches</span> <span class="kn">import</span> <span class="n">RETURN_VAL_TYPE</span><span class="p">,</span> <span class="n">BaseCache</span>
-<span class="kn">from</span> <span class="nn">langchain_core.load</span> <span class="kn">import</span> <span class="n">dumps</span><span class="p">,</span> <span class="n">loads</span>
-<span class="kn">from</span> <span class="nn">langchain_core.stores</span> <span class="kn">import</span> <span class="n">ByteStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncElasticsearch</span><span class="p">,</span> <span class="n">exceptions</span><span class="p">,</span> <span class="n">helpers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BulkIndexError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.caches</span><span class="w"> </span><span class="kn">import</span> <span class="n">RETURN_VAL_TYPE</span><span class="p">,</span> <span class="n">BaseCache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span><span class="p">,</span> <span class="n">loads</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.stores</span><span class="w"> </span><span class="kn">import</span> <span class="n">ByteStore</span>
 
-<span class="kn">from</span> <span class="nn">langchain_elasticsearch.client</span> <span class="kn">import</span> <span class="n">create_async_elasticsearch_client</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_elasticsearch.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_async_elasticsearch_client</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">elasticsearch</span> <span class="kn">import</span> <span class="n">AsyncElasticsearch</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncElasticsearch</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_manage_cache_index</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_manage_cache_index</span><span class="p">(</span>
     <span class="n">es_client</span><span class="p">:</span> <span class="n">AsyncElasticsearch</span><span class="p">,</span> <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Write or update an index or alias according to the default mapping"""</span>
@@ -267,7 +267,7 @@
     <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">class</span> <span class="nc">AsyncElasticsearchCache</span><span class="p">(</span><span class="n">BaseCache</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncElasticsearchCache</span><span class="p">(</span><span class="n">BaseCache</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""An Elasticsearch cache integration for LLMs.</span>
 
 <span class="sd">    For synchronous applications, use the ``ElasticsearchCache`` class.</span>
@@ -276,7 +276,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.__init__">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">store_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -332,7 +332,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.is_alias">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.is_alias">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">is_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">is_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_alias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_is_alias</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_manage_cache_index</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_es_client</span><span class="p">,</span>
@@ -343,7 +343,7 @@
 
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the default mapping for the index."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"mappings"</span><span class="p">:</span> <span class="p">{</span>
@@ -358,13 +358,13 @@
         <span class="p">}</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_key</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_key</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generate a key for the cache store."""</span>
         <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">((</span><span class="n">prompt</span> <span class="o">+</span> <span class="n">llm_string</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.alookup">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.alookup">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">alookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RETURN_VAL_TYPE</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">alookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RETURN_VAL_TYPE</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Look up based on prompt and llm_string."""</span>
         <span class="n">cache_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">)</span>
         <span class="k">if</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_alias</span><span class="p">():</span>
@@ -394,7 +394,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.build_document">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.build_document">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_document</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_document</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_val</span><span class="p">:</span> <span class="n">RETURN_VAL_TYPE</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Build the Elasticsearch document for storing a single LLM interaction"""</span>
@@ -413,7 +413,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.aupdate">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.aupdate">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aupdate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aupdate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_val</span><span class="p">:</span> <span class="n">RETURN_VAL_TYPE</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Update based on prompt and llm_string."""</span>
@@ -429,7 +429,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchCache.aclear">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchCache.html#langchain_elasticsearch.cache.AsyncElasticsearchCache.aclear">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Clear cache."""</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_es_client</span><span class="o">.</span><span class="n">delete_by_query</span><span class="p">(</span>
             <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_index_name</span><span class="p">,</span>
@@ -440,7 +440,7 @@
 
 
 
-<span class="k">class</span> <span class="nc">AsyncElasticsearchEmbeddingsCache</span><span class="p">(</span><span class="n">ByteStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncElasticsearchEmbeddingsCache</span><span class="p">(</span><span class="n">ByteStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""An Elasticsearch store for caching embeddings.</span>
 
 <span class="sd">    For synchronous applications, use the `ElasticsearchEmbeddingsCache` class.</span>
@@ -449,7 +449,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.__init__">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">store_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -509,7 +509,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.is_alias">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.is_alias">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">is_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">is_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_alias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_is_alias</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_manage_cache_index</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_es_client</span><span class="p">,</span>
@@ -522,7 +522,7 @@
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.encode_vector">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.encode_vector">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">encode_vector</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode_vector</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Encode the vector data as bytes to as a base64 string."""</span>
         <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span></div>
 
@@ -530,13 +530,13 @@
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.decode_vector">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.decode_vector">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">decode_vector</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode_vector</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Decode the base64 string to vector data as bytes."""</span>
         <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
 
 
     <span class="nd">@cached_property</span>
-    <span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the default mapping for the index."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"mappings"</span><span class="p">:</span> <span class="p">{</span>
@@ -553,12 +553,12 @@
             <span class="p">}</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generate a key for the store."""</span>
         <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(((</span><span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span> <span class="o">+</span> <span class="n">input_text</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_deduplicate_hits</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">hits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_deduplicate_hits</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">hits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Collapse the results from a search query with multiple indices</span>
 <span class="sd">        returning only the latest version of the documents</span>
@@ -577,7 +577,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.amget">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.amget">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Get the values associated with the given keys."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
             <span class="k">return</span> <span class="p">[]</span>
@@ -631,7 +631,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.build_document">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.build_document">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_document</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">vector</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_document</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">vector</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Build the Elasticsearch document for storing a single embedding"""</span>
         <span class="n">body</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"vector_dump"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_vector</span><span class="p">(</span><span class="n">vector</span><span class="p">),</span>
@@ -646,7 +646,7 @@
         <span class="k">return</span> <span class="n">body</span></div>
 
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_bulk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_bulk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">actions</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">await</span> <span class="n">helpers</span><span class="o">.</span><span class="n">async_bulk</span><span class="p">(</span>
                 <span class="n">client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_es_client</span><span class="p">,</span>
@@ -662,7 +662,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.amset">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.amset">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_value_pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_value_pairs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Set the values for the given keys."""</span>
         <span class="n">actions</span> <span class="o">=</span> <span class="p">(</span>
             <span class="p">{</span>
@@ -677,7 +677,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.amdelete">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.amdelete">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amdelete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amdelete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete the given keys and their associated values."""</span>
         <span class="n">actions</span> <span class="o">=</span> <span class="p">({</span><span class="s2">"_op_type"</span><span class="p">:</span> <span class="s2">"delete"</span><span class="p">,</span> <span class="s2">"_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">(</span><span class="n">key</span><span class="p">)}</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bulk</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span></div>
@@ -685,7 +685,7 @@
 
 <div class="viewcode-block" id="AsyncElasticsearchEmbeddingsCache.ayield_keys">
 <a class="viewcode-back" href="../../../elasticsearch/cache/langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.html#langchain_elasticsearch.cache.AsyncElasticsearchEmbeddingsCache.ayield_keys">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ayield_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ayield_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">        </span><span class="sd">"""Get an iterator over keys that match the given prefix."""</span>
         <span class="c1"># TODO This method is not currently used by CacheBackedEmbeddings,</span>
         <span class="c1">#  we can leave it blank. It could be implemented with ES "index_prefixes",</span>

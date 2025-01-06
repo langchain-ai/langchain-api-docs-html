@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,28 +220,28 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.chat_models.sparkllm</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">import</span> <span class="nn">hmac</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">queue</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">queue</span> <span class="kn">import</span> <span class="n">Queue</span>
-<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">mktime</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">cast</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlencode</span><span class="p">,</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlunparse</span>
-<span class="kn">from</span> <span class="nn">wsgiref.handlers</span> <span class="kn">import</span> <span class="n">format_date_time</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">queue</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">queue</span><span class="w"> </span><span class="kn">import</span> <span class="n">Queue</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">mktime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlencode</span><span class="p">,</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlunparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wsgiref.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_date_time</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseChatModel</span><span class="p">,</span>
     <span class="n">generate_from_stream</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
@@ -254,21 +254,21 @@
     <span class="n">SystemMessage</span><span class="p">,</span>
     <span class="n">ToolMessageChunk</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.openai_tools</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.openai_tools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">make_invalid_tool_call</span><span class="p">,</span>
     <span class="n">parse_tool_call</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatGeneration</span><span class="p">,</span>
     <span class="n">ChatGenerationChunk</span><span class="p">,</span>
     <span class="n">ChatResult</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_from_dict_or_env</span><span class="p">,</span>
     <span class="n">get_pydantic_field_names</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">get_fields</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -278,7 +278,7 @@
 
 <div class="viewcode-block" id="convert_message_to_dict">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sparkllm.convert_message_to_dict.html#langchain_community.chat_models.sparkllm.convert_message_to_dict">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_message_to_dict</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_message_to_dict</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="n">message_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
         <span class="n">message_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}</span>
@@ -307,7 +307,7 @@
 
 <div class="viewcode-block" id="convert_dict_to_message">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sparkllm.convert_dict_to_message.html#langchain_community.chat_models.sparkllm.convert_dict_to_message">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_dict_to_message</span><span class="p">(</span><span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_dict_to_message</span><span class="p">(</span><span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
     <span class="n">msg_role</span> <span class="o">=</span> <span class="n">_dict</span><span class="p">[</span><span class="s2">"role"</span><span class="p">]</span>
     <span class="n">msg_content</span> <span class="o">=</span> <span class="n">_dict</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">msg_role</span> <span class="o">==</span> <span class="s2">"user"</span><span class="p">:</span>
@@ -343,7 +343,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convert_delta_to_message_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_delta_to_message_chunk</span><span class="p">(</span>
     <span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">default_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessageChunk</span><span class="p">:</span>
     <span class="n">msg_role</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">))</span>
@@ -372,7 +372,7 @@
 
 <div class="viewcode-block" id="ChatSparkLLM">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.sparkllm.ChatSparkLLM.html#langchain_community.chat_models.sparkllm.ChatSparkLLM">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatSparkLLM</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatSparkLLM</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""IFlyTek Spark chat model integration.</span>
 
 <span class="sd">    Setup:</span>
@@ -485,12 +485,12 @@
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this model can be serialized by Langchain."""</span>
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"spark_app_id"</span><span class="p">:</span> <span class="s2">"IFLYTEK_SPARK_APP_ID"</span><span class="p">,</span>
             <span class="s2">"spark_api_key"</span><span class="p">:</span> <span class="s2">"IFLYTEK_SPARK_API_KEY"</span><span class="p">,</span>
@@ -532,7 +532,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">values</span><span class="p">[</span><span class="s2">"spark_app_id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span>
             <span class="n">values</span><span class="p">,</span>
             <span class="p">[</span><span class="s2">"spark_app_id"</span><span class="p">,</span> <span class="s2">"app_id"</span><span class="p">],</span>
@@ -586,7 +586,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build extra kwargs from additional params that were passed in."""</span>
         <span class="n">all_required_field_names</span> <span class="o">=</span> <span class="n">get_pydantic_field_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="n">extra</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_kwargs"</span><span class="p">,</span> <span class="p">{})</span>
@@ -612,7 +612,7 @@
 
         <span class="k">return</span> <span class="n">values</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -637,7 +637,7 @@
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">chunk</span><span class="o">=</span><span class="n">cg_chunk</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">cg_chunk</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -670,18 +670,18 @@
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">llm_output</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"spark-llm-chat"</span></div>
 
 
 
-<span class="k">class</span> <span class="nc">_SparkLLMClient</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_SparkLLMClient</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Use websocket-client to call the SparkLLM interface provided by Xfyun,</span>
 <span class="sd">    which is the iFlyTek's open platform for AI capabilities</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">app_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -691,7 +691,7 @@
         <span class="n">model_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">websocket</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">websocket</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">websocket_client</span> <span class="o">=</span> <span class="n">websocket</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -710,7 +710,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">api_secret</span> <span class="o">=</span> <span class="n">api_secret</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_create_url</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_secret</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_url</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_secret</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Generate a request url with an api key and an api secret.</span>
 <span class="sd">        """</span>
@@ -754,7 +754,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">url</span>
 
-    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
         <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -779,7 +779,7 @@
         <span class="n">ws</span><span class="o">.</span><span class="n">streaming</span> <span class="o">=</span> <span class="n">streaming</span>  <span class="c1"># type: ignore[attr-defined]</span>
         <span class="n">ws</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">arun</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">arun</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
         <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -798,11 +798,11 @@
         <span class="n">ws_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">ws_thread</span>
 
-    <span class="k">def</span> <span class="nf">on_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s2">"error"</span><span class="p">:</span> <span class="n">error</span><span class="p">})</span>
         <span class="n">ws</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">on_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">close_status_code</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">close_reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">close_status_code</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">close_reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="p">{</span>
                 <span class="s2">"log"</span><span class="p">:</span> <span class="p">{</span>
@@ -813,7 +813,7 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s2">"done"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
 
-    <span class="k">def</span> <span class="nf">on_open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">blocking_message</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"content"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">}</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gen_params</span><span class="p">(</span>
@@ -822,7 +822,7 @@
         <span class="p">)</span>
         <span class="n">ws</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">on_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ws</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
         <span class="n">code</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"header"</span><span class="p">][</span><span class="s2">"code"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
@@ -849,7 +849,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s2">"usage"</span><span class="p">:</span> <span class="n">usage_data</span><span class="p">})</span>
                 <span class="n">ws</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">gen_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gen_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{</span>
@@ -863,7 +863,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Spark Request Parameters: </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span>
 
-    <span class="k">def</span> <span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>

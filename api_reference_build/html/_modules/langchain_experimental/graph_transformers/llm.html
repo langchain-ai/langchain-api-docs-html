@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,22 +220,22 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_experimental.graph_transformers.llm</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.graphs.graph_document</span> <span class="kn">import</span> <span class="n">GraphDocument</span><span class="p">,</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Relationship</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">SystemMessage</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="n">JsonOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.graphs.graph_document</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphDocument</span><span class="p">,</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Relationship</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">SystemMessage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatPromptTemplate</span><span class="p">,</span>
     <span class="n">HumanMessagePromptTemplate</span><span class="p">,</span>
     <span class="n">PromptTemplate</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">RunnableConfig</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">create_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">create_model</span>
 
 <span class="n">DEFAULT_NODE_TYPE</span> <span class="o">=</span> <span class="s2">"Node"</span>
 
@@ -331,7 +331,7 @@
 
 <div class="viewcode-block" id="get_default_prompt">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.get_default_prompt.html#langchain_experimental.graph_transformers.llm.get_default_prompt">[docs]</a>
-<span class="k">def</span> <span class="nf">get_default_prompt</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_default_prompt</span><span class="p">(</span>
     <span class="n">additional_instructions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatPromptTemplate</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">ChatPromptTemplate</span><span class="o">.</span><span class="n">from_messages</span><span class="p">(</span>
@@ -350,7 +350,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_get_additional_info</span><span class="p">(</span><span class="n">input_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_additional_info</span><span class="p">(</span><span class="n">input_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="c1"># Check if the input_type is one of the allowed values</span>
     <span class="k">if</span> <span class="n">input_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"node"</span><span class="p">,</span> <span class="s2">"relationship"</span><span class="p">,</span> <span class="s2">"property"</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"input_type must be 'node', 'relationship', or 'property'"</span><span class="p">)</span>
@@ -376,7 +376,7 @@
 
 <div class="viewcode-block" id="optional_enum_field">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.optional_enum_field.html#langchain_experimental.graph_transformers.llm.optional_enum_field">[docs]</a>
-<span class="k">def</span> <span class="nf">optional_enum_field</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">optional_enum_field</span><span class="p">(</span>
     <span class="n">enum_values</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
     <span class="n">input_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"node"</span><span class="p">,</span>
@@ -410,14 +410,14 @@
 
 
 
-<span class="k">class</span> <span class="nc">_Graph</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Graph</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span>
     <span class="n">relationships</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="UnstructuredRelation">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.UnstructuredRelation.html#langchain_experimental.graph_transformers.llm.UnstructuredRelation">[docs]</a>
-<span class="k">class</span> <span class="nc">UnstructuredRelation</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">UnstructuredRelation</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">head</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">description</span><span class="o">=</span><span class="p">(</span>
             <span class="s2">"extracted head entity like Microsoft, Apple, John. "</span>
@@ -442,7 +442,7 @@
 
 <div class="viewcode-block" id="create_unstructured_prompt">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.create_unstructured_prompt.html#langchain_experimental.graph_transformers.llm.create_unstructured_prompt">[docs]</a>
-<span class="k">def</span> <span class="nf">create_unstructured_prompt</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_unstructured_prompt</span><span class="p">(</span>
     <span class="n">node_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rel_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">relationship_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -554,7 +554,7 @@
 
 <div class="viewcode-block" id="create_simple_model">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.create_simple_model.html#langchain_experimental.graph_transformers.llm.create_simple_model">[docs]</a>
-<span class="k">def</span> <span class="nf">create_simple_model</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_simple_model</span><span class="p">(</span>
     <span class="n">node_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rel_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">node_properties</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -612,7 +612,7 @@
             <span class="p">[]</span> <span class="k">if</span> <span class="n">node_properties</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">node_properties</span>
         <span class="p">)</span>
 
-        <span class="k">class</span> <span class="nc">Property</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">Property</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">"""A single property consisting of key and value"""</span>
 
             <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">optional_enum_field</span><span class="p">(</span>
@@ -692,7 +692,7 @@
             <span class="p">[]</span> <span class="k">if</span> <span class="n">relationship_properties</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">relationship_properties</span>
         <span class="p">)</span>
 
-        <span class="k">class</span> <span class="nc">RelationshipProperty</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">RelationshipProperty</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">"""A single property consisting of key and value"""</span>
 
             <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">optional_enum_field</span><span class="p">(</span>
@@ -724,7 +724,7 @@
             <span class="sa">f</span><span class="s2">"Provided schema is </span><span class="si">{</span><span class="n">rel_types</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
-    <span class="k">class</span> <span class="nc">DynamicGraph</span><span class="p">(</span><span class="n">_Graph</span><span class="p">):</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">DynamicGraph</span><span class="p">(</span><span class="n">_Graph</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Represents a graph document consisting of nodes and relationships."""</span>
 
         <span class="n">nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">SimpleNode</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">"List of nodes"</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
@@ -738,7 +738,7 @@
 
 <div class="viewcode-block" id="map_to_base_node">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.map_to_base_node.html#langchain_experimental.graph_transformers.llm.map_to_base_node">[docs]</a>
-<span class="k">def</span> <span class="nf">map_to_base_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_to_base_node</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Map the SimpleNode to the base Node."""</span>
     <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">"properties"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">properties</span><span class="p">:</span>
@@ -750,7 +750,7 @@
 
 <div class="viewcode-block" id="map_to_base_relationship">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.map_to_base_relationship.html#langchain_experimental.graph_transformers.llm.map_to_base_relationship">[docs]</a>
-<span class="k">def</span> <span class="nf">map_to_base_relationship</span><span class="p">(</span><span class="n">rel</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relationship</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_to_base_relationship</span><span class="p">(</span><span class="n">rel</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relationship</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Map the SimpleRelationship to the base Relationship."""</span>
     <span class="n">source</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">rel</span><span class="o">.</span><span class="n">source_node_id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">rel</span><span class="o">.</span><span class="n">source_node_type</span><span class="p">)</span>
     <span class="n">target</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">rel</span><span class="o">.</span><span class="n">target_node_id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">rel</span><span class="o">.</span><span class="n">target_node_type</span><span class="p">)</span>
@@ -764,7 +764,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_parse_and_clean_json</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_and_clean_json</span><span class="p">(</span>
     <span class="n">argument_json</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">]]:</span>
     <span class="n">nodes</span> <span class="o">=</span> <span class="p">[]</span>
@@ -836,7 +836,7 @@
     <span class="k">return</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">relationships</span>
 
 
-<span class="k">def</span> <span class="nf">_format_nodes</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_nodes</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="n">Node</span><span class="p">(</span>
             <span class="nb">id</span><span class="o">=</span><span class="n">el</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">title</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">el</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">el</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
@@ -849,7 +849,7 @@
     <span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_format_relationships</span><span class="p">(</span><span class="n">rels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_relationships</span><span class="p">(</span><span class="n">rels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="n">Relationship</span><span class="p">(</span>
             <span class="n">source</span><span class="o">=</span><span class="n">_format_nodes</span><span class="p">([</span><span class="n">el</span><span class="o">.</span><span class="n">source</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span>
@@ -863,7 +863,7 @@
 
 <div class="viewcode-block" id="format_property_key">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.format_property_key.html#langchain_experimental.graph_transformers.llm.format_property_key">[docs]</a>
-<span class="k">def</span> <span class="nf">format_property_key</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_property_key</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">words</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">words</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">s</span>
@@ -873,7 +873,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convert_to_graph_document</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_graph_document</span><span class="p">(</span>
     <span class="n">raw_schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Node</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Relationship</span><span class="p">]]:</span>
     <span class="c1"># If there are validation errors</span>
@@ -926,7 +926,7 @@
 
 <div class="viewcode-block" id="validate_and_get_relationship_type">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.validate_and_get_relationship_type.html#langchain_experimental.graph_transformers.llm.validate_and_get_relationship_type">[docs]</a>
-<span class="k">def</span> <span class="nf">validate_and_get_relationship_type</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_and_get_relationship_type</span><span class="p">(</span>
     <span class="n">allowed_relationships</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]],</span>
     <span class="n">allowed_nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -962,7 +962,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer">[docs]</a>
-<span class="k">class</span> <span class="nc">LLMGraphTransformer</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LLMGraphTransformer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Transform documents into graph-based documents using a LLM.</span>
 
 <span class="sd">    It allows specifying constraints on the types of nodes and relationships to include</span>
@@ -1013,7 +1013,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer.__init__">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="n">allowed_nodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
@@ -1048,7 +1048,7 @@
                     <span class="s2">"native function calling."</span>
                 <span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">import</span> <span class="nn">json_repair</span>  <span class="c1"># type: ignore</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">json_repair</span>  <span class="c1"># type: ignore</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">json_repair</span> <span class="o">=</span> <span class="n">json_repair</span>
             <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -1084,7 +1084,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer.process_response">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer.process_response">[docs]</a>
-    <span class="k">def</span> <span class="nf">process_response</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_response</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphDocument</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1176,7 +1176,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer.convert_to_graph_documents">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer.convert_to_graph_documents">[docs]</a>
-    <span class="k">def</span> <span class="nf">convert_to_graph_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_to_graph_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GraphDocument</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Convert a sequence of documents into graph documents.</span>
@@ -1193,7 +1193,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer.aprocess_response">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer.aprocess_response">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aprocess_response</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aprocess_response</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphDocument</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1283,7 +1283,7 @@
 
 <div class="viewcode-block" id="LLMGraphTransformer.aconvert_to_graph_documents">
 <a class="viewcode-back" href="../../../experimental/graph_transformers/langchain_experimental.graph_transformers.llm.LLMGraphTransformer.html#langchain_experimental.graph_transformers.llm.LLMGraphTransformer.aconvert_to_graph_documents">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aconvert_to_graph_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aconvert_to_graph_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">GraphDocument</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>

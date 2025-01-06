@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,31 +220,31 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.vectorstores.azure_cosmos_db_no_sql</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">azure.cosmos</span> <span class="kn">import</span> <span class="n">ContainerProxy</span><span class="p">,</span> <span class="n">CosmosClient</span>
-    <span class="kn">from</span> <span class="nn">azure.identity</span> <span class="kn">import</span> <span class="n">DefaultAzureCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.cosmos</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContainerProxy</span><span class="p">,</span> <span class="n">CosmosClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultAzureCredential</span>
 
 <span class="n">USER_AGENT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"LangChain-CDBNoSql-VectorStore-Python"</span><span class="p">,)</span>
 
 
 <div class="viewcode-block" id="Condition">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.Condition.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.Condition">[docs]</a>
-<span class="k">class</span> <span class="nc">Condition</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Condition</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="nb">property</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">value</span><span class="p">:</span> <span class="n">Any</span></div>
@@ -253,7 +253,7 @@
 
 <div class="viewcode-block" id="PreFilter">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.PreFilter.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.PreFilter">[docs]</a>
-<span class="k">class</span> <span class="nc">PreFilter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PreFilter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">conditions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Condition</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">logical_operator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
@@ -261,7 +261,7 @@
 
 <div class="viewcode-block" id="CosmosDBQueryType">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.CosmosDBQueryType.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.CosmosDBQueryType">[docs]</a>
-<span class="k">class</span> <span class="nc">CosmosDBQueryType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CosmosDBQueryType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""CosmosDB Query Type"""</span>
 
     <span class="n">VECTOR</span> <span class="o">=</span> <span class="s2">"vector"</span>
@@ -273,7 +273,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch">[docs]</a>
-<span class="k">class</span> <span class="nc">AzureCosmosDBNoSqlVectorSearch</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AzureCosmosDBNoSqlVectorSearch</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""`Azure Cosmos DB for NoSQL` vector store.</span>
 
 <span class="sd">    To use, you should have both:</span>
@@ -288,7 +288,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.__init__">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">cosmos_client</span><span class="p">:</span> <span class="n">CosmosClient</span><span class="p">,</span>
@@ -419,7 +419,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.add_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.add_texts">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -439,7 +439,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_texts</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">texts</span><span class="p">),</span> <span class="n">_metadatas</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_insert_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_insert_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">metadatas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Used to Load Documents into the collection</span>
@@ -476,7 +476,7 @@
         <span class="k">return</span> <span class="n">doc_ids</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_from_kwargs</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_kwargs</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -524,7 +524,7 @@
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.from_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -556,7 +556,7 @@
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.from_connection_string_and_aad">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.from_connection_string_and_aad">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_connection_string_and_aad</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_connection_string_and_aad</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">connection_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">defaultAzureCredential</span><span class="p">:</span> <span class="n">DefaultAzureCredential</span><span class="p">,</span>
@@ -580,7 +580,7 @@
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.from_connection_string_and_key">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.from_connection_string_and_key">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_connection_string_and_key</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_connection_string_and_key</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">connection_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -601,7 +601,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.delete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.delete">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No document ids provided to delete."</span><span class="p">)</span>
 
@@ -612,7 +612,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.delete_document_by_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.delete_document_by_id">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete_document_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_document_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Removes a Specific Document by id</span>
 
 <span class="sd">        Args:</span>
@@ -623,7 +623,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="o">.</span><span class="n">delete_item</span><span class="p">(</span><span class="n">document_id</span><span class="p">,</span> <span class="n">partition_key</span><span class="o">=</span><span class="n">document_id</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -652,7 +652,7 @@
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_full_text_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_full_text_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
         <span class="n">search_text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -680,7 +680,7 @@
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_hybrid_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -712,7 +712,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.similarity_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -768,7 +768,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.similarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.similarity_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -799,7 +799,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.max_marginal_relevance_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.max_marginal_relevance_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -837,7 +837,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.max_marginal_relevance_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.max_marginal_relevance_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -867,7 +867,7 @@
         <span class="k">return</span> <span class="n">docs</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_construct_query</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_construct_query</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
@@ -933,7 +933,7 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">query</span><span class="p">,</span> <span class="n">parameters</span>
 
-    <span class="k">def</span> <span class="nf">_generate_projection_fields</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_projection_fields</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
@@ -980,7 +980,7 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">projection</span>
 
-    <span class="k">def</span> <span class="nf">_build_parameters</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_parameters</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
@@ -1013,7 +1013,7 @@
 
         <span class="k">return</span> <span class="n">parameters</span>
 
-    <span class="k">def</span> <span class="nf">_build_where_clause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pre_filter</span><span class="p">:</span> <span class="n">PreFilter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_where_clause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pre_filter</span><span class="p">:</span> <span class="n">PreFilter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Builds a where clause based on the given pre_filter.</span>
 <span class="sd">        """</span>
@@ -1058,7 +1058,7 @@
                 <span class="n">clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"c.</span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">property</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">sql_operator</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">""" WHERE </span><span class="si">{</span><span class="s1">' </span><span class="si">{}</span><span class="s1"> '</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_logical_operator</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clauses</span><span class="p">)</span><span class="si">}</span><span class="s2">"""</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_execute_query</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_execute_query</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">query_type</span><span class="p">:</span> <span class="n">CosmosDBQueryType</span><span class="p">,</span>
@@ -1097,7 +1097,7 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs_and_scores</span>
 
-    <span class="k">def</span> <span class="nf">_where_clause_operator_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_where_clause_operator_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="n">operator_map</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"$eq"</span><span class="p">:</span> <span class="s2">"="</span><span class="p">,</span>
             <span class="s2">"$ne"</span><span class="p">:</span> <span class="s2">"!="</span><span class="p">,</span>
@@ -1128,7 +1128,7 @@
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.get_container">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_community.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.get_container">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContainerProxy</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContainerProxy</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container</span></div>
 </div>
 

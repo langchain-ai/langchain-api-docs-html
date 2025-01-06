@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,15 +220,15 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_core.tracers.log_stream</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Literal</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
@@ -236,25 +236,25 @@
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">overload</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">UUID</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
 
-<span class="kn">import</span> <span class="nn">jsonpatch</span>  <span class="c1"># type: ignore[import]</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">NotRequired</span><span class="p">,</span> <span class="n">TypedDict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">jsonpatch</span>  <span class="c1"># type: ignore[import]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NotRequired</span><span class="p">,</span> <span class="n">TypedDict</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.load</span> <span class="kn">import</span> <span class="n">dumps</span>
-<span class="kn">from</span> <span class="nn">langchain_core.load.load</span> <span class="kn">import</span> <span class="n">load</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">GenerationChunk</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.utils</span> <span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tracers._streaming</span> <span class="kn">import</span> <span class="n">_StreamingCallbackHandler</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tracers.base</span> <span class="kn">import</span> <span class="n">BaseTracer</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tracers.memory_stream</span> <span class="kn">import</span> <span class="n">_MemoryStream</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tracers.schemas</span> <span class="kn">import</span> <span class="n">Run</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">GenerationChunk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers._streaming</span><span class="w"> </span><span class="kn">import</span> <span class="n">_StreamingCallbackHandler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTracer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.memory_stream</span><span class="w"> </span><span class="kn">import</span> <span class="n">_MemoryStream</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">Run</span>
 
 
 <div class="viewcode-block" id="LogEntry">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogEntry.html#langchain_core.tracers.log_stream.LogEntry">[docs]</a>
-<span class="k">class</span> <span class="nc">LogEntry</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogEntry</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A single entry in the run log."""</span>
 
     <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
@@ -288,7 +288,7 @@
 
 <div class="viewcode-block" id="RunState">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.RunState.html#langchain_core.tracers.log_stream.RunState">[docs]</a>
-<span class="k">class</span> <span class="nc">RunState</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunState</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""State of the run."""</span>
 
     <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
@@ -315,7 +315,7 @@
 
 <div class="viewcode-block" id="RunLogPatch">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.RunLogPatch.html#langchain_core.tracers.log_stream.RunLogPatch">[docs]</a>
-<span class="k">class</span> <span class="nc">RunLogPatch</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunLogPatch</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Patch to the run log."""</span>
 
     <span class="n">ops</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
@@ -327,11 +327,11 @@
 
 <div class="viewcode-block" id="RunLogPatch.__init__">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.RunLogPatch.html#langchain_core.tracers.log_stream.RunLogPatch.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ops</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunLog</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunLog</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="ow">is</span> <span class="n">RunLogPatch</span><span class="p">:</span>
             <span class="n">ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ops</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">ops</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">jsonpatch</span><span class="o">.</span><span class="n">apply_patch</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">ops</span><span class="p">))</span>
@@ -340,20 +340,20 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"unsupported operand type(s) for +: '</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">' and '</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">'"</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pformat</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">pformat</span>
 
         <span class="c1"># 1:-1 to get rid of the [] around the list</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"RunLogPatch(</span><span class="si">{</span><span class="n">pformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ops</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
 
-    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">RunLogPatch</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ops</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">ops</span></div>
 
 
 
 <div class="viewcode-block" id="RunLog">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.RunLog.html#langchain_core.tracers.log_stream.RunLog">[docs]</a>
-<span class="k">class</span> <span class="nc">RunLog</span><span class="p">(</span><span class="n">RunLogPatch</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunLog</span><span class="p">(</span><span class="n">RunLogPatch</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Run log."""</span>
 
     <span class="n">state</span><span class="p">:</span> <span class="n">RunState</span>
@@ -361,12 +361,12 @@
 
 <div class="viewcode-block" id="RunLog.__init__">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.RunLog.html#langchain_core.tracers.log_stream.RunLog.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">ops</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunLog</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunLog</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="ow">is</span> <span class="n">RunLogPatch</span><span class="p">:</span>
             <span class="n">ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ops</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">ops</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">jsonpatch</span><span class="o">.</span><span class="n">apply_patch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">ops</span><span class="p">)</span>
@@ -375,12 +375,12 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"unsupported operand type(s) for +: '</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">' and '</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">'"</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">pformat</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">pformat</span>
 
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"RunLog(</span><span class="si">{</span><span class="n">pformat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
 
-    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="c1"># First compare that the state is the same</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">RunLog</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">False</span>
@@ -396,12 +396,12 @@
 
 <div class="viewcode-block" id="LogStreamCallbackHandler">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler">[docs]</a>
-<span class="k">class</span> <span class="nc">LogStreamCallbackHandler</span><span class="p">(</span><span class="n">BaseTracer</span><span class="p">,</span> <span class="n">_StreamingCallbackHandler</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogStreamCallbackHandler</span><span class="p">(</span><span class="n">BaseTracer</span><span class="p">,</span> <span class="n">_StreamingCallbackHandler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Tracer that streams run logs to a stream."""</span>
 
 <div class="viewcode-block" id="LogStreamCallbackHandler.__init__">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">auto_close</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -464,12 +464,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">root_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">UUID</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__aiter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__aiter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">RunLogPatch</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">receive_stream</span><span class="o">.</span><span class="fm">__aiter__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="LogStreamCallbackHandler.send">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler.send">[docs]</a>
-    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">ops</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Send a patch to the stream, return False if the stream is closed.</span>
 
 <span class="sd">        Args:</span>
@@ -489,7 +489,7 @@
 
 <div class="viewcode-block" id="LogStreamCallbackHandler.tap_output_aiter">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler.tap_output_aiter">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">tap_output_aiter</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tap_output_aiter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">T</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Tap an output async iterator to stream its values to the log.</span>
@@ -525,7 +525,7 @@
 
 <div class="viewcode-block" id="LogStreamCallbackHandler.tap_output_iter">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler.tap_output_iter">[docs]</a>
-    <span class="k">def</span> <span class="nf">tap_output_iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tap_output_iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Tap an output async iterator to stream its values to the log.</span>
 
 <span class="sd">        Args:</span>
@@ -559,7 +559,7 @@
 
 <div class="viewcode-block" id="LogStreamCallbackHandler.include_run">
 <a class="viewcode-back" href="../../../core/tracers/langchain_core.tracers.log_stream.LogStreamCallbackHandler.html#langchain_core.tracers.log_stream.LogStreamCallbackHandler.include_run">[docs]</a>
-    <span class="k">def</span> <span class="nf">include_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">include_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Check if a Run should be included in the log.</span>
 
 <span class="sd">        Args:</span>
@@ -599,12 +599,12 @@
         <span class="k">return</span> <span class="n">include</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_persist_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_persist_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># This is a legacy method only called once for an entire run tree</span>
         <span class="c1"># therefore not useful here</span>
         <span class="k">pass</span>
 
-    <span class="k">def</span> <span class="nf">_on_run_create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_run_create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Start a run."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">root_id</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">id</span>
@@ -661,7 +661,7 @@
             <span class="p">}</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_on_run_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_run_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Finish a run."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_map_by_run_id</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
@@ -707,7 +707,7 @@
             <span class="k">if</span> <span class="n">run</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_id</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_close</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">send_stream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_on_llm_new_token</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_on_llm_new_token</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">,</span>
         <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -736,7 +736,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_get_standardized_inputs</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_standardized_inputs</span><span class="p">(</span>
     <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">,</span> <span class="n">schema_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"original"</span><span class="p">,</span> <span class="s2">"streaming_events"</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Extract standardized inputs from a run.</span>
@@ -778,7 +778,7 @@
     <span class="k">return</span> <span class="n">inputs</span>
 
 
-<span class="k">def</span> <span class="nf">_get_standardized_outputs</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_standardized_outputs</span><span class="p">(</span>
     <span class="n">run</span><span class="p">:</span> <span class="n">Run</span><span class="p">,</span> <span class="n">schema_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"original"</span><span class="p">,</span> <span class="s2">"streaming_events"</span><span class="p">,</span> <span class="s2">"original+chat"</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Extract standardized output from a run.</span>
@@ -811,7 +811,7 @@
 
 
 <span class="nd">@overload</span>
-<span class="k">def</span> <span class="nf">_astream_log_implementation</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_astream_log_implementation</span><span class="p">(</span>
     <span class="n">runnable</span><span class="p">:</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">],</span>
     <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -824,7 +824,7 @@
 
 
 <span class="nd">@overload</span>
-<span class="k">def</span> <span class="nf">_astream_log_implementation</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_astream_log_implementation</span><span class="p">(</span>
     <span class="n">runnable</span><span class="p">:</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">],</span>
     <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -836,7 +836,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">RunLog</span><span class="p">]:</span> <span class="o">...</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_astream_log_implementation</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream_log_implementation</span><span class="p">(</span>
     <span class="n">runnable</span><span class="p">:</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">],</span>
     <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -851,10 +851,10 @@
 <span class="sd">    The implementation has been factored out (at least temporarily) as both</span>
 <span class="sd">    astream_log and astream_events relies on it.</span>
 <span class="sd">    """</span>
-    <span class="kn">import</span> <span class="nn">jsonpatch</span>  <span class="c1"># type: ignore[import]</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">jsonpatch</span>  <span class="c1"># type: ignore[import]</span>
 
-    <span class="kn">from</span> <span class="nn">langchain_core.callbacks.base</span> <span class="kn">import</span> <span class="n">BaseCallbackManager</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.tracers.log_stream</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCallbackManager</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.log_stream</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">RunLog</span><span class="p">,</span>
         <span class="n">RunLogPatch</span><span class="p">,</span>
     <span class="p">)</span>
@@ -879,7 +879,7 @@
 
     <span class="c1"># Call the runnable in streaming mode,</span>
     <span class="c1"># add each chunk to the output stream</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">consume_astream</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">consume_astream</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">prev_final_output</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Output</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">final_output</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Output</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>

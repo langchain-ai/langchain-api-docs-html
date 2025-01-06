@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,13 +220,13 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_core.beta.runnables.context</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
@@ -234,16 +234,16 @@
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api.beta_decorator</span> <span class="kn">import</span> <span class="n">beta</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.base</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api.beta_decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Runnable</span><span class="p">,</span>
     <span class="n">RunnableSerializable</span><span class="p">,</span>
     <span class="n">coerce_to_runnable</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span><span class="p">,</span> <span class="n">patch_config</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.utils</span> <span class="kn">import</span> <span class="n">ConfigurableFieldSpec</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span><span class="p">,</span> <span class="n">patch_config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigurableFieldSpec</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"T"</span><span class="p">)</span>
 <span class="n">Values</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
@@ -252,29 +252,29 @@
 <span class="n">CONTEXT_CONFIG_SUFFIX_SET</span> <span class="o">=</span> <span class="s2">"/set"</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_asetter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asetter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
     <span class="n">values</span><span class="p">[</span><span class="n">done</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
     <span class="n">done</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">value</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_agetter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agetter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="k">await</span> <span class="n">done</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="n">done</span><span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_setter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_setter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
     <span class="n">values</span><span class="p">[</span><span class="n">done</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
     <span class="n">done</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">value</span>
 
 
-<span class="k">def</span> <span class="nf">_getter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_getter</span><span class="p">(</span><span class="n">done</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Values</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="n">done</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="n">done</span><span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_key_from_id</span><span class="p">(</span><span class="n">id_</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_key_from_id</span><span class="p">(</span><span class="n">id_</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">wout_prefix</span> <span class="o">=</span> <span class="n">id_</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">CONTEXT_CONFIG_PREFIX</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">wout_prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">CONTEXT_CONFIG_SUFFIX_GET</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">wout_prefix</span><span class="p">[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">CONTEXT_CONFIG_SUFFIX_GET</span><span class="p">)]</span>
@@ -285,7 +285,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_config_with_context</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_config_with_context</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Runnable</span><span class="p">],</span>
     <span class="n">setter</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
@@ -345,7 +345,7 @@
 
 <div class="viewcode-block" id="aconfig_with_context">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.aconfig_with_context.html#langchain_core.beta.runnables.context.aconfig_with_context">[docs]</a>
-<span class="k">def</span> <span class="nf">aconfig_with_context</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">aconfig_with_context</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Runnable</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
@@ -364,7 +364,7 @@
 
 <div class="viewcode-block" id="config_with_context">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.config_with_context.html#langchain_core.beta.runnables.context.config_with_context">[docs]</a>
-<span class="k">def</span> <span class="nf">config_with_context</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">config_with_context</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Runnable</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
@@ -384,18 +384,18 @@
 <div class="viewcode-block" id="ContextGet">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextGet.html#langchain_core.beta.runnables.context.ContextGet">[docs]</a>
 <span class="nd">@beta</span><span class="p">()</span>
-<span class="k">class</span> <span class="nc">ContextGet</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ContextGet</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Get a context value."""</span>
 
     <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
 
     <span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
 
-    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"ContextGet(</span><span class="si">{</span><span class="n">_print_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">"/"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="k">else</span> <span class="s2">""</span>
         <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
         <span class="k">return</span> <span class="p">[</span>
@@ -404,7 +404,7 @@
         <span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">config_specs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ConfigurableFieldSpec</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">config_specs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ConfigurableFieldSpec</span><span class="p">]:</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">config_specs</span> <span class="o">+</span> <span class="p">[</span>
             <span class="n">ConfigurableFieldSpec</span><span class="p">(</span>
                 <span class="nb">id</span><span class="o">=</span><span class="n">id_</span><span class="p">,</span>
@@ -415,7 +415,7 @@
 
 <div class="viewcode-block" id="ContextGet.invoke">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextGet.html#langchain_core.beta.runnables.context.ContextGet.invoke">[docs]</a>
-    <span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -428,7 +428,7 @@
 
 <div class="viewcode-block" id="ContextGet.ainvoke">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextGet.html#langchain_core.beta.runnables.context.ContextGet.ainvoke">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ainvoke</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ainvoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -450,7 +450,7 @@
 <span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_coerce_set_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">SetValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_set_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">SetValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">]:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Runnable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">coerce_to_runnable</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">value</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">coerce_to_runnable</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -459,7 +459,7 @@
 <div class="viewcode-block" id="ContextSet">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextSet.html#langchain_core.beta.runnables.context.ContextSet">[docs]</a>
 <span class="nd">@beta</span><span class="p">()</span>
-<span class="k">class</span> <span class="nc">ContextSet</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ContextSet</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Set a context value."""</span>
 
     <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
@@ -470,7 +470,7 @@
         <span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SetValue</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -487,11 +487,11 @@
             <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"ContextSet(</span><span class="si">{</span><span class="n">_print_keys</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span><span class="si">}</span><span class="s2">)"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">"/"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="k">else</span> <span class="s2">""</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">CONTEXT_CONFIG_PREFIX</span><span class="si">}{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">key</span><span class="si">}{</span><span class="n">CONTEXT_CONFIG_SUFFIX_SET</span><span class="si">}</span><span class="s2">"</span>
@@ -499,7 +499,7 @@
         <span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">config_specs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ConfigurableFieldSpec</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">config_specs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ConfigurableFieldSpec</span><span class="p">]:</span>
         <span class="n">mapper_config_specs</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">s</span>
             <span class="k">for</span> <span class="n">mapper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
@@ -522,7 +522,7 @@
 
 <div class="viewcode-block" id="ContextSet.invoke">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextSet.html#langchain_core.beta.runnables.context.ContextSet.invoke">[docs]</a>
-    <span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -537,7 +537,7 @@
 
 <div class="viewcode-block" id="ContextSet.ainvoke">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.ContextSet.html#langchain_core.beta.runnables.context.ContextSet.ainvoke">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ainvoke</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ainvoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
@@ -554,7 +554,7 @@
 
 <div class="viewcode-block" id="Context">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.Context.html#langchain_core.beta.runnables.context.Context">[docs]</a>
-<span class="k">class</span> <span class="nc">Context</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Context</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Context for a runnable.</span>
 
@@ -599,7 +599,7 @@
 <div class="viewcode-block" id="Context.create_scope">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.Context.html#langchain_core.beta.runnables.context.Context.create_scope">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">create_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PrefixContext"</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PrefixContext"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a context scope.</span>
 
 <span class="sd">        Args:</span>
@@ -614,14 +614,14 @@
 <div class="viewcode-block" id="Context.getter">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.Context.html#langchain_core.beta.runnables.context.Context.getter">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextGet</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getter</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextGet</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ContextGet</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Context.setter">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.Context.html#langchain_core.beta.runnables.context.Context.setter">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setter</span><span class="p">(</span>
         <span class="n">_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">_value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SetValue</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">/</span><span class="p">,</span>
@@ -634,26 +634,26 @@
 
 <div class="viewcode-block" id="PrefixContext">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.PrefixContext.html#langchain_core.beta.runnables.context.PrefixContext">[docs]</a>
-<span class="k">class</span> <span class="nc">PrefixContext</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PrefixContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Context for a runnable with a prefix."""</span>
 
     <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
 
 <div class="viewcode-block" id="PrefixContext.__init__">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.PrefixContext.html#langchain_core.beta.runnables.context.PrefixContext.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span></div>
 
 
 <div class="viewcode-block" id="PrefixContext.getter">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.PrefixContext.html#langchain_core.beta.runnables.context.PrefixContext.getter">[docs]</a>
-    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextGet</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextGet</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ContextGet</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PrefixContext.setter">
 <a class="viewcode-back" href="../../../../core/beta/langchain_core.beta.runnables.context.PrefixContext.html#langchain_core.beta.runnables.context.PrefixContext.setter">[docs]</a>
-    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">_value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SetValue</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -665,7 +665,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_print_keys</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_print_keys</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">'"</span>
     <span class="k">else</span><span class="p">:</span>

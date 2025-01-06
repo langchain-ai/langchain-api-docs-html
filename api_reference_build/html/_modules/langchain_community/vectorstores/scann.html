@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,28 +220,28 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.vectorstores.scann</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">operator</span>
-<span class="kn">import</span> <span class="nn">pickle</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">operator</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">guard_import</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">guard_import</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.docstore.base</span> <span class="kn">import</span> <span class="n">AddableMixin</span><span class="p">,</span> <span class="n">Docstore</span>
-<span class="kn">from</span> <span class="nn">langchain_community.docstore.in_memory</span> <span class="kn">import</span> <span class="n">InMemoryDocstore</span>
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">DistanceStrategy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.docstore.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddableMixin</span><span class="p">,</span> <span class="n">Docstore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.docstore.in_memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryDocstore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistanceStrategy</span>
 
 
 <div class="viewcode-block" id="normalize">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.normalize.html#langchain_community.vectorstores.scann.normalize">[docs]</a>
-<span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Normalize vectors to unit length."""</span>
     <span class="n">x</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">x</span></div>
@@ -250,7 +250,7 @@
 
 <div class="viewcode-block" id="dependable_scann_import">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.dependable_scann_import.html#langchain_community.vectorstores.scann.dependable_scann_import">[docs]</a>
-<span class="k">def</span> <span class="nf">dependable_scann_import</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dependable_scann_import</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Import `scann` if available, otherwise raise error.</span>
 <span class="sd">    """</span>
@@ -260,7 +260,7 @@
 
 <div class="viewcode-block" id="ScaNN">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN">[docs]</a>
-<span class="k">class</span> <span class="nc">ScaNN</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScaNN</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""`ScaNN` vector store.</span>
 
 <span class="sd">    To use, you should have the ``scann`` python package installed.</span>
@@ -280,7 +280,7 @@
 
 <div class="viewcode-block" id="ScaNN.__init__">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
         <span class="n">index</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -302,7 +302,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_scann_config</span> <span class="o">=</span> <span class="n">scann_config</span></div>
 
 
-    <span class="k">def</span> <span class="nf">__add</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__add</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
@@ -319,7 +319,7 @@
 
 <div class="viewcode-block" id="ScaNN.add_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.add_texts">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -343,7 +343,7 @@
 
 <div class="viewcode-block" id="ScaNN.add_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.add_embeddings">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -374,7 +374,7 @@
 
 <div class="viewcode-block" id="ScaNN.delete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.delete">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector ID or other criteria.</span>
 
 <span class="sd">        Args:</span>
@@ -391,7 +391,7 @@
 
 <div class="viewcode-block" id="ScaNN.similarity_search_with_score_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.similarity_search_with_score_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -458,7 +458,7 @@
 
 <div class="viewcode-block" id="ScaNN.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.similarity_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -492,7 +492,7 @@
 
 <div class="viewcode-block" id="ScaNN.similarity_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.similarity_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -524,7 +524,7 @@
 
 <div class="viewcode-block" id="ScaNN.similarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.similarity_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -551,7 +551,7 @@
 
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">__from</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__from</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
@@ -613,7 +613,7 @@
 <div class="viewcode-block" id="ScaNN.from_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -652,7 +652,7 @@
 <div class="viewcode-block" id="ScaNN.from_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.from_embeddings">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_embeddings</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -693,7 +693,7 @@
 
 <div class="viewcode-block" id="ScaNN.save_local">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.save_local">[docs]</a>
-    <span class="k">def</span> <span class="nf">save_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"index"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"index"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Save ScaNN index, docstore, and index_to_docstore_id to disk.</span>
 
 <span class="sd">        Args:</span>
@@ -715,7 +715,7 @@
 <div class="viewcode-block" id="ScaNN.load_local">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.scann.ScaNN.html#langchain_community.vectorstores.scann.ScaNN.load_local">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">load_local</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_local</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">folder_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -769,7 +769,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">docstore</span><span class="p">,</span> <span class="n">index_to_docstore_id</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        The 'correct' relevance function</span>
 <span class="sd">        may differ depending on a few things, including:</span>
@@ -794,7 +794,7 @@
                 <span class="s2">" or euclidean"</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_similarity_search_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>

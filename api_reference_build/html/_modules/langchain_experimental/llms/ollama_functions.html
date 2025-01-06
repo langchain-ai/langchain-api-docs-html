@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,10 +220,10 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_experimental.llms.ollama_functions</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -236,29 +236,29 @@
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.chat_models.ollama</span> <span class="kn">import</span> <span class="n">ChatOllama</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.chat_models.ollama</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatOllama</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">LanguageModelInput</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LanguageModelInput</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
     <span class="n">ToolCall</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.base</span> <span class="kn">import</span> <span class="n">OutputParserLike</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.json</span> <span class="kn">import</span> <span class="n">JsonOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.pydantic</span> <span class="kn">import</span> <span class="n">PydanticOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">SystemMessagePromptTemplate</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableLambda</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.base</span> <span class="kn">import</span> <span class="n">RunnableMap</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.passthrough</span> <span class="kn">import</span> <span class="n">RunnablePassthrough</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">is_basemodel_instance</span><span class="p">,</span> <span class="n">is_basemodel_subclass</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserLike</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">PydanticOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts</span><span class="w"> </span><span class="kn">import</span> <span class="n">SystemMessagePromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableLambda</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableMap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.passthrough</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnablePassthrough</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_basemodel_instance</span><span class="p">,</span> <span class="n">is_basemodel_subclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -295,7 +295,7 @@
 <span class="n">_DictOrPydantic</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_BM</span><span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_is_pydantic_class</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_pydantic_class</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="n">is_basemodel_subclass</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">or</span> <span class="n">BaseModel</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__bases__</span>
     <span class="p">)</span>
@@ -303,7 +303,7 @@
 
 <div class="viewcode-block" id="convert_to_ollama_tool">
 <a class="viewcode-back" href="../../../experimental/llms/langchain_experimental.llms.ollama_functions.convert_to_ollama_tool.html#langchain_experimental.llms.ollama_functions.convert_to_ollama_tool">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_to_ollama_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_to_ollama_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a tool to an Ollama tool."""</span>
     <span class="n">description</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">_is_pydantic_class</span><span class="p">(</span><span class="n">tool</span><span class="p">):</span>
@@ -332,7 +332,7 @@
 
 
 
-<span class="k">class</span> <span class="nc">_AllReturnType</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_AllReturnType</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">raw</span><span class="p">:</span> <span class="n">BaseMessage</span>
     <span class="n">parsed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_DictOrPydantic</span><span class="p">]</span>
     <span class="n">parsing_error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span>
@@ -340,7 +340,7 @@
 
 <div class="viewcode-block" id="parse_response">
 <a class="viewcode-back" href="../../../experimental/llms/langchain_experimental.llms.ollama_functions.parse_response.html#langchain_experimental.llms.ollama_functions.parse_response">[docs]</a>
-<span class="k">def</span> <span class="nf">parse_response</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_response</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Extract `function_call` from `AIMessage`."""</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span>
@@ -366,17 +366,17 @@
 <span class="nd">@deprecated</span><span class="p">(</span>  <span class="c1"># type: ignore[arg-type]</span>
     <span class="n">since</span><span class="o">=</span><span class="s2">"0.0.64"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="n">alternative_import</span><span class="o">=</span><span class="s2">"langchain_ollama.ChatOllama"</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">OllamaFunctions</span><span class="p">(</span><span class="n">ChatOllama</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OllamaFunctions</span><span class="p">(</span><span class="n">ChatOllama</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Function chat model that uses Ollama API."""</span>
 
     <span class="n">tool_system_prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_SYSTEM_TEMPLATE</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="OllamaFunctions.bind_tools">
 <a class="viewcode-back" href="../../../experimental/llms/langchain_experimental.llms.ollama_functions.OllamaFunctions.html#langchain_experimental.llms.ollama_functions.OllamaFunctions.bind_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_tools</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -386,7 +386,7 @@
 
 <div class="viewcode-block" id="OllamaFunctions.with_structured_output">
 <a class="viewcode-back" href="../../../experimental/llms/langchain_experimental.llms.ollama_functions.OllamaFunctions.html#langchain_experimental.llms.ollama_functions.OllamaFunctions.with_structured_output">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_structured_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_structured_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -518,7 +518,7 @@
             <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser_chain</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -613,7 +613,7 @@
             <span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">response_message_with_functions</span><span class="p">)]</span>
         <span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_agenerate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -694,7 +694,7 @@
         <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"ollama_functions"</span></div>
 
 </pre></div>

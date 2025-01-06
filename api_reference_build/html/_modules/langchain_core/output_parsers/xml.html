@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,18 +220,18 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_core.output_parsers.xml</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">xml</span>
-<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>  <span class="c1"># noqa: N817</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">import</span> <span class="n">TreeBuilder</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xml</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xml.etree.ElementTree</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ET</span>  <span class="c1"># noqa: N817</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xml.etree.ElementTree</span><span class="w"> </span><span class="kn">import</span> <span class="n">TreeBuilder</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.exceptions</span> <span class="kn">import</span> <span class="n">OutputParserException</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">BaseMessage</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.transform</span> <span class="kn">import</span> <span class="n">BaseTransformOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.utils</span> <span class="kn">import</span> <span class="n">AddableDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.transform</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTransformOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddableDict</span>
 
 <span class="n">XML_FORMAT_INSTRUCTIONS</span> <span class="o">=</span> <span class="s2">"""The output should be formatted as a XML file.</span>
 <span class="s2">1. Output should conform to the tags below.</span>
@@ -249,14 +249,14 @@
 <span class="s2">```"""</span>  <span class="c1"># noqa: E501</span>
 
 
-<span class="k">class</span> <span class="nc">_StreamingParser</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_StreamingParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Streaming parser for XML.</span>
 
 <span class="sd">    This implementation is pulled into a class to avoid implementation</span>
 <span class="sd">    drift between transform and atransform of the XMLOutputParser.</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"defusedxml"</span><span class="p">,</span> <span class="s2">"xml"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"defusedxml"</span><span class="p">,</span> <span class="s2">"xml"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize the streaming parser.</span>
 
 <span class="sd">        Args:</span>
@@ -269,14 +269,14 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">parser</span> <span class="o">==</span> <span class="s2">"defusedxml"</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">import</span> <span class="nn">defusedxml</span>  <span class="c1"># type: ignore</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">defusedxml</span>  <span class="c1"># type: ignore</span>
             <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"defusedxml is not installed. "</span>
                     <span class="s2">"Please install it to use the defusedxml parser."</span>
                     <span class="s2">"You can install it with `pip install defusedxml` "</span>
                 <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
             <span class="n">_parser</span> <span class="o">=</span> <span class="n">defusedxml</span><span class="o">.</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">DefusedXMLParser</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">TreeBuilder</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_parser</span> <span class="o">=</span> <span class="kc">None</span>
@@ -287,7 +287,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">xml_started</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">AddableDict</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chunk</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">AddableDict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Parse a chunk of text.</span>
 
 <span class="sd">        Args:</span>
@@ -347,7 +347,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span>
 
-    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Close the parser.</span>
 
 <span class="sd">        This should be called after all chunks have been parsed.</span>
@@ -362,7 +362,7 @@
 
 <div class="viewcode-block" id="XMLOutputParser">
 <a class="viewcode-back" href="../../../core/output_parsers/langchain_core.output_parsers.xml.XMLOutputParser.html#langchain_core.output_parsers.xml.XMLOutputParser">[docs]</a>
-<span class="k">class</span> <span class="nc">XMLOutputParser</span><span class="p">(</span><span class="n">BaseTransformOutputParser</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">XMLOutputParser</span><span class="p">(</span><span class="n">BaseTransformOutputParser</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Parse an output using xml format."""</span>
 
     <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -406,14 +406,14 @@
 
 <div class="viewcode-block" id="XMLOutputParser.get_format_instructions">
 <a class="viewcode-back" href="../../../core/output_parsers/langchain_core.output_parsers.xml.XMLOutputParser.html#langchain_core.output_parsers.xml.XMLOutputParser.get_format_instructions">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_format_instructions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_format_instructions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the format instructions for the XML output."""</span>
         <span class="k">return</span> <span class="n">XML_FORMAT_INSTRUCTIONS</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="XMLOutputParser.parse">
 <a class="viewcode-back" href="../../../core/output_parsers/langchain_core.output_parsers.xml.XMLOutputParser.html#langchain_core.output_parsers.xml.XMLOutputParser.parse">[docs]</a>
-    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">"""Parse the output of an LLM call.</span>
 
 <span class="sd">        Args:</span>
@@ -432,7 +432,7 @@
         <span class="c1"># likely if you're reading this you can move them to the top of the file</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">==</span> <span class="s2">"defusedxml"</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">from</span> <span class="nn">defusedxml</span> <span class="kn">import</span> <span class="n">ElementTree</span>  <span class="c1"># type: ignore</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">defusedxml</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElementTree</span>  <span class="c1"># type: ignore</span>
             <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"defusedxml is not installed. "</span>
@@ -440,7 +440,7 @@
                     <span class="s2">"You can install it with `pip install defusedxml`"</span>
                     <span class="s2">"See https://github.com/tiran/defusedxml for more details"</span>
                 <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
             <span class="n">_et</span> <span class="o">=</span> <span class="n">ElementTree</span>  <span class="c1"># Use the defusedxml parser</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_et</span> <span class="o">=</span> <span class="n">ET</span>  <span class="c1"># Use the standard library parser</span>
@@ -459,10 +459,10 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_root_to_dict</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">_et</span><span class="o">.</span><span class="n">ParseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Failed to parse XML format from completion </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">. Got: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-            <span class="k">raise</span> <span class="n">OutputParserException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">text</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+            <span class="k">raise</span> <span class="n">OutputParserException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">text</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_transform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">AddableDict</span><span class="p">]:</span>
         <span class="n">streaming_parser</span> <span class="o">=</span> <span class="n">_StreamingParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">)</span>
@@ -470,7 +470,7 @@
             <span class="k">yield from</span> <span class="n">streaming_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
         <span class="n">streaming_parser</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_atransform</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_atransform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">AddableDict</span><span class="p">]:</span>
         <span class="n">streaming_parser</span> <span class="o">=</span> <span class="n">_StreamingParser</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">)</span>
@@ -479,7 +479,7 @@
                 <span class="k">yield</span> <span class="n">output</span>
         <span class="n">streaming_parser</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_root_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">ET</span><span class="o">.</span><span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_root_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">ET</span><span class="o">.</span><span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">"""Converts xml tree to python dictionary."""</span>
         <span class="k">if</span> <span class="n">root</span><span class="o">.</span><span class="n">text</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\S"</span><span class="p">,</span> <span class="n">root</span><span class="o">.</span><span class="n">text</span><span class="p">)):</span>
             <span class="c1"># If root text contains any non-whitespace character it</span>
@@ -494,14 +494,14 @@
         <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"xml"</span></div>
 
 
 
 <div class="viewcode-block" id="nested_element">
 <a class="viewcode-back" href="../../../core/output_parsers/langchain_core.output_parsers.xml.nested_element.html#langchain_core.output_parsers.xml.nested_element">[docs]</a>
-<span class="k">def</span> <span class="nf">nested_element</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">elem</span><span class="p">:</span> <span class="n">ET</span><span class="o">.</span><span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">nested_element</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">elem</span><span class="p">:</span> <span class="n">ET</span><span class="o">.</span><span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get nested element from path.</span>
 
 <span class="sd">    Args:</span>

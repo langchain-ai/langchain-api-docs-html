@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,16 +220,16 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.document_loaders.pdf</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span>
-<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -240,16 +240,16 @@
     <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
 
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.document_loaders.base</span> <span class="kn">import</span> <span class="n">BaseLoader</span>
-<span class="kn">from</span> <span class="nn">langchain_community.document_loaders.blob_loaders</span> <span class="kn">import</span> <span class="n">Blob</span>
-<span class="kn">from</span> <span class="nn">langchain_community.document_loaders.dedoc</span> <span class="kn">import</span> <span class="n">DedocBaseLoader</span>
-<span class="kn">from</span> <span class="nn">langchain_community.document_loaders.parsers.pdf</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.document_loaders.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.document_loaders.blob_loaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blob</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.document_loaders.dedoc</span><span class="w"> </span><span class="kn">import</span> <span class="n">DedocBaseLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.document_loaders.parsers.pdf</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AmazonTextractPDFParser</span><span class="p">,</span>
     <span class="n">DocumentIntelligenceParser</span><span class="p">,</span>
     <span class="n">PDFMinerParser</span><span class="p">,</span>
@@ -258,17 +258,17 @@
     <span class="n">PyPDFium2Parser</span><span class="p">,</span>
     <span class="n">PyPDFParser</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_community.document_loaders.unstructured</span> <span class="kn">import</span> <span class="n">UnstructuredFileLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.document_loaders.unstructured</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnstructuredFileLoader</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">textractor.data.text_linearization_config</span> <span class="kn">import</span> <span class="n">TextLinearizationConfig</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">textractor.data.text_linearization_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">TextLinearizationConfig</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="UnstructuredPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.UnstructuredPDFLoader.html#langchain_community.document_loaders.pdf.UnstructuredPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">UnstructuredPDFLoader</span><span class="p">(</span><span class="n">UnstructuredFileLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">UnstructuredPDFLoader</span><span class="p">(</span><span class="n">UnstructuredFileLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files using `Unstructured`.</span>
 
 <span class="sd">    You can run the loader in one of two modes: "single" and "elements".</span>
@@ -292,8 +292,8 @@
 <span class="sd">    https://unstructured-io.github.io/unstructured/bricks.html#partition-pdf</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="nf">_get_elements</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">unstructured.partition.pdf</span> <span class="kn">import</span> <span class="n">partition_pdf</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_elements</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">unstructured.partition.pdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">partition_pdf</span>
 
         <span class="k">return</span> <span class="n">partition_pdf</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">unstructured_kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span></div>
 
@@ -301,7 +301,7 @@
 
 <div class="viewcode-block" id="BasePDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.BasePDFLoader.html#langchain_community.document_loaders.pdf.BasePDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">BasePDFLoader</span><span class="p">(</span><span class="n">BaseLoader</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BasePDFLoader</span><span class="p">(</span><span class="n">BaseLoader</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base Loader class for `PDF` files.</span>
 
 <span class="sd">    If the file is a web path, it will download it to a temporary file, use it, then</span>
@@ -310,7 +310,7 @@
 
 <div class="viewcode-block" id="BasePDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.BasePDFLoader.html#langchain_community.document_loaders.pdf.BasePDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize with a file path.</span>
 
 <span class="sd">        Args:</span>
@@ -346,18 +346,18 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"File path </span><span class="si">%s</span><span class="s2"> is not a valid file or url"</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"temp_dir"</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">temp_dir</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_is_valid_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_valid_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Check if the url is valid."""</span>
         <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_is_s3_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_s3_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""check if the url is S3"""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
@@ -368,7 +368,7 @@
             <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_is_s3_presigned_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_s3_presigned_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Check if the url is a presigned S3 url."""</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
@@ -377,19 +377,19 @@
             <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">web_path</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">web_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_path</span></div>
 
 
 
 <div class="viewcode-block" id="OnlinePDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.OnlinePDFLoader.html#langchain_community.document_loaders.pdf.OnlinePDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">OnlinePDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OnlinePDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load online `PDF`."""</span>
 
 <div class="viewcode-block" id="OnlinePDFLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.OnlinePDFLoader.html#langchain_community.document_loaders.pdf.OnlinePDFLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load documents."""</span>
         <span class="n">loader</span> <span class="o">=</span> <span class="n">UnstructuredPDFLoader</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">loader</span><span class="o">.</span><span class="n">load</span><span class="p">()</span></div>
@@ -399,7 +399,7 @@
 
 <div class="viewcode-block" id="PyPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFLoader.html#langchain_community.document_loaders.pdf.PyPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PyPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PyPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    PyPDFLoader document loader integration</span>
 
@@ -462,7 +462,7 @@
 
 <div class="viewcode-block" id="PyPDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFLoader.html#langchain_community.document_loaders.pdf.PyPDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">password</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -474,7 +474,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with a file path."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">pypdf</span>  <span class="c1"># noqa:F401</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">pypdf</span>  <span class="c1"># noqa:F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"pypdf package not found, please install it with `pip install pypdf`"</span>
@@ -490,7 +490,7 @@
 
 <div class="viewcode-block" id="PyPDFLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFLoader.html#langchain_community.document_loaders.pdf.PyPDFLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Lazy load given path as pages."""</span>
@@ -505,12 +505,12 @@
 
 <div class="viewcode-block" id="PyPDFium2Loader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFium2Loader.html#langchain_community.document_loaders.pdf.PyPDFium2Loader">[docs]</a>
-<span class="k">class</span> <span class="nc">PyPDFium2Loader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PyPDFium2Loader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` using `pypdfium2` and chunks at character level."""</span>
 
 <div class="viewcode-block" id="PyPDFium2Loader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFium2Loader.html#langchain_community.document_loaders.pdf.PyPDFium2Loader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -524,7 +524,7 @@
 
 <div class="viewcode-block" id="PyPDFium2Loader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFium2Loader.html#langchain_community.document_loaders.pdf.PyPDFium2Loader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Lazy load given path as pages."""</span>
@@ -539,7 +539,7 @@
 
 <div class="viewcode-block" id="PyPDFDirectoryLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFDirectoryLoader.html#langchain_community.document_loaders.pdf.PyPDFDirectoryLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PyPDFDirectoryLoader</span><span class="p">(</span><span class="n">BaseLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PyPDFDirectoryLoader</span><span class="p">(</span><span class="n">BaseLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load a directory with `PDF` files using `pypdf` and chunks at character level.</span>
 
 <span class="sd">    Loader also stores page numbers in metadata.</span>
@@ -547,7 +547,7 @@
 
 <div class="viewcode-block" id="PyPDFDirectoryLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFDirectoryLoader.html#langchain_community.document_loaders.pdf.PyPDFDirectoryLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
         <span class="n">glob</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"**/[!.]*.pdf"</span><span class="p">,</span>
@@ -565,12 +565,12 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_is_visible</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_visible</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">parts</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PyPDFDirectoryLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFDirectoryLoader.html#langchain_community.document_loaders.pdf.PyPDFDirectoryLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">items</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">glob</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">glob</span><span class="p">)</span>
@@ -595,12 +595,12 @@
 
 <div class="viewcode-block" id="PDFMinerLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerLoader.html#langchain_community.document_loaders.pdf.PDFMinerLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PDFMinerLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PDFMinerLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files using `PDFMiner`."""</span>
 
 <div class="viewcode-block" id="PDFMinerLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerLoader.html#langchain_community.document_loaders.pdf.PDFMinerLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -616,7 +616,7 @@
 <span class="sd">                               document. Otherwise, return one document per page.</span>
 <span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">pdfminer.high_level</span> <span class="kn">import</span> <span class="n">extract_text</span>  <span class="c1"># noqa:F401</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">pdfminer.high_level</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_text</span>  <span class="c1"># noqa:F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"`pdfminer` package not found, please install it with "</span>
@@ -631,7 +631,7 @@
 
 <div class="viewcode-block" id="PDFMinerLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerLoader.html#langchain_community.document_loaders.pdf.PDFMinerLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Lazily load documents."""</span>
@@ -646,15 +646,15 @@
 
 <div class="viewcode-block" id="PDFMinerPDFasHTMLLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader.html#langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PDFMinerPDFasHTMLLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PDFMinerPDFasHTMLLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files as HTML content using `PDFMiner`."""</span>
 
 <div class="viewcode-block" id="PDFMinerPDFasHTMLLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader.html#langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize with a file path."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">pdfminer.high_level</span> <span class="kn">import</span> <span class="n">extract_text_to_fp</span>  <span class="c1"># noqa:F401</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">pdfminer.high_level</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_text_to_fp</span>  <span class="c1"># noqa:F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"`pdfminer` package not found, please install it with "</span>
@@ -666,11 +666,11 @@
 
 <div class="viewcode-block" id="PDFMinerPDFasHTMLLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader.html#langchain_community.document_loaders.pdf.PDFMinerPDFasHTMLLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load file."""</span>
-        <span class="kn">from</span> <span class="nn">pdfminer.high_level</span> <span class="kn">import</span> <span class="n">extract_text_to_fp</span>
-        <span class="kn">from</span> <span class="nn">pdfminer.layout</span> <span class="kn">import</span> <span class="n">LAParams</span>
-        <span class="kn">from</span> <span class="nn">pdfminer.utils</span> <span class="kn">import</span> <span class="n">open_filename</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pdfminer.high_level</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_text_to_fp</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pdfminer.layout</span><span class="w"> </span><span class="kn">import</span> <span class="n">LAParams</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pdfminer.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">open_filename</span>
 
         <span class="n">output_string</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
         <span class="k">with</span> <span class="n">open_filename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
@@ -691,12 +691,12 @@
 
 <div class="viewcode-block" id="PyMuPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyMuPDFLoader.html#langchain_community.document_loaders.pdf.PyMuPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PyMuPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PyMuPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files using `PyMuPDF`."""</span>
 
 <div class="viewcode-block" id="PyMuPDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyMuPDFLoader.html#langchain_community.document_loaders.pdf.PyMuPDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -706,7 +706,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with a file path."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">fitz</span>  <span class="c1"># noqa:F401</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">fitz</span>  <span class="c1"># noqa:F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"`PyMuPDF` package not found, please install it with "</span>
@@ -717,7 +717,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">text_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Received runtime arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">. Passing runtime args to `load`"</span>
@@ -736,13 +736,13 @@
 
 <div class="viewcode-block" id="PyMuPDFLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyMuPDFLoader.html#langchain_community.document_loaders.pdf.PyMuPDFLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lazy_load</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="PyMuPDFLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyMuPDFLoader.html#langchain_community.document_loaders.pdf.PyMuPDFLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lazy_load</span><span class="p">()</span></div>
 </div>
 
@@ -752,12 +752,12 @@
 <span class="c1"># https://gist.github.com/danielgross/3ab4104e14faccc12b49200843adab21</span>
 <div class="viewcode-block" id="MathpixPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">MathpixPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MathpixPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files using `Mathpix` service."""</span>
 
 <div class="viewcode-block" id="MathpixPDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">processed_file_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"md"</span><span class="p">,</span>
@@ -798,15 +798,15 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_mathpix_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mathpix_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"app_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mathpix_api_id</span><span class="p">,</span> <span class="s2">"app_key"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mathpix_api_key</span><span class="p">}</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"https://api.mathpix.com/v3/pdf"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"conversion_formats"</span><span class="p">:</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">processed_file_format</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
             <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">extra_request_data</span><span class="p">,</span>
@@ -815,7 +815,7 @@
 
 <div class="viewcode-block" id="MathpixPDFLoader.send_pdf">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.send_pdf">[docs]</a>
-    <span class="k">def</span> <span class="nf">send_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">send_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">files</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"file"</span><span class="p">:</span> <span class="n">f</span><span class="p">}</span>
             <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
@@ -833,7 +833,7 @@
 
 <div class="viewcode-block" id="MathpixPDFLoader.wait_for_processing">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.wait_for_processing">[docs]</a>
-    <span class="k">def</span> <span class="nf">wait_for_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Wait for processing to complete.</span>
 
 <span class="sd">        Args:</span>
@@ -873,7 +873,7 @@
 
 <div class="viewcode-block" id="MathpixPDFLoader.get_processed_pdf">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.get_processed_pdf">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_processed_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_processed_pdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdf_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_processing</span><span class="p">(</span><span class="n">pdf_id</span><span class="p">)</span>
         <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">pdf_id</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">processed_file_format</span><span class="si">}</span><span class="s2">"</span>
         <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mathpix_headers</span><span class="p">)</span>
@@ -883,7 +883,7 @@
 <div class="viewcode-block" id="MathpixPDFLoader.clean_pdf">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.clean_pdf">[docs]</a>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">clean_pdf</span><span class="p">(</span><span class="n">contents</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean_pdf</span><span class="p">(</span><span class="n">contents</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Clean the PDF file.</span>
 
 <span class="sd">        Args:</span>
@@ -909,7 +909,7 @@
 
 <div class="viewcode-block" id="MathpixPDFLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.MathpixPDFLoader.html#langchain_community.document_loaders.pdf.MathpixPDFLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">pdf_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_pdf</span><span class="p">()</span>
         <span class="n">contents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_processed_pdf</span><span class="p">(</span><span class="n">pdf_id</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_clean_pdf</span><span class="p">:</span>
@@ -922,12 +922,12 @@
 
 <div class="viewcode-block" id="PDFPlumberLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFPlumberLoader.html#langchain_community.document_loaders.pdf.PDFPlumberLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">PDFPlumberLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PDFPlumberLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files using `pdfplumber`."""</span>
 
 <div class="viewcode-block" id="PDFPlumberLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFPlumberLoader.html#langchain_community.document_loaders.pdf.PDFPlumberLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">text_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -937,7 +937,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with a file path."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">pdfplumber</span>  <span class="c1"># noqa:F401</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>  <span class="c1"># noqa:F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"pdfplumber package not found, please install it with "</span>
@@ -952,7 +952,7 @@
 
 <div class="viewcode-block" id="PDFPlumberLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PDFPlumberLoader.html#langchain_community.document_loaders.pdf.PDFPlumberLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load file."""</span>
 
         <span class="n">parser</span> <span class="o">=</span> <span class="n">PDFPlumberParser</span><span class="p">(</span>
@@ -971,7 +971,7 @@
 
 <div class="viewcode-block" id="AmazonTextractPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.html#langchain_community.document_loaders.pdf.AmazonTextractPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">AmazonTextractPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AmazonTextractPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load `PDF` files from a local file system, HTTP or S3.</span>
 
 <span class="sd">    To authenticate, the AWS client uses the following methods to</span>
@@ -995,7 +995,7 @@
 
 <div class="viewcode-block" id="AmazonTextractPDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.html#langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">textract_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1025,7 +1025,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">textractcaller</span> <span class="k">as</span> <span class="nn">tc</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">textractcaller</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tc</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Could not import amazon-textract-caller python package. "</span>
@@ -1038,7 +1038,7 @@
 
         <span class="k">if</span> <span class="n">credentials_profile_name</span> <span class="ow">or</span> <span class="n">region_name</span> <span class="ow">or</span> <span class="n">endpoint_url</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">import</span> <span class="nn">boto3</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
 
                 <span class="k">if</span> <span class="n">credentials_profile_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">credentials_profile_name</span><span class="p">)</span>
@@ -1064,7 +1064,7 @@
                     <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
                     <span class="s2">"Please check that credentials in the specified "</span>
                     <span class="sa">f</span><span class="s2">"profile name are valid. </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">AmazonTextractPDFParser</span><span class="p">(</span>
             <span class="n">textract_features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
             <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
@@ -1074,14 +1074,14 @@
 
 <div class="viewcode-block" id="AmazonTextractPDFLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.html#langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load given path as pages."""</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_load</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="AmazonTextractPDFLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.html#langchain_community.document_loaders.pdf.AmazonTextractPDFLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Lazy load documents"""</span>
@@ -1104,10 +1104,10 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_number_of_pages</span><span class="p">(</span><span class="n">blob</span><span class="p">:</span> <span class="n">Blob</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>  <span class="c1"># type: ignore[valid-type]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_number_of_pages</span><span class="p">(</span><span class="n">blob</span><span class="p">:</span> <span class="n">Blob</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>  <span class="c1"># type: ignore[valid-type]</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">pypdf</span>
-            <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageSequence</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">pypdf</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageSequence</span>
 
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
@@ -1133,7 +1133,7 @@
 
 <div class="viewcode-block" id="DedocPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.DedocPDFLoader.html#langchain_community.document_loaders.pdf.DedocPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">DedocPDFLoader</span><span class="p">(</span><span class="n">DedocBaseLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DedocPDFLoader</span><span class="p">(</span><span class="n">DedocBaseLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    DedocPDFLoader document loader integration to load PDF files using `dedoc`.</span>
 <span class="sd">    The file loader can automatically detect the correctness of a textual layer in the</span>
@@ -1221,8 +1221,8 @@
 <span class="sd">        need_pdf_table_analysis: parse tables for PDF without a textual layer</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="nf">_make_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">dedoc.utils.langchain</span> <span class="kn">import</span> <span class="n">make_manager_pdf_config</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">dedoc.utils.langchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_manager_pdf_config</span>
 
         <span class="k">return</span> <span class="n">make_manager_pdf_config</span><span class="p">(</span>
             <span class="n">file_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span>
@@ -1234,12 +1234,12 @@
 
 <div class="viewcode-block" id="DocumentIntelligenceLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.html#langchain_community.document_loaders.pdf.DocumentIntelligenceLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">DocumentIntelligenceLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DocumentIntelligenceLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Load a PDF with Azure Document Intelligence"""</span>
 
 <div class="viewcode-block" id="DocumentIntelligenceLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.html#langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1279,14 +1279,14 @@
 
 <div class="viewcode-block" id="DocumentIntelligenceLoader.load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.html#langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.load">[docs]</a>
-    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Load given path as pages."""</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_load</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="DocumentIntelligenceLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.html#langchain_community.document_loaders.pdf.DocumentIntelligenceLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Lazy load given path as pages."""</span>
@@ -1298,7 +1298,7 @@
 
 <div class="viewcode-block" id="ZeroxPDFLoader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.ZeroxPDFLoader.html#langchain_community.document_loaders.pdf.ZeroxPDFLoader">[docs]</a>
-<span class="k">class</span> <span class="nc">ZeroxPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ZeroxPDFLoader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Document loader utilizing Zerox library:</span>
 <span class="sd">    https://github.com/getomni-ai/zerox</span>
@@ -1317,7 +1317,7 @@
 
 <div class="viewcode-block" id="ZeroxPDFLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.ZeroxPDFLoader.html#langchain_community.document_loaders.pdf.ZeroxPDFLoader.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
         <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"gpt-4o-mini"</span><span class="p">,</span>
@@ -1349,7 +1349,7 @@
 
 <div class="viewcode-block" id="ZeroxPDFLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.ZeroxPDFLoader.html#langchain_community.document_loaders.pdf.ZeroxPDFLoader.lazy_load">[docs]</a>
-    <span class="k">def</span> <span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Loads documnts from pdf utilizing zerox library:</span>
 <span class="sd">        https://github.com/getomni-ai/zerox</span>
@@ -1357,9 +1357,9 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Iterator[Document]: An iterator over parsed Document instances.</span>
 <span class="sd">        """</span>
-        <span class="kn">import</span> <span class="nn">asyncio</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
-        <span class="kn">from</span> <span class="nn">pyzerox</span> <span class="kn">import</span> <span class="n">zerox</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pyzerox</span><span class="w"> </span><span class="kn">import</span> <span class="n">zerox</span>
 
         <span class="c1"># Directly call asyncio.run to execute zerox synchronously</span>
         <span class="n">zerox_output</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>

@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,11 +222,11 @@
 <h1>Source code for langchain_community.chat_models.premai</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Wrapper around Prem's Chat API."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -240,13 +240,13 @@
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">LanguageModelInput</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="n">BaseChatModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.llms</span> <span class="kn">import</span> <span class="n">create_base_retry_decorator</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LanguageModelInput</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_base_retry_decorator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
@@ -259,12 +259,12 @@
     <span class="n">SystemMessageChunk</span><span class="p">,</span>
     <span class="n">ToolMessage</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.function_calling</span> <span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">ConfigDict</span><span class="p">,</span>
     <span class="n">Field</span><span class="p">,</span>
@@ -272,10 +272,10 @@
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">premai.api.chat_completions.v1_chat_completions_create</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">premai.api.chat_completions.v1_chat_completions_create</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ChatCompletionResponseStream</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">premai.models.chat_completion_response</span> <span class="kn">import</span> <span class="n">ChatCompletionResponse</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">premai.models.chat_completion_response</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatCompletionResponse</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -295,12 +295,12 @@
 
 <div class="viewcode-block" id="ChatPremAPIError">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.ChatPremAPIError.html#langchain_community.chat_models.premai.ChatPremAPIError">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatPremAPIError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatPremAPIError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Error with the `PremAI` API."""</span></div>
 
 
 
-<span class="k">def</span> <span class="nf">_truncate_at_stop_tokens</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_truncate_at_stop_tokens</span><span class="p">(</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -315,7 +315,7 @@
     <span class="k">return</span> <span class="n">text</span>
 
 
-<span class="k">def</span> <span class="nf">_response_to_result</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_response_to_result</span><span class="p">(</span>
     <span class="n">response</span><span class="p">:</span> <span class="n">ChatCompletionResponse</span><span class="p">,</span>
     <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
@@ -376,7 +376,7 @@
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="p">{</span><span class="s2">"document_chunks"</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_delta_response_to_message_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_delta_response_to_message_chunk</span><span class="p">(</span>
     <span class="n">response</span><span class="p">:</span> <span class="n">ChatCompletionResponseStream</span><span class="p">,</span> <span class="n">default_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
     <span class="n">Union</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">,</span> <span class="n">HumanMessageChunk</span><span class="p">,</span> <span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">SystemMessageChunk</span><span class="p">],</span>
@@ -404,7 +404,7 @@
         <span class="k">return</span> <span class="n">default_class</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">),</span> <span class="n">finish_reasons</span>  <span class="c1"># type: ignore[call-arg]</span>
 
 
-<span class="k">def</span> <span class="nf">_messages_to_prompt_dict</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_messages_to_prompt_dict</span><span class="p">(</span>
     <span class="n">input_messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
     <span class="n">template_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
@@ -478,7 +478,7 @@
 
 <div class="viewcode-block" id="ChatPremAI">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.ChatPremAI.html#langchain_community.chat_models.premai.ChatPremAI">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatPremAI</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatPremAI</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""PremAI Chat models.</span>
 
 <span class="sd">    To use, you will need to have an API key. You can find your existing API Key</span>
@@ -543,15 +543,15 @@
 <div class="viewcode-block" id="ChatPremAI.validate_environments">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.ChatPremAI.html#langchain_community.chat_models.premai.ChatPremAI.validate_environments">[docs]</a>
     <span class="nd">@pre_init</span>
-    <span class="k">def</span> <span class="nf">validate_environments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that the package is installed and that the API token is valid"""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">premai</span> <span class="kn">import</span> <span class="n">Prem</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">premai</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prem</span>
         <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Could not import Prem Python package."</span>
                 <span class="s2">"Please install it with: `pip install premai`"</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">premai_api_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span>
@@ -563,16 +563,16 @@
                 <span class="k">else</span> <span class="n">premai_api_key</span><span class="o">.</span><span class="n">_secret_value</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Your API Key is incorrect. Please try again."</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">error</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Your API Key is incorrect. Please try again."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
         <span class="k">return</span> <span class="n">values</span></div>
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"premai"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
             <span class="s2">"system_prompt"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">,</span>
@@ -581,7 +581,7 @@
             <span class="s2">"repositories"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">repositories</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_get_all_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_all_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">kwargs_to_ignore</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">"top_p"</span><span class="p">,</span>
             <span class="s2">"frequency_penalty"</span><span class="p">,</span>
@@ -606,7 +606,7 @@
                 <span class="n">all_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">all_kwargs</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -635,7 +635,7 @@
 
         <span class="k">return</span> <span class="n">_response_to_result</span><span class="p">(</span><span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -688,7 +688,7 @@
 
 <div class="viewcode-block" id="ChatPremAI.bind_tools">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.ChatPremAI.html#langchain_community.chat_models.premai.ChatPremAI.bind_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_tools</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -701,14 +701,14 @@
 
 <div class="viewcode-block" id="create_prem_retry_decorator">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.create_prem_retry_decorator.html#langchain_community.chat_models.premai.create_prem_retry_decorator">[docs]</a>
-<span class="k">def</span> <span class="nf">create_prem_retry_decorator</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_prem_retry_decorator</span><span class="p">(</span>
     <span class="n">llm</span><span class="p">:</span> <span class="n">ChatPremAI</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Create a retry decorator for PremAI API errors."""</span>
-    <span class="kn">import</span> <span class="nn">premai.models</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">premai.models</span>
 
     <span class="n">errors</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">premai</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">api_response_validation_error</span><span class="o">.</span><span class="n">APIResponseValidationError</span><span class="p">,</span>
@@ -734,7 +734,7 @@
 
 <div class="viewcode-block" id="chat_with_retry">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.premai.chat_with_retry.html#langchain_community.chat_models.premai.chat_with_retry">[docs]</a>
-<span class="k">def</span> <span class="nf">chat_with_retry</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">chat_with_retry</span><span class="p">(</span>
     <span class="n">llm</span><span class="p">:</span> <span class="n">ChatPremAI</span><span class="p">,</span>
     <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
@@ -748,7 +748,7 @@
     <span class="p">)</span>
 
     <span class="nd">@retry_decorator</span>
-    <span class="k">def</span> <span class="nf">_completion_with_retry</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_completion_with_retry</span><span class="p">(</span>
         <span class="n">project_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
         <span class="n">stream</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>

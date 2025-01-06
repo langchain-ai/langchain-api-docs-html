@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,27 +222,27 @@
 <h1>Source code for langchain.agents.react.base</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Chain that implements the ReAct paper from https://arxiv.org/pdf/2210.03629.pdf."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">BasePromptTemplate</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span><span class="p">,</span> <span class="n">Tool</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span><span class="p">,</span> <span class="n">Tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain._api.deprecation</span> <span class="kn">import</span> <span class="n">AGENT_DEPRECATION_WARNING</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.agent</span> <span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentExecutor</span><span class="p">,</span> <span class="n">AgentOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.agent_types</span> <span class="kn">import</span> <span class="n">AgentType</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.react.output_parser</span> <span class="kn">import</span> <span class="n">ReActOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.react.textworld_prompt</span> <span class="kn">import</span> <span class="n">TEXTWORLD_PROMPT</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.react.wiki_prompt</span> <span class="kn">import</span> <span class="n">WIKI_PROMPT</span>
-<span class="kn">from</span> <span class="nn">langchain.agents.utils</span> <span class="kn">import</span> <span class="n">validate_tools_single_input</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain._api.deprecation</span><span class="w"> </span><span class="kn">import</span> <span class="n">AGENT_DEPRECATION_WARNING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentExecutor</span><span class="p">,</span> <span class="n">AgentOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.agent_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.react.output_parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReActOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.react.textworld_prompt</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEXTWORLD_PROMPT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.react.wiki_prompt</span><span class="w"> </span><span class="kn">import</span> <span class="n">WIKI_PROMPT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_tools_single_input</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.docstore.base</span> <span class="kn">import</span> <span class="n">Docstore</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.docstore.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Docstore</span>
 
 
 <div class="viewcode-block" id="ReActDocstoreAgent">
@@ -252,30 +252,30 @@
     <span class="n">message</span><span class="o">=</span><span class="n">AGENT_DEPRECATION_WARNING</span><span class="p">,</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">ReActDocstoreAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReActDocstoreAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Agent for the ReAct chain."""</span>
 
     <span class="n">output_parser</span><span class="p">:</span> <span class="n">AgentOutputParser</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">ReActOutputParser</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_get_default_output_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentOutputParser</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_default_output_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentOutputParser</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ReActOutputParser</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_agent_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_agent_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return Identifier of an agent type."""</span>
         <span class="k">return</span> <span class="n">AgentType</span><span class="o">.</span><span class="n">REACT_DOCSTORE</span>
 
 <div class="viewcode-block" id="ReActDocstoreAgent.create_prompt">
 <a class="viewcode-back" href="../../../../langchain/agents/langchain.agents.react.base.ReActDocstoreAgent.html#langchain.agents.react.base.ReActDocstoreAgent.create_prompt">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_prompt</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BasePromptTemplate</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_prompt</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BasePromptTemplate</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return default prompt."""</span>
         <span class="k">return</span> <span class="n">WIKI_PROMPT</span></div>
 
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_validate_tools</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_tools</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">validate_tools_single_input</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">tools</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_validate_tools</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
@@ -287,16 +287,16 @@
             <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">observation_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">observation_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Prefix to append the observation with."""</span>
         <span class="k">return</span> <span class="s2">"Observation: "</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Observation:"</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">llm_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">llm_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Prefix to append the LLM call with."""</span>
         <span class="k">return</span> <span class="s2">"Thought:"</span></div>
 
@@ -309,12 +309,12 @@
     <span class="n">message</span><span class="o">=</span><span class="n">AGENT_DEPRECATION_WARNING</span><span class="p">,</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">DocstoreExplorer</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DocstoreExplorer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Class to assist with exploration of a document store."""</span>
 
 <div class="viewcode-block" id="DocstoreExplorer.__init__">
 <a class="viewcode-back" href="../../../../langchain/agents/langchain.agents.react.base.DocstoreExplorer.html#langchain.agents.react.base.DocstoreExplorer.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docstore</span><span class="p">:</span> <span class="n">Docstore</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">docstore</span><span class="p">:</span> <span class="n">Docstore</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize with a docstore, and set initial document to None."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">docstore</span> <span class="o">=</span> <span class="n">docstore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">document</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -324,7 +324,7 @@
 
 <div class="viewcode-block" id="DocstoreExplorer.search">
 <a class="viewcode-back" href="../../../../langchain/agents/langchain.agents.react.base.DocstoreExplorer.html#langchain.agents.react.base.DocstoreExplorer.search">[docs]</a>
-    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Search for a term in the docstore, and if found save."""</span>
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">docstore</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">Document</span><span class="p">):</span>
@@ -337,7 +337,7 @@
 
 <div class="viewcode-block" id="DocstoreExplorer.lookup">
 <a class="viewcode-back" href="../../../../langchain/agents/langchain.agents.react.base.DocstoreExplorer.html#langchain.agents.react.base.DocstoreExplorer.lookup">[docs]</a>
-    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Lookup a term in document (if saved)."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot lookup without a successful search first"</span><span class="p">)</span>
@@ -357,11 +357,11 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paragraphs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_paragraphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_paragraphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot get paragraphs without a document"</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">document</span><span class="o">.</span><span class="n">page_content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span></div>
@@ -375,19 +375,19 @@
     <span class="n">message</span><span class="o">=</span><span class="n">AGENT_DEPRECATION_WARNING</span><span class="p">,</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">ReActTextWorldAgent</span><span class="p">(</span><span class="n">ReActDocstoreAgent</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReActTextWorldAgent</span><span class="p">(</span><span class="n">ReActDocstoreAgent</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Agent for the ReAct TextWorld chain."""</span>
 
 <div class="viewcode-block" id="ReActTextWorldAgent.create_prompt">
 <a class="viewcode-back" href="../../../../langchain/agents/langchain.agents.react.base.ReActTextWorldAgent.html#langchain.agents.react.base.ReActTextWorldAgent.create_prompt">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_prompt</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BasePromptTemplate</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_prompt</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BasePromptTemplate</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return default prompt."""</span>
         <span class="k">return</span> <span class="n">TEXTWORLD_PROMPT</span></div>
 
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_validate_tools</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_tools</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">validate_tools_single_input</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">tools</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_validate_tools</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -405,10 +405,10 @@
     <span class="n">message</span><span class="o">=</span><span class="n">AGENT_DEPRECATION_WARNING</span><span class="p">,</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">ReActChain</span><span class="p">(</span><span class="n">AgentExecutor</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReActChain</span><span class="p">(</span><span class="n">AgentExecutor</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""[Deprecated] Chain that implements the ReAct paper."""</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span> <span class="n">docstore</span><span class="p">:</span> <span class="n">Docstore</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span> <span class="n">docstore</span><span class="p">:</span> <span class="n">Docstore</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize with the LLM and a docstore."""</span>
         <span class="n">docstore_explorer</span> <span class="o">=</span> <span class="n">DocstoreExplorer</span><span class="p">(</span><span class="n">docstore</span><span class="p">)</span>
         <span class="n">tools</span> <span class="o">=</span> <span class="p">[</span>

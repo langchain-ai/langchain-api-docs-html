@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,25 +220,25 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.embeddings.sparkllm</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">hashlib</span>
-<span class="kn">import</span> <span class="nn">hmac</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">mktime</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlencode</span>
-<span class="kn">from</span> <span class="nn">wsgiref.handlers</span> <span class="kn">import</span> <span class="n">format_date_time</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hmac</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">mktime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlencode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">wsgiref.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_date_time</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">secret_from_env</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">ndarray</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndarray</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span>
 
 <span class="c1"># SparkLLMTextEmbeddings is an embedding model provided by iFLYTEK Co., Ltd.. (https://iflytek.com/en/).</span>
 
@@ -255,12 +255,12 @@
 
 <div class="viewcode-block" id="Url">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.Url.html#langchain_community.embeddings.sparkllm.Url">[docs]</a>
-<span class="k">class</span> <span class="nc">Url</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Url</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""URL class for parsing the URL."""</span>
 
 <div class="viewcode-block" id="Url.__init__">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.Url.html#langchain_community.embeddings.sparkllm.Url.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
@@ -271,7 +271,7 @@
 
 <div class="viewcode-block" id="SparkLLMTextEmbeddings">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings.html#langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings">[docs]</a>
-<span class="k">class</span> <span class="nc">SparkLLMTextEmbeddings</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">Embeddings</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SparkLLMTextEmbeddings</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">Embeddings</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""SparkLLM embedding model integration.</span>
 
 <span class="sd">    Setup:</span>
@@ -358,7 +358,7 @@
         <span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">"""Internal method to call Spark Embedding API and return embeddings.</span>
 
 <span class="sd">        Args:</span>
@@ -400,7 +400,7 @@
 
 <div class="viewcode-block" id="SparkLLMTextEmbeddings.embed_documents">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings.html#langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings.embed_documents">[docs]</a>
-    <span class="k">def</span> <span class="nf">embed_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embed_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">        </span><span class="sd">"""Public method to get embeddings for a list of documents.</span>
 
 <span class="sd">        Args:</span>
@@ -414,7 +414,7 @@
 
 <div class="viewcode-block" id="SparkLLMTextEmbeddings.embed_query">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings.html#langchain_community.embeddings.sparkllm.SparkLLMTextEmbeddings.embed_query">[docs]</a>
-    <span class="k">def</span> <span class="nf">embed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">        </span><span class="sd">"""Public method to get embedding for a single query text.</span>
 
 <span class="sd">        Args:</span>
@@ -428,7 +428,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_assemble_ws_auth_url</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_assemble_ws_auth_url</span><span class="p">(</span>
         <span class="n">request_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"GET"</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">api_secret</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">SparkLLMTextEmbeddings</span><span class="o">.</span><span class="n">_parse_url</span><span class="p">(</span><span class="n">request_url</span><span class="p">)</span>
@@ -457,7 +457,7 @@
         <span class="k">return</span> <span class="n">request_url</span> <span class="o">+</span> <span class="s2">"?"</span> <span class="o">+</span> <span class="n">urlencode</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_url</span><span class="p">(</span><span class="n">request_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Url</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_url</span><span class="p">(</span><span class="n">request_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Url</span><span class="p">:</span>
         <span class="n">stidx</span> <span class="o">=</span> <span class="n">request_url</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"://"</span><span class="p">)</span>
         <span class="n">host</span> <span class="o">=</span> <span class="n">request_url</span><span class="p">[</span><span class="n">stidx</span> <span class="o">+</span> <span class="mi">3</span> <span class="p">:]</span>
         <span class="n">schema</span> <span class="o">=</span> <span class="n">request_url</span><span class="p">[:</span> <span class="n">stidx</span> <span class="o">+</span> <span class="mi">3</span><span class="p">]</span>
@@ -469,7 +469,7 @@
         <span class="n">u</span> <span class="o">=</span> <span class="n">Url</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">u</span>
 
-    <span class="k">def</span> <span class="nf">_get_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">appid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">appid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">body</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"header"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"app_id"</span><span class="p">:</span> <span class="n">appid</span><span class="p">,</span> <span class="s2">"uid"</span><span class="p">:</span> <span class="s2">"39769795890"</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
             <span class="s2">"parameter"</span><span class="p">:</span> <span class="p">{</span>
@@ -484,7 +484,7 @@
         <span class="k">return</span> <span class="n">body</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parser_message</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parser_message</span><span class="p">(</span>
         <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
@@ -508,10 +508,10 @@
 
 <div class="viewcode-block" id="AssembleHeaderException">
 <a class="viewcode-back" href="../../../community/embeddings/langchain_community.embeddings.sparkllm.AssembleHeaderException.html#langchain_community.embeddings.sparkllm.AssembleHeaderException">[docs]</a>
-<span class="k">class</span> <span class="nc">AssembleHeaderException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AssembleHeaderException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Exception raised for errors in the header assembly."""</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">msg</span></div>
 
 </pre></div>

@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,11 +220,11 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.chat_message_histories.sql</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncGenerator</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -236,37 +236,37 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">warn_deprecated</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">delete</span><span class="p">,</span> <span class="n">select</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">warn_deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">delete</span><span class="p">,</span> <span class="n">select</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="n">declarative_base</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">declarative_base</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="kn">import</span> <span class="n">declarative_base</span>
-<span class="kn">from</span> <span class="nn">langchain_core.chat_history</span> <span class="kn">import</span> <span class="n">BaseChatMessageHistory</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.declarative</span><span class="w"> </span><span class="kn">import</span> <span class="n">declarative_base</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.chat_history</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatMessageHistory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
     <span class="n">message_to_dict</span><span class="p">,</span>
     <span class="n">messages_from_dict</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="kn">import</span> <span class="n">create_engine</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.engine</span> <span class="kn">import</span> <span class="n">Engine</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.ext.asyncio</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncEngine</span><span class="p">,</span>
     <span class="n">AsyncSession</span><span class="p">,</span>
     <span class="n">create_async_engine</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Session</span> <span class="k">as</span> <span class="n">SQLSession</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">declarative_base</span><span class="p">,</span>
     <span class="n">scoped_session</span><span class="p">,</span>
     <span class="n">sessionmaker</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">sqlalchemy.ext.asyncio</span> <span class="kn">import</span> <span class="n">async_sessionmaker</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">async_sessionmaker</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="c1"># dummy for sqlalchemy &lt; 2</span>
     <span class="n">async_sessionmaker</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s2">"async_sessionmaker"</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">,),</span> <span class="p">{})</span>  <span class="c1"># type: ignore</span>
@@ -276,13 +276,13 @@
 
 <div class="viewcode-block" id="BaseMessageConverter">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.BaseMessageConverter.html#langchain_community.chat_message_histories.sql.BaseMessageConverter">[docs]</a>
-<span class="k">class</span> <span class="nc">BaseMessageConverter</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseMessageConverter</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Convert BaseMessage to the SQLAlchemy model."""</span>
 
 <div class="viewcode-block" id="BaseMessageConverter.from_sql_model">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.BaseMessageConverter.html#langchain_community.chat_message_histories.sql.BaseMessageConverter.from_sql_model">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">from_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql_message</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql_message</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Convert a SQLAlchemy model to a BaseMessage instance."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
@@ -290,7 +290,7 @@
 <div class="viewcode-block" id="BaseMessageConverter.to_sql_model">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.BaseMessageConverter.html#langchain_community.chat_message_histories.sql.BaseMessageConverter.to_sql_model">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">to_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Convert a BaseMessage instance to a SQLAlchemy model."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
@@ -298,7 +298,7 @@
 <div class="viewcode-block" id="BaseMessageConverter.get_sql_model_class">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.BaseMessageConverter.html#langchain_community.chat_message_histories.sql.BaseMessageConverter.get_sql_model_class">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">get_sql_model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sql_model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the SQLAlchemy model class."""</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 </div>
@@ -307,7 +307,7 @@
 
 <div class="viewcode-block" id="create_message_model">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.create_message_model.html#langchain_community.chat_message_histories.sql.create_message_model">[docs]</a>
-<span class="k">def</span> <span class="nf">create_message_model</span><span class="p">(</span><span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">DynamicBase</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_message_model</span><span class="p">(</span><span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">DynamicBase</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Create a message model for a given table name.</span>
 
@@ -321,7 +321,7 @@
 <span class="sd">    """</span>
 
     <span class="c1"># Model declared inside a function to have a dynamic table name.</span>
-    <span class="k">class</span> <span class="nc">Message</span><span class="p">(</span><span class="n">DynamicBase</span><span class="p">):</span>  <span class="c1"># type: ignore[valid-type, misc]</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">(</span><span class="n">DynamicBase</span><span class="p">):</span>  <span class="c1"># type: ignore[valid-type, misc]</span>
         <span class="n">__tablename__</span> <span class="o">=</span> <span class="n">table_name</span>
         <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">)</span>
@@ -333,24 +333,24 @@
 
 <div class="viewcode-block" id="DefaultMessageConverter">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.DefaultMessageConverter.html#langchain_community.chat_message_histories.sql.DefaultMessageConverter">[docs]</a>
-<span class="k">class</span> <span class="nc">DefaultMessageConverter</span><span class="p">(</span><span class="n">BaseMessageConverter</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DefaultMessageConverter</span><span class="p">(</span><span class="n">BaseMessageConverter</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The default message converter for SQLChatMessageHistory."""</span>
 
 <div class="viewcode-block" id="DefaultMessageConverter.__init__">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.DefaultMessageConverter.html#langchain_community.chat_message_histories.sql.DefaultMessageConverter.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_class</span> <span class="o">=</span> <span class="n">create_message_model</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">declarative_base</span><span class="p">())</span></div>
 
 
 <div class="viewcode-block" id="DefaultMessageConverter.from_sql_model">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.DefaultMessageConverter.html#langchain_community.chat_message_histories.sql.DefaultMessageConverter.from_sql_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">from_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql_message</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql_message</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">messages_from_dict</span><span class="p">([</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">sql_message</span><span class="o">.</span><span class="n">message</span><span class="p">)])[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="DefaultMessageConverter.to_sql_model">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.DefaultMessageConverter.html#langchain_community.chat_message_histories.sql.DefaultMessageConverter.to_sql_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">to_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_sql_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_class</span><span class="p">(</span>
             <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">message_to_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
         <span class="p">)</span></div>
@@ -358,7 +358,7 @@
 
 <div class="viewcode-block" id="DefaultMessageConverter.get_sql_model_class">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.DefaultMessageConverter.html#langchain_community.chat_message_histories.sql.DefaultMessageConverter.get_sql_model_class">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sql_model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sql_model_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_class</span></div>
 </div>
 
@@ -371,7 +371,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory">[docs]</a>
-<span class="k">class</span> <span class="nc">SQLChatMessageHistory</span><span class="p">(</span><span class="n">BaseChatMessageHistory</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SQLChatMessageHistory</span><span class="p">(</span><span class="n">BaseChatMessageHistory</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Chat message history stored in an SQL database.</span>
 
 <span class="sd">    Example:</span>
@@ -402,12 +402,12 @@
 
     <span class="nd">@property</span>
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.2.2"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"session_maker"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">Session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">scoped_session</span><span class="p">,</span> <span class="n">async_sessionmaker</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">Session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">scoped_session</span><span class="p">,</span> <span class="n">async_sessionmaker</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_maker</span>
 
 <div class="viewcode-block" id="SQLChatMessageHistory.__init__">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">connection_string</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -487,11 +487,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="n">session_id</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_create_table_if_not_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_table_if_not_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sql_model_class</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_table_created</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_acreate_table_if_not_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acreate_table_if_not_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_created</span><span class="p">:</span>
             <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_mode</span><span class="p">,</span> <span class="s2">"This method must be called with async_mode"</span>
             <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
@@ -499,7 +499,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_table_created</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>  <span class="c1"># type: ignore</span>
 <span class="w">        </span><span class="sd">"""Retrieve all messages from db"""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_sync_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="p">(</span>
@@ -517,13 +517,13 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.get_messages">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.get_messages">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">messages</span></div>
 
 
 <div class="viewcode-block" id="SQLChatMessageHistory.aget_messages">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.aget_messages">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aget_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Retrieve all messages from db"""</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acreate_table_if_not_exists</span><span class="p">()</span>
         <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_async_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
@@ -544,7 +544,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.add_message">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.add_message">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Append the message to the record in db"""</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_sync_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
             <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">to_sql_model</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">))</span>
@@ -553,7 +553,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.aadd_message">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.aadd_message">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Add a Message object to the store.</span>
 
 <span class="sd">        Args:</span>
@@ -567,7 +567,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.add_messages">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.add_messages">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Add all messages in one transaction</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_sync_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
@@ -577,7 +577,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.aadd_messages">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.aadd_messages">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Add all messages in one transaction</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acreate_table_if_not_exists</span><span class="p">()</span>
         <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_maker</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
@@ -588,7 +588,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.clear">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.clear">[docs]</a>
-    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Clear session memory from db"""</span>
 
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_sync_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
@@ -601,7 +601,7 @@
 
 <div class="viewcode-block" id="SQLChatMessageHistory.aclear">
 <a class="viewcode-back" href="../../../community/chat_message_histories/langchain_community.chat_message_histories.sql.SQLChatMessageHistory.html#langchain_community.chat_message_histories.sql.SQLChatMessageHistory.aclear">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Clear session memory from db"""</span>
 
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acreate_table_if_not_exists</span><span class="p">()</span>
@@ -615,7 +615,7 @@
 
 
     <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-    <span class="k">def</span> <span class="nf">_make_sync_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">SQLSession</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_sync_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">SQLSession</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Make an async session."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_mode</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -626,7 +626,7 @@
             <span class="k">yield</span> <span class="n">cast</span><span class="p">(</span><span class="n">SQLSession</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
 
     <span class="nd">@contextlib</span><span class="o">.</span><span class="n">asynccontextmanager</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_make_async_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncGenerator</span><span class="p">[</span><span class="n">AsyncSession</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_make_async_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncGenerator</span><span class="p">[</span><span class="n">AsyncSession</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Make an async session."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_mode</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

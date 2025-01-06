@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,18 +222,18 @@
 <h1>Source code for langchain_openai.chat_models.base</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""OpenAI chat wrapper."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BytesIO</span>
-<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">ceil</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">ceil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -251,23 +251,23 @@
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
 
-<span class="kn">import</span> <span class="nn">openai</span>
-<span class="kn">import</span> <span class="nn">tiktoken</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api.deprecation</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">openai</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tiktoken</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api.deprecation</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">LanguageModelInput</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LanguageModelInput</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseChatModel</span><span class="p">,</span>
     <span class="n">LangSmithParams</span><span class="p">,</span>
     <span class="n">agenerate_from_stream</span><span class="p">,</span>
     <span class="n">generate_from_stream</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
@@ -285,41 +285,41 @@
     <span class="n">ToolMessage</span><span class="p">,</span>
     <span class="n">ToolMessageChunk</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages.ai</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.ai</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">InputTokenDetails</span><span class="p">,</span>
     <span class="n">OutputTokenDetails</span><span class="p">,</span>
     <span class="n">UsageMetadata</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages.tool</span> <span class="kn">import</span> <span class="n">tool_call_chunk</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="n">JsonOutputParser</span><span class="p">,</span> <span class="n">PydanticOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers.openai_tools</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.tool</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool_call_chunk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonOutputParser</span><span class="p">,</span> <span class="n">PydanticOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.openai_tools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">JsonOutputKeyToolsParser</span><span class="p">,</span>
     <span class="n">PydanticToolsParser</span><span class="p">,</span>
     <span class="n">make_invalid_tool_call</span><span class="p">,</span>
     <span class="n">parse_tool_call</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span><span class="p">,</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="n">run_in_executor</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_pydantic_field_names</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.function_calling</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span><span class="p">,</span> <span class="n">chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_in_executor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_pydantic_field_names</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">convert_to_openai_function</span><span class="p">,</span>
     <span class="n">convert_to_openai_tool</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PydanticBaseModel</span><span class="p">,</span>
     <span class="n">TypeBaseModel</span><span class="p">,</span>
     <span class="n">is_basemodel_subclass</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.utils</span> <span class="kn">import</span> <span class="n">_build_model_kwargs</span><span class="p">,</span> <span class="n">from_env</span><span class="p">,</span> <span class="n">secret_from_env</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_model_kwargs</span><span class="p">,</span> <span class="n">from_env</span><span class="p">,</span> <span class="n">secret_from_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_dict_to_message</span><span class="p">(</span><span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_dict_to_message</span><span class="p">(</span><span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a dictionary to a LangChain message.</span>
 
 <span class="sd">    Args:</span>
@@ -391,7 +391,7 @@
         <span class="k">return</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">id_</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
 
 
-<span class="k">def</span> <span class="nf">_format_message_content</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_message_content</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Format message content."""</span>
     <span class="k">if</span> <span class="n">content</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="c1"># Remove unexpected block types</span>
@@ -411,7 +411,7 @@
     <span class="k">return</span> <span class="n">formatted_content</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_message_to_dict</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_message_to_dict</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a LangChain message to a dictionary.</span>
 
 <span class="sd">    Args:</span>
@@ -480,7 +480,7 @@
     <span class="k">return</span> <span class="n">message_dict</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_delta_to_message_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_delta_to_message_chunk</span><span class="p">(</span>
     <span class="n">_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">default_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessageChunk</span><span class="p">:</span>
     <span class="n">id_</span> <span class="o">=</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span>
@@ -537,7 +537,7 @@
         <span class="k">return</span> <span class="n">default_class</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">id_</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_chunk_to_generation_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_chunk_to_generation_chunk</span><span class="p">(</span>
     <span class="n">chunk</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">default_chunk_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span> <span class="n">base_generation_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
     <span class="n">token_usage</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">)</span>
@@ -582,7 +582,7 @@
     <span class="k">return</span> <span class="n">generation_chunk</span>
 
 
-<span class="k">def</span> <span class="nf">_update_token_usage</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_update_token_usage</span><span class="p">(</span>
     <span class="n">overall_token_usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="n">new_usage</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
     <span class="c1"># Token usage is either ints or dictionaries</span>
@@ -609,7 +609,7 @@
         <span class="k">return</span> <span class="n">new_usage</span>
 
 
-<span class="k">class</span> <span class="nc">_FunctionCall</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_FunctionCall</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
 
 
@@ -618,7 +618,7 @@
 <span class="n">_DictOrPydantic</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">_BM</span><span class="p">]</span>
 
 
-<span class="k">class</span> <span class="nc">_AllReturnType</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_AllReturnType</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
     <span class="n">raw</span><span class="p">:</span> <span class="n">BaseMessage</span>
     <span class="n">parsed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_DictOrPydantic</span><span class="p">]</span>
     <span class="n">parsing_error</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span>
@@ -626,7 +626,7 @@
 
 <div class="viewcode-block" id="BaseChatOpenAI">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI">[docs]</a>
-<span class="k">class</span> <span class="nc">BaseChatOpenAI</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseChatOpenAI</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
     <span class="n">async_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
     <span class="n">root_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
@@ -738,7 +738,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build extra kwargs from additional params that were passed in."""</span>
         <span class="n">all_required_field_names</span> <span class="o">=</span> <span class="n">get_pydantic_field_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="n">values</span> <span class="o">=</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
@@ -746,7 +746,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_temperature</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_temperature</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Currently o1 models only allow temperature=1."""</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_name"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"o1"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"temperature"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
@@ -754,7 +754,7 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key and python package exists in environment."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n must be at least 1."</span><span class="p">)</span>
@@ -791,12 +791,12 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="kn">import</span> <span class="nn">httpx</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
                 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                         <span class="s2">"Could not import httpx python package. "</span>
                         <span class="s2">"Please install it with `pip install httpx`."</span>
-                    <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span><span class="p">)</span>
             <span class="n">sync_specific</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"http_client"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">root_client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">OpenAI</span><span class="p">(</span><span class="o">**</span><span class="n">client_params</span><span class="p">,</span> <span class="o">**</span><span class="n">sync_specific</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
@@ -804,12 +804,12 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="kn">import</span> <span class="nn">httpx</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
                 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                         <span class="s2">"Could not import httpx python package. "</span>
                         <span class="s2">"Please install it with `pip install httpx`."</span>
-                    <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span><span class="p">)</span>
             <span class="n">async_specific</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"http_client"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">root_async_client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">AsyncOpenAI</span><span class="p">(</span>
@@ -820,7 +820,7 @@
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the default parameters for calling OpenAI API."""</span>
         <span class="n">exclude_if_none</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"presence_penalty"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">presence_penalty</span><span class="p">,</span>
@@ -847,7 +847,7 @@
 
         <span class="k">return</span> <span class="n">params</span>
 
-    <span class="k">def</span> <span class="nf">_combine_llm_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_outputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_combine_llm_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_outputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">overall_token_usage</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">system_fingerprint</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">llm_outputs</span><span class="p">:</span>
@@ -872,7 +872,7 @@
             <span class="n">combined</span><span class="p">[</span><span class="s2">"system_fingerprint"</span><span class="p">]</span> <span class="o">=</span> <span class="n">system_fingerprint</span>
         <span class="k">return</span> <span class="n">combined</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -911,7 +911,7 @@
                 <span class="n">is_first_chunk</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="k">yield</span> <span class="n">generation_chunk</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -941,7 +941,7 @@
             <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_chat_result</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">generation_info</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_request_payload</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_request_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -958,7 +958,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_create_chat_result</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_chat_result</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">openai</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">],</span>
         <span class="n">generation_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1007,7 +1007,7 @@
 
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">llm_output</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1045,7 +1045,7 @@
                 <span class="n">is_first_chunk</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="k">yield</span> <span class="n">generation_chunk</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_agenerate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1080,11 +1080,11 @@
         <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the identifying parameters."""</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"model_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_get_invocation_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_invocation_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the parameters used to invoke the model."""</span>
@@ -1095,7 +1095,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_get_ls_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LangSmithParams</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get standard params for tracing."""</span>
@@ -1115,11 +1115,11 @@
         <span class="k">return</span> <span class="n">ls_params</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of chat model."""</span>
         <span class="k">return</span> <span class="s2">"openai-chat"</span>
 
-    <span class="k">def</span> <span class="nf">_get_encoding_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tiktoken</span><span class="o">.</span><span class="n">Encoding</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_encoding_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tiktoken</span><span class="o">.</span><span class="n">Encoding</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiktoken_model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiktoken_model_name</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1133,7 +1133,7 @@
 
 <div class="viewcode-block" id="BaseChatOpenAI.get_token_ids">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI.get_token_ids">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the tokens present in the text with tiktoken package."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_get_token_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_get_token_ids</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -1146,7 +1146,7 @@
 
 <div class="viewcode-block" id="BaseChatOpenAI.get_num_tokens_from_messages">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI.get_num_tokens_from_messages">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
@@ -1240,7 +1240,7 @@
         <span class="k">return</span> <span class="n">num_tokens</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_should_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">async_api</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -1266,7 +1266,7 @@
         <span class="n">alternative</span><span class="o">=</span><span class="s2">"langchain_openai.chat_models.base.ChatOpenAI.bind_tools"</span><span class="p">,</span>
         <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0.0"</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">bind_functions</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_functions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">functions</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="n">function_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
@@ -1322,7 +1322,7 @@
 
 <div class="viewcode-block" id="BaseChatOpenAI.bind_tools">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI.bind_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_tools</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1405,7 +1405,7 @@
 
 <div class="viewcode-block" id="BaseChatOpenAI.with_structured_output">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.BaseChatOpenAI.html#langchain_cerebras.chat_models.BaseChatOpenAI.with_structured_output">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_structured_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_structured_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_DictOrPydanticClass</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1755,7 +1755,7 @@
             <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">output_parser</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_filter_disabled_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_disabled_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">disabled_params</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">kwargs</span>
         <span class="n">filtered</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1774,7 +1774,7 @@
 
 <div class="viewcode-block" id="ChatOpenAI">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.ChatOpenAI.html#langchain_cerebras.chat_models.ChatOpenAI">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatOpenAI</span><span class="p">(</span><span class="n">BaseChatOpenAI</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatOpenAI</span><span class="p">(</span><span class="n">BaseChatOpenAI</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""OpenAI chat model integration.</span>
 
 <span class="sd">    .. dropdown:: Setup</span>
@@ -2240,16 +2240,16 @@
 <span class="w">    </span><span class="sd">"""Maximum number of tokens to generate."""</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"openai_api_key"</span><span class="p">:</span> <span class="s2">"OPENAI_API_KEY"</span><span class="p">}</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the namespace of the langchain object."""</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"langchain"</span><span class="p">,</span> <span class="s2">"chat_models"</span><span class="p">,</span> <span class="s2">"openai"</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">attributes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_organization</span><span class="p">:</span>
@@ -2264,12 +2264,12 @@
         <span class="k">return</span> <span class="n">attributes</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this model can be serialized by Langchain."""</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the default parameters for calling OpenAI API."""</span>
         <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_default_params</span>
         <span class="k">if</span> <span class="s2">"max_tokens"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
@@ -2277,7 +2277,7 @@
 
         <span class="k">return</span> <span class="n">params</span>
 
-    <span class="k">def</span> <span class="nf">_get_request_payload</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_request_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -2291,7 +2291,7 @@
             <span class="n">payload</span><span class="p">[</span><span class="s2">"max_completion_tokens"</span><span class="p">]</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"max_tokens"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">payload</span>
 
-    <span class="k">def</span> <span class="nf">_should_stream_usage</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_stream_usage</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Determine whether to include usage metadata in streaming output.</span>
@@ -2310,7 +2310,7 @@
                 <span class="k">return</span> <span class="n">source</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Set default stream_options."""</span>
@@ -2325,7 +2325,7 @@
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_stream</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Set default stream_options."""</span>
@@ -2338,11 +2338,11 @@
 
 
 
-<span class="k">def</span> <span class="nf">_is_pydantic_class</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_pydantic_class</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_basemodel_subclass</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_lc_tool_call_to_openai_tool_call</span><span class="p">(</span><span class="n">tool_call</span><span class="p">:</span> <span class="n">ToolCall</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_lc_tool_call_to_openai_tool_call</span><span class="p">(</span><span class="n">tool_call</span><span class="p">:</span> <span class="n">ToolCall</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function"</span><span class="p">,</span>
         <span class="s2">"id"</span><span class="p">:</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span>
@@ -2353,7 +2353,7 @@
     <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_lc_invalid_tool_call_to_openai_tool_call</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_lc_invalid_tool_call_to_openai_tool_call</span><span class="p">(</span>
     <span class="n">invalid_tool_call</span><span class="p">:</span> <span class="n">InvalidToolCall</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span>
@@ -2366,9 +2366,9 @@
     <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_url_to_size</span><span class="p">(</span><span class="n">image_source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_url_to_size</span><span class="p">(</span><span class="n">image_source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>  <span class="c1"># type: ignore[import]</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>  <span class="c1"># type: ignore[import]</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">"Unable to count image tokens. To count image tokens please install "</span>
@@ -2377,7 +2377,7 @@
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">_is_url</span><span class="p">(</span><span class="n">image_source</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">httpx</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">"Unable to count image tokens. To count image tokens please install "</span>
@@ -2397,7 +2397,7 @@
         <span class="k">return</span> <span class="kc">None</span>
 
 
-<span class="k">def</span> <span class="nf">_count_image_tokens</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_count_image_tokens</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="c1"># Reference: https://platform.openai.com/docs/guides/vision/calculating-costs</span>
     <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">_resize</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">height</span> <span class="o">/</span> <span class="mi">512</span><span class="p">)</span>
@@ -2405,7 +2405,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="mi">170</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">w</span><span class="p">)</span> <span class="o">+</span> <span class="mi">85</span>
 
 
-<span class="k">def</span> <span class="nf">_is_url</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_url</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">result</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">netloc</span><span class="p">])</span>
@@ -2414,11 +2414,11 @@
         <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">def</span> <span class="nf">_is_b64</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_b64</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"data:image"</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_resize</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_resize</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="c1"># larger side must be &lt;= 2048</span>
     <span class="k">if</span> <span class="n">width</span> <span class="o">&gt;</span> <span class="mi">2048</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&gt;</span> <span class="mi">2048</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">width</span> <span class="o">&gt;</span> <span class="n">height</span><span class="p">:</span>
@@ -2438,7 +2438,7 @@
     <span class="k">return</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_to_openai_response_format</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_openai_response_format</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">TypeBaseModel</span><span class="p">]:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_basemodel_subclass</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
@@ -2472,7 +2472,7 @@
 
 
 <span class="nd">@chain</span>
-<span class="k">def</span> <span class="nf">_oai_structured_outputs_parser</span><span class="p">(</span><span class="n">ai_msg</span><span class="p">:</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PydanticBaseModel</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_oai_structured_outputs_parser</span><span class="p">(</span><span class="n">ai_msg</span><span class="p">:</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PydanticBaseModel</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">ai_msg</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"parsed"</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">ai_msg</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"parsed"</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">ai_msg</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"refusal"</span><span class="p">):</span>
@@ -2486,7 +2486,7 @@
 
 <div class="viewcode-block" id="OpenAIRefusalError">
 <a class="viewcode-back" href="../../../openai/chat_models/langchain_openai.chat_models.base.OpenAIRefusalError.html#langchain_cerebras.chat_models.OpenAIRefusalError">[docs]</a>
-<span class="k">class</span> <span class="nc">OpenAIRefusalError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OpenAIRefusalError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Error raised when OpenAI Structured Outputs API returns a refusal.</span>
 
 <span class="sd">    When using OpenAI's Structured Outputs API with user-generated input, the model</span>
@@ -2500,7 +2500,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_create_usage_metadata</span><span class="p">(</span><span class="n">oai_token_usage</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UsageMetadata</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_usage_metadata</span><span class="p">(</span><span class="n">oai_token_usage</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UsageMetadata</span><span class="p">:</span>
     <span class="n">input_tokens</span> <span class="o">=</span> <span class="n">oai_token_usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"prompt_tokens"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">output_tokens</span> <span class="o">=</span> <span class="n">oai_token_usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"completion_tokens"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">total_tokens</span> <span class="o">=</span> <span class="n">oai_token_usage</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"total_tokens"</span><span class="p">,</span> <span class="n">input_tokens</span> <span class="o">+</span> <span class="n">output_tokens</span><span class="p">)</span>

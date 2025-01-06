@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,32 +220,32 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.utilities.redis</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Pattern</span><span class="p">,</span> <span class="n">cast</span>
-<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="kn">import</span> <span class="n">urlparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Pattern</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">redis.client</span> <span class="kn">import</span> <span class="n">Redis</span> <span class="k">as</span> <span class="n">RedisType</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">redis.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Redis</span> <span class="k">as</span> <span class="n">RedisType</span>
 
 
-<span class="k">def</span> <span class="nf">_array_to_buffer</span><span class="p">(</span><span class="n">array</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_array_to_buffer</span><span class="p">(</span><span class="n">array</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">_buffer_to_array</span><span class="p">(</span><span class="n">buffer</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_buffer_to_array</span><span class="p">(</span><span class="n">buffer</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
     <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 
 
 <div class="viewcode-block" id="TokenEscaper">
 <a class="viewcode-back" href="../../../community/utilities/langchain_community.utilities.redis.TokenEscaper.html#langchain_community.utilities.redis.TokenEscaper">[docs]</a>
-<span class="k">class</span> <span class="nc">TokenEscaper</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TokenEscaper</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Escape punctuation within an input string.</span>
 <span class="sd">    """</span>
@@ -256,7 +256,7 @@
 
 <div class="viewcode-block" id="TokenEscaper.__init__">
 <a class="viewcode-back" href="../../../community/utilities/langchain_community.utilities.redis.TokenEscaper.html#langchain_community.utilities.redis.TokenEscaper.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">escape_chars_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">escape_chars_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">escape_chars_re</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">escaped_chars_re</span> <span class="o">=</span> <span class="n">escape_chars_re</span>
         <span class="k">else</span><span class="p">:</span>
@@ -265,14 +265,14 @@
 
 <div class="viewcode-block" id="TokenEscaper.escape">
 <a class="viewcode-back" href="../../../community/utilities/langchain_community.utilities.redis.TokenEscaper.html#langchain_community.utilities.redis.TokenEscaper.escape">[docs]</a>
-    <span class="k">def</span> <span class="nf">escape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">escape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="s2">"Value must be a string object for token escaping."</span>
                 <span class="sa">f</span><span class="s2">"Got type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">escape_symbol</span><span class="p">(</span><span class="n">match</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">Match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">escape_symbol</span><span class="p">(</span><span class="n">match</span><span class="p">:</span> <span class="n">re</span><span class="o">.</span><span class="n">Match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\\</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span>
 
@@ -283,7 +283,7 @@
 
 <div class="viewcode-block" id="check_redis_module_exist">
 <a class="viewcode-back" href="../../../community/utilities/langchain_community.utilities.redis.check_redis_module_exist.html#langchain_community.utilities.redis.check_redis_module_exist">[docs]</a>
-<span class="k">def</span> <span class="nf">check_redis_module_exist</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">RedisType</span><span class="p">,</span> <span class="n">required_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_redis_module_exist</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">RedisType</span><span class="p">,</span> <span class="n">required_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Check if the correct Redis modules are installed."""</span>
     <span class="n">installed_modules</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">module_list</span><span class="p">()</span>
     <span class="n">installed_modules</span> <span class="o">=</span> <span class="p">{</span>
@@ -307,7 +307,7 @@
 
 <div class="viewcode-block" id="get_client">
 <a class="viewcode-back" href="../../../community/utilities/langchain_community.utilities.redis.get_client.html#langchain_community.utilities.redis.get_client">[docs]</a>
-<span class="k">def</span> <span class="nf">get_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get a redis client from the connection url given. This helper accepts</span>
 <span class="sd">    urls for Redis server (TCP with/without TLS or UnixSocket) as well as</span>
 <span class="sd">    Redis Sentinel connections.</span>
@@ -352,7 +352,7 @@
 
     <span class="c1"># Initialize with necessary components.</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">redis</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">redis</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"Could not import redis python package. "</span>
@@ -377,7 +377,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_redis_sentinel_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_redis_sentinel_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""helper method to parse an (un-official) redis+sentinel url</span>
 <span class="sd">    and create a Sentinel connection to fetch the final redis client</span>
 <span class="sd">    connection to a replica-master for read-write operations.</span>
@@ -387,7 +387,7 @@
 <span class="sd">    With this implementation using a redis url only it is not possible</span>
 <span class="sd">    to use different data for authentication on booth systems.</span>
 <span class="sd">    """</span>
-    <span class="kn">import</span> <span class="nn">redis</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">redis</span>
 
     <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
     <span class="c1"># sentinel needs list with (host, port) tuple, use default port if none available</span>
@@ -438,8 +438,8 @@
     <span class="k">return</span> <span class="n">sentinel_client</span><span class="o">.</span><span class="n">master_for</span><span class="p">(</span><span class="n">service_name</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_check_for_cluster</span><span class="p">(</span><span class="n">redis_client</span><span class="p">:</span> <span class="n">RedisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">redis</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_for_cluster</span><span class="p">(</span><span class="n">redis_client</span><span class="p">:</span> <span class="n">RedisType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">redis</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">cluster_info</span> <span class="o">=</span> <span class="n">redis_client</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"cluster"</span><span class="p">)</span>
@@ -448,8 +448,8 @@
         <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">def</span> <span class="nf">_redis_cluster_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">redis.cluster</span> <span class="kn">import</span> <span class="n">RedisCluster</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_redis_cluster_client</span><span class="p">(</span><span class="n">redis_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RedisType</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">redis.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">RedisCluster</span>
 
     <span class="k">return</span> <span class="n">RedisCluster</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># type: ignore[return-value]</span>
 </pre></div>

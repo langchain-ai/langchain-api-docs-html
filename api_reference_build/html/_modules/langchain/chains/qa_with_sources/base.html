@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,31 +222,31 @@
 <h1>Source code for langchain.chains.qa_with_sources.base</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Question answering with sources over documents."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForChainRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForChainRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">BasePromptTemplate</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain.chains</span> <span class="kn">import</span> <span class="n">ReduceDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.base</span> <span class="kn">import</span> <span class="n">Chain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.base</span> <span class="kn">import</span> <span class="n">BaseCombineDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.map_reduce</span> <span class="kn">import</span> <span class="n">MapReduceDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.stuff</span> <span class="kn">import</span> <span class="n">StuffDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.qa_with_sources.loading</span> <span class="kn">import</span> <span class="n">load_qa_with_sources_chain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.qa_with_sources.map_reduce_prompt</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReduceDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCombineDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.map_reduce</span><span class="w"> </span><span class="kn">import</span> <span class="n">MapReduceDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.stuff</span><span class="w"> </span><span class="kn">import</span> <span class="n">StuffDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.qa_with_sources.loading</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_qa_with_sources_chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.qa_with_sources.map_reduce_prompt</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">COMBINE_PROMPT</span><span class="p">,</span>
     <span class="n">EXAMPLE_PROMPT</span><span class="p">,</span>
     <span class="n">QUESTION_PROMPT</span><span class="p">,</span>
@@ -264,7 +264,7 @@
         <span class="s2">"https://python.langchain.com/docs/how_to/qa_sources/"</span>
     <span class="p">),</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">BaseQAWithSourcesChain</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseQAWithSourcesChain</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Question answering chain with sources over documents."""</span>
 
     <span class="n">combine_documents_chain</span><span class="p">:</span> <span class="n">BaseCombineDocumentsChain</span>
@@ -279,7 +279,7 @@
 <div class="viewcode-block" id="BaseQAWithSourcesChain.from_llm">
 <a class="viewcode-back" href="../../../../langchain/chains/langchain.chains.qa_with_sources.base.BaseQAWithSourcesChain.html#langchain.chains.qa_with_sources.base.BaseQAWithSourcesChain.from_llm">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_llm</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_llm</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="n">document_prompt</span><span class="p">:</span> <span class="n">BasePromptTemplate</span> <span class="o">=</span> <span class="n">EXAMPLE_PROMPT</span><span class="p">,</span>
@@ -312,7 +312,7 @@
 <div class="viewcode-block" id="BaseQAWithSourcesChain.from_chain_type">
 <a class="viewcode-back" href="../../../../langchain/chains/langchain.chains.qa_with_sources.base.BaseQAWithSourcesChain.html#langchain.chains.qa_with_sources.base.BaseQAWithSourcesChain.from_chain_type">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_chain_type</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_chain_type</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="n">chain_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"stuff"</span><span class="p">,</span>
@@ -333,7 +333,7 @@
     <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Expect input key.</span>
 
 <span class="sd">        :meta private:</span>
@@ -341,7 +341,7 @@
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">question_key</span><span class="p">]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">output_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">output_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return output key.</span>
 
 <span class="sd">        :meta private:</span>
@@ -353,13 +353,13 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_naming</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_naming</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Fix backwards compatibility in naming."""</span>
         <span class="k">if</span> <span class="s2">"combine_document_chain"</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
             <span class="n">values</span><span class="p">[</span><span class="s2">"combine_documents_chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"combine_document_chain"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">values</span>
 
-    <span class="k">def</span> <span class="nf">_split_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">answer</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_split_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">answer</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Split sources from answer."""</span>
         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">"SOURCES?:"</span><span class="p">,</span> <span class="n">answer</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span>
             <span class="n">answer</span><span class="p">,</span> <span class="n">sources</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -371,7 +371,7 @@
         <span class="k">return</span> <span class="n">answer</span><span class="p">,</span> <span class="n">sources</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">_get_docs</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_docs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -379,7 +379,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get docs to run questioning over."""</span>
 
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForChainRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -406,7 +406,7 @@
         <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_docs</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_docs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -414,7 +414,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get docs to run questioning over."""</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_acall</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acall</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForChainRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -452,20 +452,20 @@
         <span class="s2">"https://python.langchain.com/docs/how_to/qa_sources/"</span>
     <span class="p">),</span>
 <span class="p">)</span>
-<span class="k">class</span> <span class="nc">QAWithSourcesChain</span><span class="p">(</span><span class="n">BaseQAWithSourcesChain</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QAWithSourcesChain</span><span class="p">(</span><span class="n">BaseQAWithSourcesChain</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Question answering with sources over documents."""</span>
 
     <span class="n">input_docs_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"docs"</span>  <span class="c1">#: :meta private:</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Expect input key.</span>
 
 <span class="sd">        :meta private:</span>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">input_docs_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">question_key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_get_docs</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_docs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -474,7 +474,7 @@
 <span class="w">        </span><span class="sd">"""Get docs to run questioning over."""</span>
         <span class="k">return</span> <span class="n">inputs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_docs_key</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_docs</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_docs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -484,7 +484,7 @@
         <span class="k">return</span> <span class="n">inputs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_docs_key</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_chain_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_chain_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"qa_with_sources_chain"</span></div>
 
 </pre></div>

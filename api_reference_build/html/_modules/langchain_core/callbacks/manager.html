@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,18 +220,18 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_core.callbacks.manager</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">AsyncGenerator</span><span class="p">,</span> <span class="n">Coroutine</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">asynccontextmanager</span><span class="p">,</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">contextvars</span> <span class="kn">import</span> <span class="n">copy_context</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncGenerator</span><span class="p">,</span> <span class="n">Coroutine</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">asynccontextmanager</span><span class="p">,</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextvars</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy_context</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -240,12 +240,12 @@
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">UUID</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
 
-<span class="kn">from</span> <span class="nn">langsmith.run_helpers</span> <span class="kn">import</span> <span class="n">get_tracing_context</span>
-<span class="kn">from</span> <span class="nn">tenacity</span> <span class="kn">import</span> <span class="n">RetryCallState</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langsmith.run_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_tracing_context</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tenacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">RetryCallState</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks.base</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseCallbackHandler</span><span class="p">,</span>
     <span class="n">BaseCallbackManager</span><span class="p">,</span>
     <span class="n">Callbacks</span><span class="p">,</span>
@@ -255,22 +255,22 @@
     <span class="n">RunManagerMixin</span><span class="p">,</span>
     <span class="n">ToolManagerMixin</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks.stdout</span> <span class="kn">import</span> <span class="n">StdOutCallbackHandler</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">get_buffer_string</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tracers.schemas</span> <span class="kn">import</span> <span class="n">Run</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.env</span> <span class="kn">import</span> <span class="n">env_var_is_set</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.stdout</span><span class="w"> </span><span class="kn">import</span> <span class="n">StdOutCallbackHandler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">get_buffer_string</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">Run</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.env</span><span class="w"> </span><span class="kn">import</span> <span class="n">env_var_is_set</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.agents</span> <span class="kn">import</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="n">AgentFinish</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">GenerationChunk</span><span class="p">,</span> <span class="n">LLMResult</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="n">RunnableConfig</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="n">AgentFinish</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">GenerationChunk</span><span class="p">,</span> <span class="n">LLMResult</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_get_debug</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.globals</span> <span class="kn">import</span> <span class="n">get_debug</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_debug</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.globals</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_debug</span>
 
     <span class="k">return</span> <span class="n">get_debug</span><span class="p">()</span>
 
@@ -278,7 +278,7 @@
 <div class="viewcode-block" id="trace_as_chain_group">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.trace_as_chain_group.html#langchain_core.callbacks.manager.trace_as_chain_group">[docs]</a>
 <span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">trace_as_chain_group</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">trace_as_chain_group</span><span class="p">(</span>
     <span class="n">group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">callback_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -323,7 +323,7 @@
 <span class="sd">                res = llm.invoke(llm_input, {"callbacks": manager})</span>
 <span class="sd">                manager.on_chain_end({"output": res})</span>
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.tracers.context</span> <span class="kn">import</span> <span class="n">_get_trace_callbacks</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_trace_callbacks</span>
 
     <span class="n">cb</span> <span class="o">=</span> <span class="n">_get_trace_callbacks</span><span class="p">(</span>
         <span class="n">project_name</span><span class="p">,</span> <span class="n">example_id</span><span class="p">,</span> <span class="n">callback_manager</span><span class="o">=</span><span class="n">callback_manager</span>
@@ -361,7 +361,7 @@
 <div class="viewcode-block" id="atrace_as_chain_group">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.atrace_as_chain_group.html#langchain_core.callbacks.manager.atrace_as_chain_group">[docs]</a>
 <span class="nd">@asynccontextmanager</span>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">atrace_as_chain_group</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">atrace_as_chain_group</span><span class="p">(</span>
     <span class="n">group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">callback_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -405,7 +405,7 @@
 <span class="sd">                res = await llm.ainvoke(llm_input, {"callbacks": manager})</span>
 <span class="sd">                await manager.on_chain_end({"output": res})</span>
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.tracers.context</span> <span class="kn">import</span> <span class="n">_get_trace_callbacks</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_trace_callbacks</span>
 
     <span class="n">cb</span> <span class="o">=</span> <span class="n">_get_trace_callbacks</span><span class="p">(</span>
         <span class="n">project_name</span><span class="p">,</span> <span class="n">example_id</span><span class="p">,</span> <span class="n">callback_manager</span><span class="o">=</span><span class="n">callback_manager</span>
@@ -445,7 +445,7 @@
 
 <div class="viewcode-block" id="shielded">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.shielded.html#langchain_core.callbacks.manager.shielded">[docs]</a>
-<span class="k">def</span> <span class="nf">shielded</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Func</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Func</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">shielded</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Func</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Func</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Makes so an awaitable method is always shielded from cancellation.</span>
 
@@ -457,7 +457,7 @@
 <span class="sd">    """</span>
 
     <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">return</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">shield</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">Func</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span></div>
@@ -466,7 +466,7 @@
 
 <div class="viewcode-block" id="handle_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.handle_event.html#langchain_core.callbacks.manager.handle_event">[docs]</a>
-<span class="k">def</span> <span class="nf">handle_event</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">handle_event</span><span class="p">(</span>
     <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">],</span>
     <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ignore_condition_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -546,7 +546,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_run_coros</span><span class="p">(</span><span class="n">coros</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Coroutine</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_run_coros</span><span class="p">(</span><span class="n">coros</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Coroutine</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">asyncio</span><span class="p">,</span> <span class="s2">"Runner"</span><span class="p">):</span>
         <span class="c1"># Python 3.11+</span>
         <span class="c1"># Run the coroutines in a new event loop, taking care to</span>
@@ -575,7 +575,7 @@
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error in callback coroutine: </span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_ahandle_event_for_handler</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_ahandle_event_for_handler</span><span class="p">(</span>
     <span class="n">handler</span><span class="p">:</span> <span class="n">BaseCallbackHandler</span><span class="p">,</span>
     <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ignore_condition_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -628,7 +628,7 @@
 
 <div class="viewcode-block" id="ahandle_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.ahandle_event.html#langchain_core.callbacks.manager.ahandle_event">[docs]</a>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">ahandle_event</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ahandle_event</span><span class="p">(</span>
     <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">],</span>
     <span class="n">event_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ignore_condition_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -672,12 +672,12 @@
 
 <div class="viewcode-block" id="BaseRunManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.BaseRunManager.html#langchain_core.callbacks.manager.BaseRunManager">[docs]</a>
-<span class="k">class</span> <span class="nc">BaseRunManager</span><span class="p">(</span><span class="n">RunManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseRunManager</span><span class="p">(</span><span class="n">RunManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base class for run manager (a bound callback manager)."""</span>
 
 <div class="viewcode-block" id="BaseRunManager.__init__">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.BaseRunManager.html#langchain_core.callbacks.manager.BaseRunManager.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span>
@@ -719,7 +719,7 @@
 <div class="viewcode-block" id="BaseRunManager.get_noop_manager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.BaseRunManager.html#langchain_core.callbacks.manager.BaseRunManager.get_noop_manager">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_noop_manager</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BRM</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BRM</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_noop_manager</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BRM</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BRM</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return a manager that doesn't perform any operations.</span>
 
 <span class="sd">        Returns:</span>
@@ -740,12 +740,12 @@
 
 <div class="viewcode-block" id="RunManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.RunManager.html#langchain_core.callbacks.manager.RunManager">[docs]</a>
-<span class="k">class</span> <span class="nc">RunManager</span><span class="p">(</span><span class="n">BaseRunManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunManager</span><span class="p">(</span><span class="n">BaseRunManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Sync Run Manager."""</span>
 
 <div class="viewcode-block" id="RunManager.on_text">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.RunManager.html#langchain_core.callbacks.manager.RunManager.on_text">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_text</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_text</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -773,7 +773,7 @@
 
 <div class="viewcode-block" id="RunManager.on_retry">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.RunManager.html#langchain_core.callbacks.manager.RunManager.on_retry">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retry</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retry</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">retry_state</span><span class="p">:</span> <span class="n">RetryCallState</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -800,12 +800,12 @@
 
 <div class="viewcode-block" id="ParentRunManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.ParentRunManager.html#langchain_core.callbacks.manager.ParentRunManager">[docs]</a>
-<span class="k">class</span> <span class="nc">ParentRunManager</span><span class="p">(</span><span class="n">RunManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParentRunManager</span><span class="p">(</span><span class="n">RunManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Sync Parent Run Manager."""</span>
 
 <div class="viewcode-block" id="ParentRunManager.get_child">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.ParentRunManager.html#langchain_core.callbacks.manager.ParentRunManager.get_child">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManager</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManager</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get a child callback manager.</span>
 
 <span class="sd">        Args:</span>
@@ -828,13 +828,13 @@
 
 <div class="viewcode-block" id="AsyncRunManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncRunManager.html#langchain_core.callbacks.manager.AsyncRunManager">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncRunManager</span><span class="p">(</span><span class="n">BaseRunManager</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncRunManager</span><span class="p">(</span><span class="n">BaseRunManager</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async Run Manager."""</span>
 
 <div class="viewcode-block" id="AsyncRunManager.get_sync">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncRunManager.html#langchain_core.callbacks.manager.AsyncRunManager.get_sync">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunManager</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunManager</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the equivalent sync RunManager.</span>
 
 <span class="sd">        Returns:</span>
@@ -844,7 +844,7 @@
 
 <div class="viewcode-block" id="AsyncRunManager.on_text">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncRunManager.html#langchain_core.callbacks.manager.AsyncRunManager.on_text">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_text</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_text</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -872,7 +872,7 @@
 
 <div class="viewcode-block" id="AsyncRunManager.on_retry">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncRunManager.html#langchain_core.callbacks.manager.AsyncRunManager.on_retry">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_retry</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_retry</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">retry_state</span><span class="p">:</span> <span class="n">RetryCallState</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -899,12 +899,12 @@
 
 <div class="viewcode-block" id="AsyncParentRunManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncParentRunManager.html#langchain_core.callbacks.manager.AsyncParentRunManager">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncParentRunManager</span><span class="p">(</span><span class="n">AsyncRunManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncParentRunManager</span><span class="p">(</span><span class="n">AsyncRunManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async Parent Run Manager."""</span>
 
 <div class="viewcode-block" id="AsyncParentRunManager.get_child">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncParentRunManager.html#langchain_core.callbacks.manager.AsyncParentRunManager.get_child">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManager</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_child</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManager</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get a child callback manager.</span>
 
 <span class="sd">        Args:</span>
@@ -927,12 +927,12 @@
 
 <div class="viewcode-block" id="CallbackManagerForLLMRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForLLMRun.html#langchain_core.callbacks.manager.CallbackManagerForLLMRun">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManagerForLLMRun</span><span class="p">(</span><span class="n">RunManager</span><span class="p">,</span> <span class="n">LLMManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManagerForLLMRun</span><span class="p">(</span><span class="n">RunManager</span><span class="p">,</span> <span class="n">LLMManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for LLM run."""</span>
 
 <div class="viewcode-block" id="CallbackManagerForLLMRun.on_llm_new_token">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForLLMRun.html#langchain_core.callbacks.manager.CallbackManagerForLLMRun.on_llm_new_token">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_new_token</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_new_token</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -962,7 +962,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForLLMRun.on_llm_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForLLMRun.html#langchain_core.callbacks.manager.CallbackManagerForLLMRun.on_llm_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM ends running.</span>
 
 <span class="sd">        Args:</span>
@@ -983,7 +983,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForLLMRun.on_llm_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForLLMRun.html#langchain_core.callbacks.manager.CallbackManagerForLLMRun.on_llm_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_error</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1012,12 +1012,12 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForLLMRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManagerForLLMRun</span><span class="p">(</span><span class="n">AsyncRunManager</span><span class="p">,</span> <span class="n">LLMManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManagerForLLMRun</span><span class="p">(</span><span class="n">AsyncRunManager</span><span class="p">,</span> <span class="n">LLMManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async callback manager for LLM run."""</span>
 
 <div class="viewcode-block" id="AsyncCallbackManagerForLLMRun.get_sync">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.get_sync">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForLLMRun</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForLLMRun</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the equivalent sync RunManager.</span>
 
 <span class="sd">        Returns:</span>
@@ -1038,7 +1038,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForLLMRun.on_llm_new_token">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.on_llm_new_token">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_llm_new_token</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_new_token</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1069,7 +1069,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForLLMRun.on_llm_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.on_llm_end">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM ends running.</span>
 
 <span class="sd">        Args:</span>
@@ -1091,7 +1091,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForLLMRun.on_llm_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForLLMRun.on_llm_error">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_llm_error</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1123,12 +1123,12 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainRun.html#langchain_core.callbacks.manager.CallbackManagerForChainRun">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManagerForChainRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">ChainManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManagerForChainRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">ChainManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for chain run."""</span>
 
 <div class="viewcode-block" id="CallbackManagerForChainRun.on_chain_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainRun.html#langchain_core.callbacks.manager.CallbackManagerForChainRun.on_chain_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when chain ends running.</span>
 
 <span class="sd">        Args:</span>
@@ -1149,7 +1149,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainRun.on_chain_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainRun.html#langchain_core.callbacks.manager.CallbackManagerForChainRun.on_chain_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_error</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1174,7 +1174,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainRun.on_agent_action">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainRun.html#langchain_core.callbacks.manager.CallbackManagerForChainRun.on_agent_action">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when agent action is received.</span>
 
 <span class="sd">        Args:</span>
@@ -1198,7 +1198,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainRun.on_agent_finish">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainRun.html#langchain_core.callbacks.manager.CallbackManagerForChainRun.on_agent_finish">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when agent finish is received.</span>
 
 <span class="sd">        Args:</span>
@@ -1224,12 +1224,12 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManagerForChainRun</span><span class="p">(</span><span class="n">AsyncParentRunManager</span><span class="p">,</span> <span class="n">ChainManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManagerForChainRun</span><span class="p">(</span><span class="n">AsyncParentRunManager</span><span class="p">,</span> <span class="n">ChainManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async callback manager for chain run."""</span>
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun.get_sync">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.get_sync">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForChainRun</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForChainRun</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the equivalent sync RunManager.</span>
 
 <span class="sd">        Returns:</span>
@@ -1250,7 +1250,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun.on_chain_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.on_chain_end">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chain_end</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when a chain ends running.</span>
@@ -1274,7 +1274,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun.on_chain_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.on_chain_error">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chain_error</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1300,7 +1300,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun.on_agent_action">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.on_agent_action">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when agent action is received.</span>
 
 <span class="sd">        Args:</span>
@@ -1325,7 +1325,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForChainRun.on_agent_finish">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainRun.on_agent_finish">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when agent finish is received.</span>
 
 <span class="sd">        Args:</span>
@@ -1351,12 +1351,12 @@
 
 <div class="viewcode-block" id="CallbackManagerForToolRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForToolRun.html#langchain_core.callbacks.manager.CallbackManagerForToolRun">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManagerForToolRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">ToolManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManagerForToolRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">ToolManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for tool run."""</span>
 
 <div class="viewcode-block" id="CallbackManagerForToolRun.on_tool_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForToolRun.html#langchain_core.callbacks.manager.CallbackManagerForToolRun.on_tool_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_end</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1381,7 +1381,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForToolRun.on_tool_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForToolRun.html#langchain_core.callbacks.manager.CallbackManagerForToolRun.on_tool_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_error</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1408,12 +1408,12 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForToolRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManagerForToolRun</span><span class="p">(</span><span class="n">AsyncParentRunManager</span><span class="p">,</span> <span class="n">ToolManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManagerForToolRun</span><span class="p">(</span><span class="n">AsyncParentRunManager</span><span class="p">,</span> <span class="n">ToolManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async callback manager for tool run."""</span>
 
 <div class="viewcode-block" id="AsyncCallbackManagerForToolRun.get_sync">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.get_sync">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForToolRun</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForToolRun</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the equivalent sync RunManager.</span>
 
 <span class="sd">        Returns:</span>
@@ -1434,7 +1434,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForToolRun.on_tool_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.on_tool_end">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_tool_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Async run when the tool ends running.</span>
 
 <span class="sd">        Args:</span>
@@ -1456,7 +1456,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForToolRun.on_tool_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForToolRun.on_tool_error">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_tool_error</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1483,12 +1483,12 @@
 
 <div class="viewcode-block" id="CallbackManagerForRetrieverRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.CallbackManagerForRetrieverRun">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManagerForRetrieverRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">RetrieverManagerMixin</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManagerForRetrieverRun</span><span class="p">(</span><span class="n">ParentRunManager</span><span class="p">,</span> <span class="n">RetrieverManagerMixin</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for retriever run."""</span>
 
 <div class="viewcode-block" id="CallbackManagerForRetrieverRun.on_retriever_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.CallbackManagerForRetrieverRun.on_retriever_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_end</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1513,7 +1513,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForRetrieverRun.on_retriever_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.CallbackManagerForRetrieverRun.on_retriever_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_error</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1540,7 +1540,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForRetrieverRun">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManagerForRetrieverRun</span><span class="p">(</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManagerForRetrieverRun</span><span class="p">(</span>
     <span class="n">AsyncParentRunManager</span><span class="p">,</span>
     <span class="n">RetrieverManagerMixin</span><span class="p">,</span>
 <span class="p">):</span>
@@ -1548,7 +1548,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForRetrieverRun.get_sync">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.get_sync">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForRetrieverRun</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForRetrieverRun</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the equivalent sync RunManager.</span>
 
 <span class="sd">        Returns:</span>
@@ -1569,7 +1569,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForRetrieverRun.on_retriever_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.on_retriever_end">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_retriever_end</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when the retriever ends running.</span>
@@ -1593,7 +1593,7 @@
 <div class="viewcode-block" id="AsyncCallbackManagerForRetrieverRun.on_retriever_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.html#langchain_core.callbacks.manager.AsyncCallbackManagerForRetrieverRun.on_retriever_error">[docs]</a>
     <span class="nd">@shielded</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_retriever_error</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1620,12 +1620,12 @@
 
 <div class="viewcode-block" id="CallbackManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManager</span><span class="p">(</span><span class="n">BaseCallbackManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManager</span><span class="p">(</span><span class="n">BaseCallbackManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for LangChain."""</span>
 
 <div class="viewcode-block" id="CallbackManager.on_llm_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_llm_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1679,7 +1679,7 @@
 
 <div class="viewcode-block" id="CallbackManager.on_chat_model_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_chat_model_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chat_model_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chat_model_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]],</span>
@@ -1737,7 +1737,7 @@
 
 <div class="viewcode-block" id="CallbackManager.on_chain_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_chain_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
@@ -1784,7 +1784,7 @@
 
 <div class="viewcode-block" id="CallbackManager.on_tool_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_tool_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">input_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1842,7 +1842,7 @@
 
 <div class="viewcode-block" id="CallbackManager.on_retriever_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_retriever_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1889,7 +1889,7 @@
 
 <div class="viewcode-block" id="CallbackManager.on_custom_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.on_custom_event">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_custom_event</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_custom_event</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1934,7 +1934,7 @@
 <div class="viewcode-block" id="CallbackManager.configure">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManager.html#langchain_core.callbacks.manager.CallbackManager.configure">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">inheritable_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1980,12 +1980,12 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup">[docs]</a>
-<span class="k">class</span> <span class="nc">CallbackManagerForChainGroup</span><span class="p">(</span><span class="n">CallbackManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CallbackManagerForChainGroup</span><span class="p">(</span><span class="n">CallbackManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback manager for the chain group."""</span>
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup.__init__">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">],</span>
         <span class="n">inheritable_handlers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2016,7 +2016,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup.copy">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup.copy">[docs]</a>
-    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForChainGroup</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForChainGroup</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Copy the callback manager."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
             <span class="n">handlers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
@@ -2032,7 +2032,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup.merge">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup.merge">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">CallbackManagerForChainGroup</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">BaseCallbackManager</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManagerForChainGroup</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Merge the group callback manager with another callback manager.</span>
@@ -2094,7 +2094,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup.on_chain_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup.on_chain_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when traced chain group ends.</span>
 
 <span class="sd">        Args:</span>
@@ -2107,7 +2107,7 @@
 
 <div class="viewcode-block" id="CallbackManagerForChainGroup.on_chain_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.CallbackManagerForChainGroup.html#langchain_core.callbacks.manager.CallbackManagerForChainGroup.on_chain_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_error</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -2126,17 +2126,17 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManager</span><span class="p">(</span><span class="n">BaseCallbackManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManager</span><span class="p">(</span><span class="n">BaseCallbackManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async callback manager that handles callbacks from LangChain."""</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">is_async</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_async</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether the handler is async."""</span>
         <span class="k">return</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_llm_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_llm_start">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_llm_start</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -2229,7 +2229,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_chat_model_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_chat_model_start">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chat_model_start</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chat_model_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]],</span>
@@ -2304,7 +2304,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_chain_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_chain_start">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chain_start</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
@@ -2353,7 +2353,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_tool_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_tool_start">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_tool_start</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">input_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -2405,7 +2405,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_custom_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_custom_event">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_custom_event</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_custom_event</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -2449,7 +2449,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManager.on_retriever_start">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.on_retriever_start">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_retriever_start</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -2501,7 +2501,7 @@
 <div class="viewcode-block" id="AsyncCallbackManager.configure">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManager.html#langchain_core.callbacks.manager.AsyncCallbackManager.configure">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">inheritable_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2547,12 +2547,12 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup">[docs]</a>
-<span class="k">class</span> <span class="nc">AsyncCallbackManagerForChainGroup</span><span class="p">(</span><span class="n">AsyncCallbackManager</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncCallbackManagerForChainGroup</span><span class="p">(</span><span class="n">AsyncCallbackManager</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Async callback manager for the chain group."""</span>
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup.__init__">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">],</span>
         <span class="n">inheritable_handlers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BaseCallbackHandler</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2584,7 +2584,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup.copy">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.copy">[docs]</a>
-    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManagerForChainGroup</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManagerForChainGroup</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Copy the async callback manager."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
             <span class="n">handlers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
@@ -2600,7 +2600,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup.merge">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.merge">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">AsyncCallbackManagerForChainGroup</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">BaseCallbackManager</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManagerForChainGroup</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Merge the group callback manager with another callback manager.</span>
@@ -2662,7 +2662,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup.on_chain_end">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.on_chain_end">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chain_end</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when traced chain group ends.</span>
@@ -2677,7 +2677,7 @@
 
 <div class="viewcode-block" id="AsyncCallbackManagerForChainGroup.on_chain_error">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.html#langchain_core.callbacks.manager.AsyncCallbackManagerForChainGroup.on_chain_error">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">on_chain_error</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -2700,7 +2700,7 @@
 <span class="n">H</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">BaseCallbackHandler</span><span class="p">,</span> <span class="n">covariant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_configure</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_configure</span><span class="p">(</span>
     <span class="n">callback_manager_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
     <span class="n">inheritable_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">local_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2730,7 +2730,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        T: The configured callback manager.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.tracers.context</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.context</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_configure_hooks</span><span class="p">,</span>
         <span class="n">_get_tracer_project</span><span class="p">,</span>
         <span class="n">_tracing_v2_is_enabled</span><span class="p">,</span>
@@ -2813,8 +2813,8 @@
     <span class="n">tracer_project</span> <span class="o">=</span> <span class="n">_get_tracer_project</span><span class="p">()</span>
     <span class="n">debug</span> <span class="o">=</span> <span class="n">_get_debug</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">verbose</span> <span class="ow">or</span> <span class="n">debug</span> <span class="ow">or</span> <span class="n">tracing_v2_enabled_</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain_core.tracers.langchain</span> <span class="kn">import</span> <span class="n">LangChainTracer</span>
-        <span class="kn">from</span> <span class="nn">langchain_core.tracers.stdout</span> <span class="kn">import</span> <span class="n">ConsoleCallbackHandler</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.langchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangChainTracer</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.stdout</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConsoleCallbackHandler</span>
 
         <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">StdOutCallbackHandler</span><span class="p">)</span>
@@ -2887,7 +2887,7 @@
 
 <div class="viewcode-block" id="adispatch_custom_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.adispatch_custom_event.html#langchain_core.callbacks.manager.adispatch_custom_event">[docs]</a>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">adispatch_custom_event</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adispatch_custom_event</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Dispatch an adhoc event to the handlers.</span>
@@ -2979,7 +2979,7 @@
 
 <span class="sd">    .. versionadded:: 0.2.15</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ensure_config</span><span class="p">,</span>
         <span class="n">get_async_callback_manager_for_config</span><span class="p">,</span>
     <span class="p">)</span>
@@ -3010,7 +3010,7 @@
 
 <div class="viewcode-block" id="dispatch_custom_event">
 <a class="viewcode-back" href="../../../core/callbacks/langchain_core.callbacks.manager.dispatch_custom_event.html#langchain_core.callbacks.manager.dispatch_custom_event">[docs]</a>
-<span class="k">def</span> <span class="nf">dispatch_custom_event</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dispatch_custom_event</span><span class="p">(</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Dispatch an adhoc event.</span>
@@ -3052,7 +3052,7 @@
 
 <span class="sd">    .. versionadded:: 0.2.15</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ensure_config</span><span class="p">,</span>
         <span class="n">get_callback_manager_for_config</span><span class="p">,</span>
     <span class="p">)</span>

@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,28 +220,28 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain.retrievers.time_weighted_retriever</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">datetime</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForRetrieverRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.retrievers</span> <span class="kn">import</span> <span class="n">BaseRetriever</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.retrievers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
 
 
-<span class="k">def</span> <span class="nf">_get_hours_passed</span><span class="p">(</span><span class="n">time</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">ref_time</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_hours_passed</span><span class="p">(</span><span class="n">time</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="n">ref_time</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get the hours passed between two datetimes."""</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">time</span> <span class="o">-</span> <span class="n">ref_time</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">3600</span>
 
 
 <div class="viewcode-block" id="TimeWeightedVectorStoreRetriever">
 <a class="viewcode-back" href="../../../langchain/retrievers/langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.html#langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever">[docs]</a>
-<span class="k">class</span> <span class="nc">TimeWeightedVectorStoreRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TimeWeightedVectorStoreRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Retriever that combines embedding similarity with</span>
 <span class="sd">    recency in retrieving values."""</span>
 
@@ -274,7 +274,7 @@
         <span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_document_get_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_document_get_date</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the value of the date field of a document."""</span>
         <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">document</span><span class="o">.</span><span class="n">metadata</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">document</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="nb">float</span><span class="p">):</span>
@@ -282,7 +282,7 @@
             <span class="k">return</span> <span class="n">document</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_get_combined_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_combined_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">,</span>
         <span class="n">vector_relevance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -303,7 +303,7 @@
 
 <div class="viewcode-block" id="TimeWeightedVectorStoreRetriever.get_salient_docs">
 <a class="viewcode-back" href="../../../langchain/retrievers/langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.html#langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.get_salient_docs">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_salient_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_salient_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return documents that are salient to the query."""</span>
         <span class="n">docs_and_scores</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search_with_relevance_scores</span><span class="p">(</span>
@@ -320,7 +320,7 @@
 
 <div class="viewcode-block" id="TimeWeightedVectorStoreRetriever.aget_salient_docs">
 <a class="viewcode-back" href="../../../langchain/retrievers/langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.html#langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.aget_salient_docs">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aget_salient_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_salient_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return documents that are salient to the query."""</span>
         <span class="n">docs_and_scores</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">(</span>
@@ -337,7 +337,7 @@
         <span class="k">return</span> <span class="n">results</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_rescored_docs</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_rescored_docs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">docs_and_scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">current_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
@@ -355,7 +355,7 @@
             <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">buffered_doc</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span>
 
-    <span class="k">def</span> <span class="nf">_get_relevant_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">:</span> <span class="n">CallbackManagerForRetrieverRun</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">{</span>
@@ -366,7 +366,7 @@
         <span class="n">docs_and_scores</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_salient_docs</span><span class="p">(</span><span class="n">query</span><span class="p">))</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rescored_docs</span><span class="p">(</span><span class="n">docs_and_scores</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_relevant_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">:</span> <span class="n">AsyncCallbackManagerForRetrieverRun</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">{</span>
@@ -379,7 +379,7 @@
 
 <div class="viewcode-block" id="TimeWeightedVectorStoreRetriever.add_documents">
 <a class="viewcode-back" href="../../../langchain/retrievers/langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.html#langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.add_documents">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Add documents to vectorstore."""</span>
         <span class="n">current_time</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"current_time"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">current_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -398,7 +398,7 @@
 
 <div class="viewcode-block" id="TimeWeightedVectorStoreRetriever.aadd_documents">
 <a class="viewcode-back" href="../../../langchain/retrievers/langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.html#langchain.retrievers.time_weighted_retriever.TimeWeightedVectorStoreRetriever.aadd_documents">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Add documents to vectorstore."""</span>

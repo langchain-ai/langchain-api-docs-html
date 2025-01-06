@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,16 +220,16 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.vectorstores.azuresearch</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">itertools</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -246,34 +246,34 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForRetrieverRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.exceptions</span> <span class="kn">import</span> <span class="n">LangChainException</span>
-<span class="kn">from</span> <span class="nn">langchain_core.retrievers</span> <span class="kn">import</span> <span class="n">BaseRetriever</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_env</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangChainException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.retrievers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">azure.core.credentials</span> <span class="kn">import</span> <span class="n">TokenCredential</span>
-    <span class="kn">from</span> <span class="nn">azure.core.credentials_async</span> <span class="kn">import</span> <span class="n">AsyncTokenCredential</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents</span> <span class="kn">import</span> <span class="n">SearchClient</span><span class="p">,</span> <span class="n">SearchItemPaged</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.aio</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.core.credentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">TokenCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.core.credentials_async</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncTokenCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchClient</span><span class="p">,</span> <span class="n">SearchItemPaged</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.aio</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">AsyncSearchItemPaged</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.aio</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.aio</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">SearchClient</span> <span class="k">as</span> <span class="n">AsyncSearchClient</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.indexes.models</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.indexes.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">CorsOptions</span><span class="p">,</span>
         <span class="n">ScoringProfile</span><span class="p">,</span>
         <span class="n">SearchField</span><span class="p">,</span>
@@ -302,7 +302,7 @@
 <span class="n">MAX_UPLOAD_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1000</span>
 
 
-<span class="k">def</span> <span class="nf">_get_search_client</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_search_client</span><span class="p">(</span>
     <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -323,14 +323,14 @@
     <span class="n">azure_credential</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TokenCredential</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">azure_async_credential</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncTokenCredential</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">SearchClient</span><span class="p">,</span> <span class="n">AsyncSearchClient</span><span class="p">]:</span>
-    <span class="kn">from</span> <span class="nn">azure.core.credentials</span> <span class="kn">import</span> <span class="n">AccessToken</span><span class="p">,</span> <span class="n">AzureKeyCredential</span><span class="p">,</span> <span class="n">TokenCredential</span>
-    <span class="kn">from</span> <span class="nn">azure.core.exceptions</span> <span class="kn">import</span> <span class="n">ResourceNotFoundError</span>
-    <span class="kn">from</span> <span class="nn">azure.identity</span> <span class="kn">import</span> <span class="n">DefaultAzureCredential</span><span class="p">,</span> <span class="n">InteractiveBrowserCredential</span>
-    <span class="kn">from</span> <span class="nn">azure.identity.aio</span> <span class="kn">import</span> <span class="n">DefaultAzureCredential</span> <span class="k">as</span> <span class="n">AsyncDefaultAzureCredential</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents</span> <span class="kn">import</span> <span class="n">SearchClient</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.aio</span> <span class="kn">import</span> <span class="n">SearchClient</span> <span class="k">as</span> <span class="n">AsyncSearchClient</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.indexes</span> <span class="kn">import</span> <span class="n">SearchIndexClient</span>
-    <span class="kn">from</span> <span class="nn">azure.search.documents.indexes.models</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.core.credentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">AccessToken</span><span class="p">,</span> <span class="n">AzureKeyCredential</span><span class="p">,</span> <span class="n">TokenCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResourceNotFoundError</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultAzureCredential</span><span class="p">,</span> <span class="n">InteractiveBrowserCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.identity.aio</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultAzureCredential</span> <span class="k">as</span> <span class="n">AsyncDefaultAzureCredential</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.aio</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchClient</span> <span class="k">as</span> <span class="n">AsyncSearchClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.indexes</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchIndexClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.indexes.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ExhaustiveKnnAlgorithmConfiguration</span><span class="p">,</span>
         <span class="n">ExhaustiveKnnParameters</span><span class="p">,</span>
         <span class="n">HnswAlgorithmConfiguration</span><span class="p">,</span>
@@ -346,12 +346,12 @@
         <span class="n">VectorSearchProfile</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">class</span> <span class="nc">AzureBearerTokenCredential</span><span class="p">(</span><span class="n">TokenCredential</span><span class="p">):</span>
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">AzureBearerTokenCredential</span><span class="p">(</span><span class="n">TokenCredential</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
             <span class="c1"># set the expiry to an hour from now.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_token</span> <span class="o">=</span> <span class="n">AccessToken</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">3600</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">get_token</span><span class="p">(</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_token</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="o">*</span><span class="n">scopes</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">claims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -403,7 +403,7 @@
             <span class="p">}</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_fields</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># Helper for formatting field information for each missing field.</span>
-                <span class="k">def</span> <span class="nf">fmt_err</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">fmt_err</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
                     <span class="k">return</span> <span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> current type: '</span><span class="si">{</span><span class="n">fields_types</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="s1">'MISSING'</span><span class="p">)</span><span class="si">}</span><span class="s2">'. "</span>
                         <span class="sa">f</span><span class="s2">"It has to be '</span><span class="si">{</span><span class="n">mandatory_fields</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">' or you can point "</span>
@@ -506,12 +506,12 @@
 
 <div class="viewcode-block" id="AzureSearch">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch">[docs]</a>
-<span class="k">class</span> <span class="nc">AzureSearch</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AzureSearch</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""`Azure Cognitive Search` vector store."""</span>
 
 <div class="viewcode-block" id="AzureSearch.__init__">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">azure_search_endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">azure_search_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -536,7 +536,7 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">azure.search.documents.indexes.models</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.indexes.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
                 <span class="n">SearchableField</span><span class="p">,</span>
                 <span class="n">SearchField</span><span class="p">,</span>
                 <span class="n">SearchFieldDataType</span><span class="p">,</span>
@@ -546,7 +546,7 @@
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Unable to import azure.search.documents. Please install with "</span>
                 <span class="s2">"`pip install -U azure-search-documents`."</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
 <span class="w">        </span><span class="sd">"""Initialize with necessary components."""</span>
         <span class="c1"># Initialize base class</span>
@@ -637,7 +637,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_cors_options</span> <span class="o">=</span> <span class="n">cors_options</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Close the sync client</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"client"</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -663,7 +663,7 @@
                     <span class="n">loop</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
         <span class="c1"># TODO: Support embedding object directly</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span>
@@ -671,7 +671,7 @@
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aembed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aembed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">:</span>
             <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -679,7 +679,7 @@
 
 <div class="viewcode-block" id="AzureSearch.add_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.add_texts">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -712,7 +712,7 @@
 
 <div class="viewcode-block" id="AzureSearch.aadd_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.aadd_texts">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_texts</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -745,7 +745,7 @@
 
 <div class="viewcode-block" id="AzureSearch.add_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.add_embeddings">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -809,7 +809,7 @@
 
 <div class="viewcode-block" id="AzureSearch.aadd_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.aadd_embeddings">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_embeddings</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -869,7 +869,7 @@
 
 <div class="viewcode-block" id="AzureSearch.delete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.delete">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector ID.</span>
 
 <span class="sd">        Args:</span>
@@ -888,7 +888,7 @@
 
 <div class="viewcode-block" id="AzureSearch.adelete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.adelete">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector ID.</span>
 
 <span class="sd">        Args:</span>
@@ -907,7 +907,7 @@
 
 <div class="viewcode-block" id="AzureSearch.similarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.similarity_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -929,7 +929,7 @@
 
 <div class="viewcode-block" id="AzureSearch.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.similarity_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run similarity search with distance."""</span>
@@ -946,7 +946,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asimilarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asimilarity_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -968,7 +968,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asimilarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asimilarity_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run similarity search with distance."""</span>
@@ -985,7 +985,7 @@
 
 <div class="viewcode-block" id="AzureSearch.similarity_search_with_relevance_scores">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.similarity_search_with_relevance_scores">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1003,7 +1003,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asimilarity_search_with_relevance_scores">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asimilarity_search_with_relevance_scores">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1021,7 +1021,7 @@
 
 <div class="viewcode-block" id="AzureSearch.vector_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.vector_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">vector_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vector_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1040,7 +1040,7 @@
 
 <div class="viewcode-block" id="AzureSearch.avector_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.avector_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">avector_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">avector_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1061,7 +1061,7 @@
 
 <div class="viewcode-block" id="AzureSearch.vector_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.vector_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">vector_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vector_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1087,7 +1087,7 @@
 
 <div class="viewcode-block" id="AzureSearch.avector_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.avector_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">avector_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">avector_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1115,7 +1115,7 @@
 
 <div class="viewcode-block" id="AzureSearch.max_marginal_relevance_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.max_marginal_relevance_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1152,7 +1152,7 @@
 
 <div class="viewcode-block" id="AzureSearch.amax_marginal_relevance_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.amax_marginal_relevance_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amax_marginal_relevance_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amax_marginal_relevance_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1194,7 +1194,7 @@
 
 <div class="viewcode-block" id="AzureSearch.hybrid_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.hybrid_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">hybrid_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Returns the most similar indexed documents to the query text.</span>
 
@@ -1211,7 +1211,7 @@
 
 <div class="viewcode-block" id="AzureSearch.ahybrid_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.ahybrid_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ahybrid_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ahybrid_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1230,7 +1230,7 @@
 
 <div class="viewcode-block" id="AzureSearch.hybrid_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.hybrid_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">hybrid_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1255,7 +1255,7 @@
 
 <div class="viewcode-block" id="AzureSearch.ahybrid_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.ahybrid_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ahybrid_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ahybrid_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1282,7 +1282,7 @@
 
 <div class="viewcode-block" id="AzureSearch.hybrid_search_with_relevance_scores">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.hybrid_search_with_relevance_scores">[docs]</a>
-    <span class="k">def</span> <span class="nf">hybrid_search_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_search_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1300,7 +1300,7 @@
 
 <div class="viewcode-block" id="AzureSearch.ahybrid_search_with_relevance_scores">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.ahybrid_search_with_relevance_scores">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ahybrid_search_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ahybrid_search_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1318,7 +1318,7 @@
 
 <div class="viewcode-block" id="AzureSearch.hybrid_max_marginal_relevance_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.hybrid_max_marginal_relevance_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">hybrid_max_marginal_relevance_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_max_marginal_relevance_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1358,7 +1358,7 @@
 
 <div class="viewcode-block" id="AzureSearch.ahybrid_max_marginal_relevance_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.ahybrid_max_marginal_relevance_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ahybrid_max_marginal_relevance_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ahybrid_max_marginal_relevance_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1399,7 +1399,7 @@
         <span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_simple_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simple_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">text_query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1419,7 +1419,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Search items</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">azure.search.documents.models</span> <span class="kn">import</span> <span class="n">VectorizedQuery</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorizedQuery</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
             <span class="n">search_text</span><span class="o">=</span><span class="n">text_query</span><span class="p">,</span>
@@ -1435,7 +1435,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_asimple_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asimple_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">text_query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1455,7 +1455,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Search items</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">azure.search.documents.models</span> <span class="kn">import</span> <span class="n">VectorizedQuery</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorizedQuery</span>
 
         <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
             <span class="n">search_text</span><span class="o">=</span><span class="n">text_query</span><span class="p">,</span>
@@ -1473,7 +1473,7 @@
 
 <div class="viewcode-block" id="AzureSearch.semantic_hybrid_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.semantic_hybrid_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">semantic_hybrid_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">semantic_hybrid_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1495,7 +1495,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asemantic_hybrid_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asemantic_hybrid_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asemantic_hybrid_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asemantic_hybrid_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1517,7 +1517,7 @@
 
 <div class="viewcode-block" id="AzureSearch.semantic_hybrid_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.semantic_hybrid_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">semantic_hybrid_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">semantic_hybrid_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1559,7 +1559,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asemantic_hybrid_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asemantic_hybrid_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asemantic_hybrid_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asemantic_hybrid_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1601,7 +1601,7 @@
 
 <div class="viewcode-block" id="AzureSearch.semantic_hybrid_search_with_score_and_rerank">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.semantic_hybrid_search_with_score_and_rerank">[docs]</a>
-    <span class="k">def</span> <span class="nf">semantic_hybrid_search_with_score_and_rerank</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">semantic_hybrid_search_with_score_and_rerank</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query with a hybrid query.</span>
@@ -1614,7 +1614,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List of Documents most similar to the query and score for each</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">azure.search.documents.models</span> <span class="kn">import</span> <span class="n">VectorizedQuery</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorizedQuery</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
             <span class="n">search_text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
@@ -1691,7 +1691,7 @@
 
 <div class="viewcode-block" id="AzureSearch.asemantic_hybrid_search_with_score_and_rerank">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.asemantic_hybrid_search_with_score_and_rerank">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asemantic_hybrid_search_with_score_and_rerank</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asemantic_hybrid_search_with_score_and_rerank</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query with a hybrid query.</span>
@@ -1704,7 +1704,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List of Documents most similar to the query and score for each</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">azure.search.documents.models</span> <span class="kn">import</span> <span class="n">VectorizedQuery</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">azure.search.documents.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorizedQuery</span>
 
         <span class="n">vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
@@ -1783,7 +1783,7 @@
 <div class="viewcode-block" id="AzureSearch.from_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">AzureSearch</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1812,7 +1812,7 @@
 <div class="viewcode-block" id="AzureSearch.afrom_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.afrom_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_texts</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">AzureSearch</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1841,7 +1841,7 @@
 <div class="viewcode-block" id="AzureSearch.afrom_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.afrom_embeddings">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_embeddings</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_embeddings</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">AzureSearch</span><span class="p">],</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1874,7 +1874,7 @@
 <div class="viewcode-block" id="AzureSearch.from_embeddings">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.from_embeddings">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_embeddings</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">AzureSearch</span><span class="p">],</span>
         <span class="n">text_embeddings</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1907,7 +1907,7 @@
 
 <div class="viewcode-block" id="AzureSearch.as_retriever">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearch.html#langchain_community.vectorstores.azuresearch.AzureSearch.as_retriever">[docs]</a>
-    <span class="k">def</span> <span class="nf">as_retriever</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AzureSearchVectorStoreRetriever</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_retriever</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AzureSearchVectorStoreRetriever</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
 <span class="w">        </span><span class="sd">"""Return AzureSearchVectorStoreRetriever initialized from this VectorStore.</span>
 
 <span class="sd">        Args:</span>
@@ -1938,7 +1938,7 @@
 
 <div class="viewcode-block" id="AzureSearchVectorStoreRetriever">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.azuresearch.AzureSearchVectorStoreRetriever.html#langchain_community.vectorstores.azuresearch.AzureSearchVectorStoreRetriever">[docs]</a>
-<span class="k">class</span> <span class="nc">AzureSearchVectorStoreRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AzureSearchVectorStoreRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Retriever that uses `Azure Cognitive Search`."""</span>
 
     <span class="n">vectorstore</span><span class="p">:</span> <span class="n">AzureSearch</span>
@@ -1974,7 +1974,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_search_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_search_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate search type."""</span>
         <span class="k">if</span> <span class="s2">"search_type"</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
             <span class="n">search_type</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">"search_type"</span><span class="p">]</span>
@@ -1985,7 +1985,7 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">values</span>
 
-    <span class="k">def</span> <span class="nf">_get_relevant_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
@@ -2024,7 +2024,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"search_type of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="si">}</span><span class="s2"> not allowed."</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_relevant_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_relevant_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -2068,7 +2068,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_results_to_documents</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_results_to_documents</span><span class="p">(</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">SearchItemPaged</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
@@ -2081,7 +2081,7 @@
     <span class="k">return</span> <span class="n">docs</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_aresults_to_documents</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aresults_to_documents</span><span class="p">(</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">AsyncSearchItemPaged</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
@@ -2094,7 +2094,7 @@
     <span class="k">return</span> <span class="n">docs</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_areorder_results_with_maximal_marginal_relevance</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_areorder_results_with_maximal_marginal_relevance</span><span class="p">(</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">SearchItemPaged</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
     <span class="n">query_embedding</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
@@ -2127,7 +2127,7 @@
     <span class="k">return</span> <span class="n">ret</span>
 
 
-<span class="k">def</span> <span class="nf">_reorder_results_with_maximal_marginal_relevance</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_reorder_results_with_maximal_marginal_relevance</span><span class="p">(</span>
     <span class="n">results</span><span class="p">:</span> <span class="n">SearchItemPaged</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
     <span class="n">query_embedding</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
@@ -2162,7 +2162,7 @@
     <span class="k">return</span> <span class="n">ret</span>
 
 
-<span class="k">def</span> <span class="nf">_result_to_document</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_result_to_document</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
     <span class="c1"># Fields metadata</span>
     <span class="k">if</span> <span class="n">FIELDS_METADATA</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">FIELDS_METADATA</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
@@ -2189,7 +2189,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_peek</span><span class="p">(</span><span class="n">iterable</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_peek</span><span class="p">(</span><span class="n">iterable</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
         <span class="n">value</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>

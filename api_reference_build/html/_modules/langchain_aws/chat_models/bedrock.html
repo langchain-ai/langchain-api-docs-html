@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,10 +220,10 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_aws.chat_models.bedrock</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -237,14 +237,14 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseChatModel</span><span class="p">,</span>
     <span class="n">LangSmithParams</span><span class="p">,</span>
     <span class="n">LanguageModelInput</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="n">generate_from_stream</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_from_stream</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
@@ -252,32 +252,32 @@
     <span class="n">HumanMessage</span><span class="p">,</span>
     <span class="n">SystemMessage</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages.ai</span> <span class="kn">import</span> <span class="n">UsageMetadata</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages.tool</span> <span class="kn">import</span> <span class="n">ToolCall</span><span class="p">,</span> <span class="n">ToolMessage</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">TypeBaseModel</span><span class="p">,</span> <span class="n">is_basemodel_subclass</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">UsageMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.tool</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolCall</span><span class="p">,</span> <span class="n">ToolMessage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeBaseModel</span><span class="p">,</span> <span class="n">is_basemodel_subclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain_aws.chat_models.bedrock_converse</span> <span class="kn">import</span> <span class="n">ChatBedrockConverse</span>
-<span class="kn">from</span> <span class="nn">langchain_aws.function_calling</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.chat_models.bedrock_converse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatBedrockConverse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ToolsOutputParser</span><span class="p">,</span>
     <span class="n">_lc_tool_calls_to_anthropic_tool_use_blocks</span><span class="p">,</span>
     <span class="n">convert_to_anthropic_tool</span><span class="p">,</span>
     <span class="n">get_system_message</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_aws.llms.bedrock</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.llms.bedrock</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BedrockBase</span><span class="p">,</span>
     <span class="n">_combine_generation_info_for_llm_result</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_aws.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_num_tokens_anthropic</span><span class="p">,</span>
     <span class="n">get_token_ids_anthropic</span><span class="p">,</span>
 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_one_message_to_text_llama</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_one_message_to_text_llama</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
         <span class="n">message_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\n\n</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
@@ -293,7 +293,7 @@
 
 <div class="viewcode-block" id="convert_messages_to_prompt_llama">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.convert_messages_to_prompt_llama.html#langchain_aws.chat_models.bedrock.convert_messages_to_prompt_llama">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_messages_to_prompt_llama</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt_llama</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a list of messages to a prompt for llama."""</span>
 
     <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -302,7 +302,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convert_one_message_to_text_llama3</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_one_message_to_text_llama3</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
         <span class="n">message_text</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"&lt;|start_header_id|&gt;</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="si">}</span><span class="s2">"</span>
@@ -329,7 +329,7 @@
 
 <div class="viewcode-block" id="convert_messages_to_prompt_llama3">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.convert_messages_to_prompt_llama3.html#langchain_aws.chat_models.bedrock.convert_messages_to_prompt_llama3">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_messages_to_prompt_llama3</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt_llama3</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a list of messages to a prompt for llama."""</span>
 
     <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -340,7 +340,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convert_one_message_to_text_anthropic</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_one_message_to_text_anthropic</span><span class="p">(</span>
     <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span>
     <span class="n">human_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">ai_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -361,7 +361,7 @@
 
 <div class="viewcode-block" id="convert_messages_to_prompt_anthropic">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.convert_messages_to_prompt_anthropic.html#langchain_aws.chat_models.bedrock.convert_messages_to_prompt_anthropic">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_messages_to_prompt_anthropic</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt_anthropic</span><span class="p">(</span>
     <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">human_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">Human:"</span><span class="p">,</span>
@@ -390,7 +390,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_convert_one_message_to_text_mistral</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_one_message_to_text_mistral</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
         <span class="n">message_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\n\n</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
@@ -406,7 +406,7 @@
 
 <div class="viewcode-block" id="convert_messages_to_prompt_mistral">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.convert_messages_to_prompt_mistral.html#langchain_aws.chat_models.bedrock.convert_messages_to_prompt_mistral">[docs]</a>
-<span class="k">def</span> <span class="nf">convert_messages_to_prompt_mistral</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt_mistral</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a list of messages to a prompt for mistral."""</span>
     <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="p">[</span><span class="n">_convert_one_message_to_text_mistral</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">]</span>
@@ -414,7 +414,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_format_image</span><span class="p">(</span><span class="n">image_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_image</span><span class="p">(</span><span class="n">image_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Formats an image of format data:image/jpeg;base64,{b64_string}</span>
 <span class="sd">    to a dict for anthropic api</span>
@@ -441,7 +441,7 @@
     <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_merge_messages</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_merge_messages</span><span class="p">(</span>
     <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">SystemMessage</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Merge runs of human/tool messages into single human messages with content blocks."""</span>  <span class="c1"># noqa: E501</span>
@@ -480,7 +480,7 @@
     <span class="k">return</span> <span class="n">merged</span>
 
 
-<span class="k">def</span> <span class="nf">_format_anthropic_messages</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_anthropic_messages</span><span class="p">(</span>
     <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""Format messages for anthropic."""</span>
@@ -570,7 +570,7 @@
 
 <div class="viewcode-block" id="ChatPromptAdapter">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatPromptAdapter.html#langchain_aws.chat_models.bedrock.ChatPromptAdapter">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatPromptAdapter</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatPromptAdapter</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Adapter class to prepare the inputs from Langchain to prompt format</span>
 <span class="sd">    that Chat model expects.</span>
 <span class="sd">    """</span>
@@ -578,7 +578,7 @@
 <div class="viewcode-block" id="ChatPromptAdapter.convert_messages_to_prompt">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatPromptAdapter.html#langchain_aws.chat_models.bedrock.ChatPromptAdapter.convert_messages_to_prompt">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">convert_messages_to_prompt</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
@@ -606,7 +606,7 @@
 <div class="viewcode-block" id="ChatPromptAdapter.format_messages">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatPromptAdapter.html#langchain_aws.chat_models.bedrock.ChatPromptAdapter.format_messages">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">format_messages</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_messages</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]]:</span>
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
@@ -629,7 +629,7 @@
 
 <div class="viewcode-block" id="ChatBedrock">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatBedrock</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">BedrockBase</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatBedrock</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">BedrockBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A chat model that uses the Bedrock API."""</span>
 
     <span class="n">system_prompt_with_tools</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
@@ -638,23 +638,23 @@
 <span class="sd">    all Bedrock models. Support still in beta. See ChatBedrockConverse docs for more."""</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of chat model."""</span>
         <span class="k">return</span> <span class="s2">"amazon_bedrock_chat"</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether this model can be serialized by Langchain."""</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the namespace of the langchain object."""</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"langchain"</span><span class="p">,</span> <span class="s2">"chat_models"</span><span class="p">,</span> <span class="s2">"bedrock"</span><span class="p">]</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">set_beta_use_converse_api</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_beta_use_converse_api</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">model_id</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_id"</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">model_id</span> <span class="ow">and</span> <span class="s2">"beta_use_converse_api"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
@@ -662,7 +662,7 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">attributes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">:</span>
@@ -675,7 +675,7 @@
         <span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_ls_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LangSmithParams</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get standard params for tracing."""</span>
@@ -693,7 +693,7 @@
             <span class="n">ls_params</span><span class="p">[</span><span class="s2">"ls_stop"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls_stop</span>
         <span class="k">return</span> <span class="n">ls_params</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -758,7 +758,7 @@
                     <span class="p">)</span>
                 <span class="k">yield</span> <span class="n">generation_chunk</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -850,7 +850,7 @@
             <span class="n">llm_output</span><span class="o">=</span><span class="n">llm_output</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_combine_llm_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_outputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_combine_llm_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_outputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">final_usage</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">final_output</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">llm_outputs</span><span class="p">:</span>
@@ -864,7 +864,7 @@
 
 <div class="viewcode-block" id="ChatBedrock.get_num_tokens">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.get_num_tokens">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">get_num_tokens_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -873,7 +873,7 @@
 
 <div class="viewcode-block" id="ChatBedrock.get_token_ids">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.get_token_ids">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">get_token_ids_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -882,14 +882,14 @@
 
 <div class="viewcode-block" id="ChatBedrock.set_system_prompt_with_tools">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.set_system_prompt_with_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">set_system_prompt_with_tools</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml_tools_system_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_system_prompt_with_tools</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml_tools_system_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Workaround to bind. Sets the system prompt with tools"""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt_with_tools</span> <span class="o">=</span> <span class="n">xml_tools_system_prompt</span></div>
 
 
 <div class="viewcode-block" id="ChatBedrock.bind_tools">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.bind_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_tools</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">TypeBaseModel</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -947,7 +947,7 @@
 
 <div class="viewcode-block" id="ChatBedrock.with_structured_output">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.with_structured_output">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_structured_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_structured_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">TypeBaseModel</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1091,7 +1091,7 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_as_converse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatBedrockConverse</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_as_converse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatBedrockConverse</span><span class="p">:</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>

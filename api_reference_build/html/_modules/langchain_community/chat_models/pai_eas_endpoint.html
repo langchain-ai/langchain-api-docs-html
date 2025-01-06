@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,17 +220,17 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.chat_models.pai_eas_endpoint</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="n">BaseChatModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
@@ -238,18 +238,18 @@
     <span class="n">HumanMessage</span><span class="p">,</span>
     <span class="n">SystemMessage</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.llms.utils</span> <span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.llms.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="PaiEasChatEndpoint">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.pai_eas_endpoint.PaiEasChatEndpoint.html#langchain_community.chat_models.pai_eas_endpoint.PaiEasChatEndpoint">[docs]</a>
-<span class="k">class</span> <span class="nc">PaiEasChatEndpoint</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PaiEasChatEndpoint</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Alibaba Cloud PAI-EAS LLM Service chat model API.</span>
 
 <span class="sd">        To use, must have a deployed eas chat llm service on AliCloud. One can set the</span>
@@ -293,7 +293,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key and python package exists in environment."""</span>
         <span class="n">values</span><span class="p">[</span><span class="s2">"eas_service_url"</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span>
             <span class="n">values</span><span class="p">,</span> <span class="s2">"eas_service_url"</span><span class="p">,</span> <span class="s2">"EAS_SERVICE_URL"</span>
@@ -305,7 +305,7 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the identifying parameters."""</span>
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="k">return</span> <span class="p">{</span>
@@ -315,12 +315,12 @@
         <span class="p">}</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of llm."""</span>
         <span class="k">return</span> <span class="s2">"pai_eas_chat_endpoint"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the default parameters for calling Cohere API."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"max_new_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_new_tokens</span><span class="p">,</span>
@@ -332,7 +332,7 @@
             <span class="s2">"use_cache"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_cache</span><span class="p">,</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_invocation_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invocation_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span>
@@ -348,7 +348,7 @@
 
 <div class="viewcode-block" id="PaiEasChatEndpoint.format_request_payload">
 <a class="viewcode-back" href="../../../community/chat_models/langchain_community.chat_models.pai_eas_endpoint.PaiEasChatEndpoint.html#langchain_community.chat_models.pai_eas_endpoint.PaiEasChatEndpoint.format_request_payload">[docs]</a>
-    <span class="k">def</span> <span class="nf">format_request_payload</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_request_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span> <span class="o">**</span><span class="n">model_kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -392,7 +392,7 @@
         <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">model_kwargs</span><span class="p">}</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_format_response_payload</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_response_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Formats response"""</span>
@@ -406,7 +406,7 @@
                 <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">e</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -418,7 +418,7 @@
         <span class="n">generation</span> <span class="o">=</span> <span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">generation</span><span class="p">])</span>
 
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -436,7 +436,7 @@
 
         <span class="k">return</span> <span class="n">generated_text</span>
 
-    <span class="k">def</span> <span class="nf">_call_eas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call_eas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generate text from the eas service."""</span>
         <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
@@ -457,7 +457,7 @@
 
         <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
 
-    <span class="k">def</span> <span class="nf">_call_eas_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call_eas_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query_body</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generate text from the eas service."""</span>
         <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
@@ -478,14 +478,14 @@
 
         <span class="k">return</span> <span class="n">response</span>
 
-    <span class="k">def</span> <span class="nf">_convert_chunk_to_message_message</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_chunk_to_message_message</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">chunk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessageChunk</span><span class="p">:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

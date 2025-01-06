@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,23 +220,23 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.callbacks.mlflow_callback</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">string</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
-<span class="kn">import</span> <span class="nn">traceback</span>
-<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">string</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.agents</span> <span class="kn">import</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="n">AgentFinish</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">BaseCallbackHandler</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">LLMResult</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">guard_import</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="n">AgentFinish</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCallbackHandler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">guard_import</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.callbacks.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.callbacks.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseMetadataCallbackHandler</span><span class="p">,</span>
     <span class="n">flatten_dict</span><span class="p">,</span>
     <span class="n">hash_string</span><span class="p">,</span>
@@ -250,7 +250,7 @@
 
 <div class="viewcode-block" id="import_mlflow">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.import_mlflow.html#langchain_community.callbacks.mlflow_callback.import_mlflow">[docs]</a>
-<span class="k">def</span> <span class="nf">import_mlflow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">import_mlflow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Import the mlflow python package and raise an error if it is not installed."""</span>
     <span class="k">return</span> <span class="n">guard_import</span><span class="p">(</span><span class="s2">"mlflow"</span><span class="p">)</span></div>
 
@@ -258,7 +258,7 @@
 
 <div class="viewcode-block" id="mlflow_callback_metrics">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.mlflow_callback_metrics.html#langchain_community.callbacks.mlflow_callback.mlflow_callback_metrics">[docs]</a>
-<span class="k">def</span> <span class="nf">mlflow_callback_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mlflow_callback_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get the metrics to log to MLFlow."""</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="s2">"step"</span><span class="p">,</span>
@@ -282,7 +282,7 @@
 
 <div class="viewcode-block" id="get_text_complexity_metrics">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.get_text_complexity_metrics.html#langchain_community.callbacks.mlflow_callback.get_text_complexity_metrics">[docs]</a>
-<span class="k">def</span> <span class="nf">get_text_complexity_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_text_complexity_metrics</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get the text complexity metrics from textstat."""</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="s2">"flesch_reading_ease"</span><span class="p">,</span>
@@ -307,7 +307,7 @@
 
 <div class="viewcode-block" id="analyze_text">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.analyze_text.html#langchain_community.callbacks.mlflow_callback.analyze_text">[docs]</a>
-<span class="k">def</span> <span class="nf">analyze_text</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">analyze_text</span><span class="p">(</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">nlp</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">textstat</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -352,7 +352,7 @@
 
 <div class="viewcode-block" id="construct_html_from_prompt_and_generation">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.construct_html_from_prompt_and_generation.html#langchain_community.callbacks.mlflow_callback.construct_html_from_prompt_and_generation">[docs]</a>
-<span class="k">def</span> <span class="nf">construct_html_from_prompt_and_generation</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">generation</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_html_from_prompt_and_generation</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">generation</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct an html element from a prompt and a generation.</span>
 
 <span class="sd">    Parameters:</span>
@@ -377,7 +377,7 @@
 
 <div class="viewcode-block" id="MlflowLogger">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger">[docs]</a>
-<span class="k">class</span> <span class="nc">MlflowLogger</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MlflowLogger</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Callback Handler that logs metrics and artifacts to mlflow server.</span>
 
 <span class="sd">    Parameters:</span>
@@ -392,7 +392,7 @@
 
 <div class="viewcode-block" id="MlflowLogger.__init__">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span> <span class="o">=</span> <span class="n">import_mlflow</span><span class="p">()</span>
         <span class="k">if</span> <span class="s2">"DATABRICKS_RUNTIME_VERSION"</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">set_tracking_uri</span><span class="p">(</span><span class="s2">"databricks"</span><span class="p">)</span>
@@ -427,7 +427,7 @@
 
 <div class="viewcode-block" id="MlflowLogger.start_run">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.start_run">[docs]</a>
-    <span class="k">def</span> <span class="nf">start_run</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start_run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -449,21 +449,21 @@
 
 <div class="viewcode-block" id="MlflowLogger.finish_run">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.finish_run">[docs]</a>
-    <span class="k">def</span> <span class="nf">finish_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">finish_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To finish the run."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">end_run</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="MlflowLogger.metric">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.metric">[docs]</a>
-    <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log metric to mlflow server."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">log_metric</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MlflowLogger.metrics">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.metrics">[docs]</a>
-    <span class="k">def</span> <span class="nf">metrics</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metrics</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span> <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log all metrics in the input dict."""</span>
@@ -472,7 +472,7 @@
 
 <div class="viewcode-block" id="MlflowLogger.jsonf">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.jsonf">[docs]</a>
-    <span class="k">def</span> <span class="nf">jsonf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jsonf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log the input data as json file artifact."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">log_dict</span><span class="p">(</span>
             <span class="n">data</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">.json"</span><span class="p">),</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span>
@@ -481,14 +481,14 @@
 
 <div class="viewcode-block" id="MlflowLogger.table">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.table">[docs]</a>
-    <span class="k">def</span> <span class="nf">table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dataframe</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dataframe</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log the input pandas dataframe as a html table"""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">html</span><span class="p">(</span><span class="n">dataframe</span><span class="o">.</span><span class="n">to_html</span><span class="p">(),</span> <span class="sa">f</span><span class="s2">"table_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MlflowLogger.html">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.html">[docs]</a>
-    <span class="k">def</span> <span class="nf">html</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">html</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">html</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">html</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log the input html string as html file artifact."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">log_text</span><span class="p">(</span>
             <span class="n">html</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">.html"</span><span class="p">),</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span>
@@ -497,7 +497,7 @@
 
 <div class="viewcode-block" id="MlflowLogger.text">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.text">[docs]</a>
-    <span class="k">def</span> <span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To log the input text as text file artifact."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">log_text</span><span class="p">(</span>
             <span class="n">text</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">.txt"</span><span class="p">),</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span>
@@ -506,14 +506,14 @@
 
 <div class="viewcode-block" id="MlflowLogger.artifact">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.artifact">[docs]</a>
-    <span class="k">def</span> <span class="nf">artifact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">artifact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""To upload the file from given path as artifact."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MlflowLogger.langchain_artifact">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowLogger.html#langchain_community.callbacks.mlflow_callback.MlflowLogger.langchain_artifact">[docs]</a>
-    <span class="k">def</span> <span class="nf">langchain_artifact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">langchain_artifact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflow</span><span class="o">.</span><span class="n">langchain</span><span class="o">.</span><span class="n">log_model</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="s2">"langchain-model"</span><span class="p">,</span> <span class="n">run_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span><span class="p">)</span></div>
 </div>
 
@@ -521,7 +521,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler">[docs]</a>
-<span class="k">class</span> <span class="nc">MlflowCallbackHandler</span><span class="p">(</span><span class="n">BaseMetadataCallbackHandler</span><span class="p">,</span> <span class="n">BaseCallbackHandler</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MlflowCallbackHandler</span><span class="p">(</span><span class="n">BaseMetadataCallbackHandler</span><span class="p">,</span> <span class="n">BaseCallbackHandler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Callback Handler that logs metrics and artifacts to mlflow server.</span>
 
 <span class="sd">    Parameters:</span>
@@ -538,7 +538,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.__init__">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchainrun-%"</span><span class="p">,</span>
         <span class="n">experiment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span><span class="p">,</span>
@@ -610,7 +610,7 @@
         <span class="p">}</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -618,7 +618,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_llm_start">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_llm_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">serialized</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">prompts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM starts."""</span>
@@ -645,7 +645,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_llm_new_token">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_llm_new_token">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_new_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_new_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM generates a new token."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"llm_streams"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -665,7 +665,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_llm_end">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_llm_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM ends running."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"llm_ends"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -714,7 +714,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_llm_error">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_llm_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_llm_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_llm_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when LLM errors."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
@@ -722,7 +722,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_chain_start">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_chain_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">serialized</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when chain starts running."""</span>
@@ -754,7 +754,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_chain_end">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_chain_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_end</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when chain ends running."""</span>
@@ -783,7 +783,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_chain_error">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_chain_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_chain_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when chain errors."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
@@ -791,7 +791,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_tool_start">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_tool_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">serialized</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">input_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when tool starts running."""</span>
@@ -815,7 +815,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_tool_end">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_tool_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when tool ends running."""</span>
         <span class="n">output</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -837,7 +837,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_tool_error">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_tool_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_tool_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_tool_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when tool errors."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
@@ -845,7 +845,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_text">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_text">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Run when text is received.</span>
 <span class="sd">        """</span>
@@ -867,7 +867,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_agent_finish">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_agent_finish">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="n">AgentFinish</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when agent ends running."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"agent_ends"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -893,7 +893,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_agent_action">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_agent_action">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_agent_action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run on agent action."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"tool_starts"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -918,7 +918,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_retriever_start">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_retriever_start">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_start</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_start</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">serialized</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -945,7 +945,7 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_retriever_end">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_retriever_end">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_end</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_end</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -984,13 +984,13 @@
 
 <div class="viewcode-block" id="MlflowCallbackHandler.on_retriever_error">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.on_retriever_error">[docs]</a>
-    <span class="k">def</span> <span class="nf">on_retriever_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_retriever_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run when Retriever errors."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"step"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_create_session_analysis_df</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_session_analysis_df</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a dataframe with all the information from the session."""</span>
         <span class="n">pd</span> <span class="o">=</span> <span class="n">import_pandas</span><span class="p">()</span>
         <span class="n">on_llm_start_records_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="s2">"on_llm_start_records"</span><span class="p">])</span>
@@ -1051,12 +1051,12 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">session_analysis_df</span>
 
-    <span class="k">def</span> <span class="nf">_contain_llm_records</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_contain_llm_records</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="s2">"on_llm_start_records"</span><span class="p">])</span>
 
 <div class="viewcode-block" id="MlflowCallbackHandler.flush_tracker">
 <a class="viewcode-back" href="../../../community/callbacks/langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.html#langchain_community.callbacks.mlflow_callback.MlflowCallbackHandler.flush_tracker">[docs]</a>
-    <span class="k">def</span> <span class="nf">flush_tracker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">langchain_asset</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flush_tracker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">langchain_asset</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">finish</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">pd</span> <span class="o">=</span> <span class="n">import_pandas</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlflg</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"action_records"</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="s2">"action_records"</span><span class="p">]))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contain_llm_records</span><span class="p">():</span>

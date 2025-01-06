@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,32 +222,32 @@
 <h1>Source code for langchain.evaluation.scoring.eval_chain</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Base classes for scoring the output of a model on a scale of 1-10."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="n">Callbacks</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="n">BaseOutputParser</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts.prompt</span> <span class="kn">import</span> <span class="n">PromptTemplate</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callbacks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.prompt</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain.chains.constitutional_ai.models</span> <span class="kn">import</span> <span class="n">ConstitutionalPrinciple</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
-<span class="kn">from</span> <span class="nn">langchain.evaluation.criteria.eval_chain</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.constitutional_ai.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstitutionalPrinciple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.evaluation.criteria.eval_chain</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CRITERIA_TYPE</span><span class="p">,</span>
     <span class="n">Criteria</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain.evaluation.schema</span> <span class="kn">import</span> <span class="n">LLMEvalChain</span><span class="p">,</span> <span class="n">StringEvaluator</span>
-<span class="kn">from</span> <span class="nn">langchain.evaluation.scoring.prompt</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.evaluation.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMEvalChain</span><span class="p">,</span> <span class="n">StringEvaluator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.evaluation.scoring.prompt</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CRITERIA_INSTRUCTIONS</span><span class="p">,</span>
     <span class="n">DEFAULT_CRITERIA</span><span class="p">,</span>
     <span class="n">SCORING_TEMPLATE</span><span class="p">,</span>
     <span class="n">SCORING_TEMPLATE_WITH_REFERENCE</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain.schema</span> <span class="kn">import</span> <span class="n">RUN_KEY</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">RUN_KEY</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -273,7 +273,7 @@
 
 <div class="viewcode-block" id="resolve_criteria">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.resolve_criteria.html#langchain.evaluation.scoring.eval_chain.resolve_criteria">[docs]</a>
-<span class="k">def</span> <span class="nf">resolve_criteria</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_criteria</span><span class="p">(</span>
     <span class="n">criteria</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CRITERIA_TYPE</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">CRITERIA_TYPE</span><span class="p">]]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Resolve the criteria for the pairwise evaluator.</span>
@@ -322,7 +322,7 @@
 
 <div class="viewcode-block" id="ScoreStringResultOutputParser">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.ScoreStringResultOutputParser.html#langchain.evaluation.scoring.eval_chain.ScoreStringResultOutputParser">[docs]</a>
-<span class="k">class</span> <span class="nc">ScoreStringResultOutputParser</span><span class="p">(</span><span class="n">BaseOutputParser</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoreStringResultOutputParser</span><span class="p">(</span><span class="n">BaseOutputParser</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""A parser for the output of the ScoreStringEvalChain.</span>
 
 <span class="sd">    Attributes:</span>
@@ -331,7 +331,7 @@
 <span class="sd">    """</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the type of the output parser.</span>
 
 <span class="sd">        Returns:</span>
@@ -342,7 +342,7 @@
 
 <div class="viewcode-block" id="ScoreStringResultOutputParser.parse">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.ScoreStringResultOutputParser.html#langchain.evaluation.scoring.eval_chain.ScoreStringResultOutputParser.parse">[docs]</a>
-    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Parse the output text.</span>
 
 <span class="sd">        Args:</span>
@@ -377,7 +377,7 @@
 
 <div class="viewcode-block" id="ScoreStringEvalChain">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.ScoreStringEvalChain.html#langchain.evaluation.scoring.eval_chain.ScoreStringEvalChain">[docs]</a>
-<span class="k">class</span> <span class="nc">ScoreStringEvalChain</span><span class="p">(</span><span class="n">StringEvaluator</span><span class="p">,</span> <span class="n">LLMEvalChain</span><span class="p">,</span> <span class="n">LLMChain</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoreStringEvalChain</span><span class="p">(</span><span class="n">StringEvaluator</span><span class="p">,</span> <span class="n">LLMEvalChain</span><span class="p">,</span> <span class="n">LLMChain</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""A chain for scoring on a scale of 1-10 the output of a model.</span>
 
 <span class="sd">    Attributes:</span>
@@ -417,11 +417,11 @@
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">requires_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether the chain requires a reference.</span>
 
 <span class="sd">        Returns:</span>
@@ -431,7 +431,7 @@
         <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">requires_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether the chain requires an input.</span>
 
 <span class="sd">        Returns:</span>
@@ -441,7 +441,7 @@
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">evaluation_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluation_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the name of the evaluation.</span>
 
 <span class="sd">        Returns</span>
@@ -452,7 +452,7 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"score_string:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion_name</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_skip_reference_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_skip_reference_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return the warning to show when reference is ignored.</span>
 
 <span class="sd">        Returns:</span>
@@ -468,7 +468,7 @@
 <div class="viewcode-block" id="ScoreStringEvalChain.from_llm">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.ScoreStringEvalChain.html#langchain.evaluation.scoring.eval_chain.ScoreStringEvalChain.from_llm">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_llm</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_llm</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -522,7 +522,7 @@
         <span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_prepare_input</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_input</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prediction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="nb">input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -548,7 +548,7 @@
             <span class="n">input_</span><span class="p">[</span><span class="s2">"reference"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reference</span>
         <span class="k">return</span> <span class="n">input_</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Prepare the output."""</span>
         <span class="n">parsed</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_key</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">RUN_KEY</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
@@ -557,7 +557,7 @@
             <span class="n">parsed</span><span class="p">[</span><span class="s2">"score"</span><span class="p">]</span> <span class="o">=</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">"score"</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_by</span>
         <span class="k">return</span> <span class="n">parsed</span>
 
-    <span class="k">def</span> <span class="nf">_evaluate_strings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_evaluate_strings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">prediction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -594,7 +594,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_output</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aevaluate_string_pairs</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aevaluate_string_pairs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">prediction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -635,7 +635,7 @@
 
 <div class="viewcode-block" id="LabeledScoreStringEvalChain">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.LabeledScoreStringEvalChain.html#langchain.evaluation.scoring.eval_chain.LabeledScoreStringEvalChain">[docs]</a>
-<span class="k">class</span> <span class="nc">LabeledScoreStringEvalChain</span><span class="p">(</span><span class="n">ScoreStringEvalChain</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LabeledScoreStringEvalChain</span><span class="p">(</span><span class="n">ScoreStringEvalChain</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""A chain for scoring the output of a model on a scale of 1-10.</span>
 
 <span class="sd">    Attributes:</span>
@@ -644,7 +644,7 @@
 <span class="sd">    """</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">requires_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return whether the chain requires a reference.</span>
 
 <span class="sd">        Returns:</span>
@@ -656,7 +656,7 @@
 <div class="viewcode-block" id="LabeledScoreStringEvalChain.from_llm">
 <a class="viewcode-back" href="../../../../langchain/evaluation/langchain.evaluation.scoring.eval_chain.LabeledScoreStringEvalChain.html#langchain.evaluation.scoring.eval_chain.LabeledScoreStringEvalChain.from_llm">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_llm</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_llm</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>

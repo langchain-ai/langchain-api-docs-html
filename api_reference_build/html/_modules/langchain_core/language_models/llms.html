@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,19 +222,19 @@
 <h1>Source code for langchain_core.language_models.llms</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Base interface for large language models to expose."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
@@ -242,9 +242,9 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">yaml</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
-<span class="kn">from</span> <span class="nn">tenacity</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tenacity</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">RetryCallState</span><span class="p">,</span>
     <span class="n">before_sleep_log</span><span class="p">,</span>
     <span class="n">retry</span><span class="p">,</span>
@@ -253,11 +253,11 @@
     <span class="n">stop_after_attempt</span><span class="p">,</span>
     <span class="n">wait_exponential</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">override</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.caches</span> <span class="kn">import</span> <span class="n">BaseCache</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.caches</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManager</span><span class="p">,</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">BaseCallbackManager</span><span class="p">,</span>
@@ -265,36 +265,36 @@
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">Callbacks</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.globals</span> <span class="kn">import</span> <span class="n">get_llm_cache</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.base</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.globals</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_llm_cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseLanguageModel</span><span class="p">,</span>
     <span class="n">LangSmithParams</span><span class="p">,</span>
     <span class="n">LanguageModelInput</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.load</span> <span class="kn">import</span> <span class="n">dumpd</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumpd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
     <span class="n">convert_to_messages</span><span class="p">,</span>
     <span class="n">get_buffer_string</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">Generation</span><span class="p">,</span> <span class="n">GenerationChunk</span><span class="p">,</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="n">RunInfo</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompt_values</span> <span class="kn">import</span> <span class="n">ChatPromptValue</span><span class="p">,</span> <span class="n">PromptValue</span><span class="p">,</span> <span class="n">StringPromptValue</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span><span class="p">,</span> <span class="n">get_config_list</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.config</span> <span class="kn">import</span> <span class="n">run_in_executor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generation</span><span class="p">,</span> <span class="n">GenerationChunk</span><span class="p">,</span> <span class="n">LLMResult</span><span class="p">,</span> <span class="n">RunInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompt_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatPromptValue</span><span class="p">,</span> <span class="n">PromptValue</span><span class="p">,</span> <span class="n">StringPromptValue</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">ensure_config</span><span class="p">,</span> <span class="n">get_config_list</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_in_executor</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span>
-<span class="k">def</span> <span class="nf">_log_error_once</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_log_error_once</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Log an error once."""</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="create_base_retry_decorator">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.create_base_retry_decorator.html#langchain_cohere.llms.create_base_retry_decorator">[docs]</a>
-<span class="k">def</span> <span class="nf">create_base_retry_decorator</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_base_retry_decorator</span><span class="p">(</span>
     <span class="n">error_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]],</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
@@ -318,7 +318,7 @@
 
     <span class="n">_logging</span> <span class="o">=</span> <span class="n">before_sleep_log</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_before_sleep</span><span class="p">(</span><span class="n">retry_state</span><span class="p">:</span> <span class="n">RetryCallState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_before_sleep</span><span class="p">(</span><span class="n">retry_state</span><span class="p">:</span> <span class="n">RetryCallState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_logging</span><span class="p">(</span><span class="n">retry_state</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">run_manager</span><span class="p">,</span> <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">):</span>
@@ -351,7 +351,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_resolve_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_cache</span><span class="p">(</span><span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Resolve the cache."""</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">BaseCache</span><span class="p">):</span>
         <span class="n">llm_cache</span> <span class="o">=</span> <span class="n">cache</span>
@@ -376,7 +376,7 @@
 
 <div class="viewcode-block" id="get_prompts">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.get_prompts.html#langchain_cohere.llms.get_prompts">[docs]</a>
-<span class="k">def</span> <span class="nf">get_prompts</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_prompts</span><span class="p">(</span>
     <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -415,7 +415,7 @@
 
 <div class="viewcode-block" id="aget_prompts">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.aget_prompts.html#langchain_cohere.llms.aget_prompts">[docs]</a>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">aget_prompts</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_prompts</span><span class="p">(</span>
     <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -453,7 +453,7 @@
 
 <div class="viewcode-block" id="update_cache">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.update_cache.html#langchain_cohere.llms.update_cache">[docs]</a>
-<span class="k">def</span> <span class="nf">update_cache</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_cache</span><span class="p">(</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
     <span class="n">existing_prompts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span>
     <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -490,7 +490,7 @@
 
 <div class="viewcode-block" id="aupdate_cache">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.aupdate_cache.html#langchain_cohere.llms.aupdate_cache">[docs]</a>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">aupdate_cache</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aupdate_cache</span><span class="p">(</span>
     <span class="n">cache</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseCache</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
     <span class="n">existing_prompts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span>
     <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -528,7 +528,7 @@
 
 <div class="viewcode-block" id="BaseLLM">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM">[docs]</a>
-<span class="k">class</span> <span class="nc">BaseLLM</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseLLM</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base LLM abstract interface.</span>
 
 <span class="sd">    It should take in a prompt and return a string."""</span>
@@ -542,7 +542,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">raise_deprecation</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">raise_deprecation</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Raise deprecation warning if callback_manager is used."""</span>
         <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"callback_manager"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
@@ -554,18 +554,18 @@
         <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@functools</span><span class="o">.</span><span class="n">cached_property</span>
-    <span class="k">def</span> <span class="nf">_serialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_serialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">dumpd</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="c1"># --- Runnable methods ---</span>
 
     <span class="nd">@property</span>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">OutputType</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">OutputType</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the input type for this runnable."""</span>
         <span class="k">return</span> <span class="nb">str</span>
 
-    <span class="k">def</span> <span class="nf">_convert_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PromptValue</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PromptValue</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">PromptValue</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">input</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -579,7 +579,7 @@
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_ls_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -618,7 +618,7 @@
 
 <div class="viewcode-block" id="BaseLLM.invoke">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.invoke">[docs]</a>
-    <span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -645,7 +645,7 @@
 
 <div class="viewcode-block" id="BaseLLM.ainvoke">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.ainvoke">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ainvoke</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ainvoke</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -669,7 +669,7 @@
 
 <div class="viewcode-block" id="BaseLLM.batch">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.batch">[docs]</a>
-    <span class="k">def</span> <span class="nf">batch</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">],</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -719,7 +719,7 @@
 
 <div class="viewcode-block" id="BaseLLM.abatch">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.abatch">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">abatch</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">abatch</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">],</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -768,7 +768,7 @@
 
 <div class="viewcode-block" id="BaseLLM.stream">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.stream">[docs]</a>
-    <span class="k">def</span> <span class="nf">stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -833,7 +833,7 @@
 
 <div class="viewcode-block" id="BaseLLM.astream">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.astream">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">input</span><span class="p">:</span> <span class="n">LanguageModelInput</span><span class="p">,</span>
         <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -903,7 +903,7 @@
     <span class="c1"># --- Custom methods ---</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -912,7 +912,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Run the LLM on the given prompts."""</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_agenerate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -929,7 +929,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -957,7 +957,7 @@
 <span class="sd">        """</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1001,7 +1001,7 @@
                 <span class="k">break</span>
             <span class="k">yield</span> <span class="n">item</span>  <span class="c1"># type: ignore[misc]</span>
 
-    <span class="k">def</span> <span class="nf">generate_prompt</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_prompt</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PromptValue</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1011,7 +1011,7 @@
         <span class="n">prompt_strings</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompt_strings</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">agenerate_prompt</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">agenerate_prompt</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PromptValue</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1023,7 +1023,7 @@
             <span class="n">prompt_strings</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_generate_helper</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_helper</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
@@ -1056,7 +1056,7 @@
             <span class="p">]</span>
         <span class="k">return</span> <span class="n">output</span>
 
-    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1243,7 +1243,7 @@
         <span class="k">return</span> <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">,</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">llm_output</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="n">run_info</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_run_ids_list</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_run_ids_list</span><span class="p">(</span>
         <span class="n">run_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">UUID</span><span class="p">]]]],</span> <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">run_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1258,7 +1258,7 @@
             <span class="k">return</span> <span class="n">run_id</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">run_id</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prompts</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_agenerate_helper</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate_helper</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
@@ -1300,7 +1300,7 @@
             <span class="p">]</span>
         <span class="k">return</span> <span class="n">output</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">agenerate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1496,7 +1496,7 @@
 <div class="viewcode-block" id="BaseLLM.__call__">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.__call__">[docs]</a>
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"invoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1546,7 +1546,7 @@
         <span class="p">)</span></div>
 
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_call_async</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_call_async</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1568,14 +1568,14 @@
         <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"invoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">_stop</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">_stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"invoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">predict_messages</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1588,14 +1588,14 @@
         <span class="k">return</span> <span class="n">AIMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"ainvoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">apredict</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">apredict</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">_stop</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
         <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_async</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">_stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"ainvoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">apredict_messages</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">apredict_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1607,17 +1607,17 @@
         <span class="n">content</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_async</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">_stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">AIMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get a string representation of the object for printing."""</span>
         <span class="n">cls_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\033</span><span class="s2">[1m</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="se">\033</span><span class="s2">[0m"</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">cls_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">Params: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_identifying_params</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="nd">@property</span>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of llm."""</span>
 
-    <span class="k">def</span> <span class="nf">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return a dictionary of the LLM."""</span>
         <span class="n">starter_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_identifying_params</span><span class="p">)</span>
         <span class="n">starter_dict</span><span class="p">[</span><span class="s2">"_type"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm_type</span>
@@ -1625,7 +1625,7 @@
 
 <div class="viewcode-block" id="BaseLLM.save">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.BaseLLM.html#langchain_cohere.llms.BaseLLM.save">[docs]</a>
-    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Save the LLM.</span>
 
 <span class="sd">        Args:</span>
@@ -1663,7 +1663,7 @@
 
 <div class="viewcode-block" id="LLM">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.llms.LLM.html#langchain_cohere.llms.LLM">[docs]</a>
-<span class="k">class</span> <span class="nc">LLM</span><span class="p">(</span><span class="n">BaseLLM</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LLM</span><span class="p">(</span><span class="n">BaseLLM</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Simple interface for implementing a custom LLM.</span>
 
 <span class="sd">    You should subclass this class and implement the following:</span>
@@ -1694,7 +1694,7 @@
 <span class="sd">    """</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1718,7 +1718,7 @@
 <span class="sd">            The model output as a string. SHOULD NOT include the prompt.</span>
 <span class="sd">        """</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_acall</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acall</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1752,7 +1752,7 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1772,7 +1772,7 @@
             <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Generation</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)])</span>
         <span class="k">return</span> <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_agenerate</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

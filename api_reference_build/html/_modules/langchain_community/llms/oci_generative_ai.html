@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,55 +220,55 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.llms.oci_generative_ai</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.llms</span> <span class="kn">import</span> <span class="n">LLM</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="n">GenerationChunk</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">pre_init</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">GenerationChunk</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">pre_init</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.llms.utils</span> <span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.llms.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">enforce_stop_tokens</span>
 
 <span class="n">CUSTOM_ENDPOINT_PREFIX</span> <span class="o">=</span> <span class="s2">"ocid1.generativeaiendpoint"</span>
 
 
 <div class="viewcode-block" id="Provider">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.Provider.html#langchain_community.llms.oci_generative_ai.Provider">[docs]</a>
-<span class="k">class</span> <span class="nc">Provider</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Provider</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
     <span class="nd">@property</span>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">stop_sequence_key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop_sequence_key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>
 
 <div class="viewcode-block" id="Provider.completion_response_to_text">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.Provider.html#langchain_community.llms.oci_generative_ai.Provider.completion_response_to_text">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span></div>
 </div>
 
 
 
 <div class="viewcode-block" id="CohereProvider">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.CohereProvider.html#langchain_community.llms.oci_generative_ai.CohereProvider">[docs]</a>
-<span class="k">class</span> <span class="nc">CohereProvider</span><span class="p">(</span><span class="n">Provider</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CohereProvider</span><span class="p">(</span><span class="n">Provider</span><span class="p">):</span>
     <span class="n">stop_sequence_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"stop_sequences"</span>
 
 <div class="viewcode-block" id="CohereProvider.__init__">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.CohereProvider.html#langchain_community.llms.oci_generative_ai.CohereProvider.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">oci.generative_ai_inference</span> <span class="kn">import</span> <span class="n">models</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oci.generative_ai_inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">llm_inference_request</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CohereLlmInferenceRequest</span></div>
 
 
 <div class="viewcode-block" id="CohereProvider.completion_response_to_text">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.CohereProvider.html#langchain_community.llms.oci_generative_ai.CohereProvider.completion_response_to_text">[docs]</a>
-    <span class="k">def</span> <span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">inference_response</span><span class="o">.</span><span class="n">generated_texts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span></div>
 </div>
 
@@ -276,20 +276,20 @@
 
 <div class="viewcode-block" id="MetaProvider">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.MetaProvider.html#langchain_community.llms.oci_generative_ai.MetaProvider">[docs]</a>
-<span class="k">class</span> <span class="nc">MetaProvider</span><span class="p">(</span><span class="n">Provider</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetaProvider</span><span class="p">(</span><span class="n">Provider</span><span class="p">):</span>
     <span class="n">stop_sequence_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"stop"</span>
 
 <div class="viewcode-block" id="MetaProvider.__init__">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.MetaProvider.html#langchain_community.llms.oci_generative_ai.MetaProvider.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">oci.generative_ai_inference</span> <span class="kn">import</span> <span class="n">models</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oci.generative_ai_inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">llm_inference_request</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LlamaLlmInferenceRequest</span></div>
 
 
 <div class="viewcode-block" id="MetaProvider.completion_response_to_text">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.MetaProvider.html#langchain_community.llms.oci_generative_ai.MetaProvider.completion_response_to_text">[docs]</a>
-    <span class="k">def</span> <span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">completion_response_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">inference_response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span></div>
 </div>
 
@@ -297,7 +297,7 @@
 
 <div class="viewcode-block" id="OCIAuthType">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.OCIAuthType.html#langchain_community.llms.oci_generative_ai.OCIAuthType">[docs]</a>
-<span class="k">class</span> <span class="nc">OCIAuthType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OCIAuthType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""OCI authentication types as enumerator."""</span>
 
     <span class="n">API_KEY</span> <span class="o">=</span> <span class="mi">1</span>
@@ -309,7 +309,7 @@
 
 <div class="viewcode-block" id="OCIGenAIBase">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.OCIGenAIBase.html#langchain_community.llms.oci_generative_ai.OCIGenAIBase">[docs]</a>
-<span class="k">class</span> <span class="nc">OCIGenAIBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OCIGenAIBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Base class for OCI GenAI models"""</span>
 
     <span class="n">client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
@@ -358,7 +358,7 @@
 <div class="viewcode-block" id="OCIGenAIBase.validate_environment">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.OCIGenAIBase.html#langchain_community.llms.oci_generative_ai.OCIGenAIBase.validate_environment">[docs]</a>
     <span class="nd">@pre_init</span>
-    <span class="k">def</span> <span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that OCI config and python package exists in environment."""</span>
 
         <span class="c1"># Skip creating new client if passed in constructor</span>
@@ -366,7 +366,7 @@
             <span class="k">return</span> <span class="n">values</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">oci</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">oci</span>
 
             <span class="n">client_kwargs</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">"config"</span><span class="p">:</span> <span class="p">{},</span>
@@ -383,7 +383,7 @@
                 <span class="n">client_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"signer"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">values</span><span class="p">[</span><span class="s2">"auth_type"</span><span class="p">]</span> <span class="o">==</span> <span class="n">OCIAuthType</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
 
-                <span class="k">def</span> <span class="nf">make_security_token_signer</span><span class="p">(</span><span class="n">oci_config</span><span class="p">):</span>  <span class="c1"># type: ignore[no-untyped-def]</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">make_security_token_signer</span><span class="p">(</span><span class="n">oci_config</span><span class="p">):</span>  <span class="c1"># type: ignore[no-untyped-def]</span>
                     <span class="n">pk</span> <span class="o">=</span> <span class="n">oci</span><span class="o">.</span><span class="n">signer</span><span class="o">.</span><span class="n">load_private_key_from_file</span><span class="p">(</span>
                         <span class="n">oci_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"key_file"</span><span class="p">),</span> <span class="kc">None</span>
                     <span class="p">)</span>
@@ -421,7 +421,7 @@
             <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
                 <span class="s2">"Could not import oci python package. "</span>
                 <span class="s2">"Please make sure you have the oci package installed."</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">ex</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
 <span class="w">                </span><span class="sd">"""Could not authenticate with OCI client. </span>
@@ -430,20 +430,20 @@
 <span class="sd">                please check the specified</span>
 <span class="sd">                auth_profile and auth_type are valid."""</span><span class="p">,</span>
                 <span class="n">e</span><span class="p">,</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="k">return</span> <span class="n">values</span></div>
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the identifying parameters."""</span>
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="o">**</span><span class="p">{</span><span class="s2">"model_kwargs"</span><span class="p">:</span> <span class="n">_model_kwargs</span><span class="p">},</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_get_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">provider_map</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">provider_map</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">provider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">provider</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">provider</span>
         <span class="k">else</span><span class="p">:</span>
@@ -467,7 +467,7 @@
 
 <div class="viewcode-block" id="OCIGenAI">
 <a class="viewcode-back" href="../../../community/llms/langchain_community.llms.oci_generative_ai.OCIGenAI.html#langchain_community.llms.oci_generative_ai.OCIGenAI">[docs]</a>
-<span class="k">class</span> <span class="nc">OCIGenAI</span><span class="p">(</span><span class="n">LLM</span><span class="p">,</span> <span class="n">OCIGenAIBase</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">OCIGenAI</span><span class="p">(</span><span class="n">LLM</span><span class="p">,</span> <span class="n">OCIGenAIBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""OCI large language models.</span>
 
 <span class="sd">    To authenticate, the OCI client uses the methods described in</span>
@@ -503,12 +503,12 @@
     <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of llm."""</span>
         <span class="k">return</span> <span class="s2">"oci_generative_ai_completion"</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_provider_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_provider_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the provider map"""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"cohere"</span><span class="p">:</span> <span class="n">CohereProvider</span><span class="p">(),</span>
@@ -516,14 +516,14 @@
         <span class="p">}</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_provider</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get the internal provider object"""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_provider</span><span class="p">(</span><span class="n">provider_map</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_provider_map</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_prepare_invocation_object</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_invocation_object</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="kn">from</span> <span class="nn">oci.generative_ai_inference</span> <span class="kn">import</span> <span class="n">models</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oci.generative_ai_inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -552,7 +552,7 @@
 
         <span class="k">return</span> <span class="n">invocation_obj</span>
 
-    <span class="k">def</span> <span class="nf">_process_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_provider</span><span class="o">.</span><span class="n">completion_response_to_text</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -560,7 +560,7 @@
 
         <span class="k">return</span> <span class="n">text</span>
 
-    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -593,7 +593,7 @@
         <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">generate_text</span><span class="p">(</span><span class="n">invocation_obj</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

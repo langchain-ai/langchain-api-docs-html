@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,19 +222,19 @@
 <h1>Source code for langchain_community.agent_toolkits.openapi.planner</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Agent that interacts with OpenAPI APIs via a hierarchical planning approach."""</span>
 
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">import</span> <span class="nn">yaml</span>
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="n">BaseCallbackManager</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseLanguageModel</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts</span> <span class="kn">import</span> <span class="n">BasePromptTemplate</span><span class="p">,</span> <span class="n">PromptTemplate</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span><span class="p">,</span> <span class="n">Tool</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">Field</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCallbackManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLanguageModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePromptTemplate</span><span class="p">,</span> <span class="n">PromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span><span class="p">,</span> <span class="n">Tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.agent_toolkits.openapi.planner_prompt</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.agent_toolkits.openapi.planner_prompt</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">API_CONTROLLER_PROMPT</span><span class="p">,</span>
     <span class="n">API_CONTROLLER_TOOL_DESCRIPTION</span><span class="p">,</span>
     <span class="n">API_CONTROLLER_TOOL_NAME</span><span class="p">,</span>
@@ -253,10 +253,10 @@
     <span class="n">REQUESTS_POST_TOOL_DESCRIPTION</span><span class="p">,</span>
     <span class="n">REQUESTS_PUT_TOOL_DESCRIPTION</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_community.agent_toolkits.openapi.spec</span> <span class="kn">import</span> <span class="n">ReducedOpenAPISpec</span>
-<span class="kn">from</span> <span class="nn">langchain_community.llms</span> <span class="kn">import</span> <span class="n">OpenAI</span>
-<span class="kn">from</span> <span class="nn">langchain_community.tools.requests.tool</span> <span class="kn">import</span> <span class="n">BaseRequestsTool</span>
-<span class="kn">from</span> <span class="nn">langchain_community.utilities.requests</span> <span class="kn">import</span> <span class="n">RequestsWrapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.agent_toolkits.openapi.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReducedOpenAPISpec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.tools.requests.tool</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRequestsTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.utilities.requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestsWrapper</span>
 
 <span class="c1">#</span>
 <span class="c1"># Requests tools with LLM-instructed extraction of truncated responses.</span>
@@ -270,8 +270,8 @@
 <span class="n">Operation</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"POST"</span><span class="p">,</span> <span class="s2">"PUT"</span><span class="p">,</span> <span class="s2">"DELETE"</span><span class="p">,</span> <span class="s2">"PATCH"</span><span class="p">]</span>
 
 
-<span class="k">def</span> <span class="nf">_get_default_llm_chain</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="n">BasePromptTemplate</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_default_llm_chain</span><span class="p">(</span><span class="n">prompt</span><span class="p">:</span> <span class="n">BasePromptTemplate</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
 
     <span class="k">return</span> <span class="n">LLMChain</span><span class="p">(</span>
         <span class="n">llm</span><span class="o">=</span><span class="n">OpenAI</span><span class="p">(),</span>
@@ -279,7 +279,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_get_default_llm_chain_factory</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_default_llm_chain_factory</span><span class="p">(</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">BasePromptTemplate</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Returns a default LLMChain factory."""</span>
@@ -288,7 +288,7 @@
 
 <div class="viewcode-block" id="RequestsGetToolWithParsing">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.RequestsGetToolWithParsing.html#langchain_community.agent_toolkits.openapi.planner.RequestsGetToolWithParsing">[docs]</a>
-<span class="k">class</span> <span class="nc">RequestsGetToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsGetToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Requests GET tool with LLM-instructed extraction of truncated responses."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"requests_get"</span>
@@ -302,8 +302,8 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""LLMChain used to extract the response."""</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.output_parsers.json</span> <span class="kn">import</span> <span class="n">parse_json_markdown</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_json_markdown</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">parse_json_markdown</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -318,14 +318,14 @@
             <span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"output_instructions"</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="RequestsPostToolWithParsing">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.RequestsPostToolWithParsing.html#langchain_community.agent_toolkits.openapi.planner.RequestsPostToolWithParsing">[docs]</a>
-<span class="k">class</span> <span class="nc">RequestsPostToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsPostToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Requests POST tool with LLM-instructed extraction of truncated responses."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"requests_post"</span>
@@ -339,8 +339,8 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""LLMChain used to extract the response."""</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.output_parsers.json</span> <span class="kn">import</span> <span class="n">parse_json_markdown</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_json_markdown</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">parse_json_markdown</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -352,14 +352,14 @@
             <span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"output_instructions"</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="RequestsPatchToolWithParsing">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.RequestsPatchToolWithParsing.html#langchain_community.agent_toolkits.openapi.planner.RequestsPatchToolWithParsing">[docs]</a>
-<span class="k">class</span> <span class="nc">RequestsPatchToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsPatchToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Requests PATCH tool with LLM-instructed extraction of truncated responses."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"requests_patch"</span>
@@ -373,8 +373,8 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""LLMChain used to extract the response."""</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.output_parsers.json</span> <span class="kn">import</span> <span class="n">parse_json_markdown</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_json_markdown</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">parse_json_markdown</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -388,14 +388,14 @@
             <span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"output_instructions"</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="RequestsPutToolWithParsing">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.RequestsPutToolWithParsing.html#langchain_community.agent_toolkits.openapi.planner.RequestsPutToolWithParsing">[docs]</a>
-<span class="k">class</span> <span class="nc">RequestsPutToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsPutToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Requests PUT tool with LLM-instructed extraction of truncated responses."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"requests_put"</span>
@@ -409,8 +409,8 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""LLMChain used to extract the response."""</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.output_parsers.json</span> <span class="kn">import</span> <span class="n">parse_json_markdown</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_json_markdown</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">parse_json_markdown</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -422,14 +422,14 @@
             <span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"output_instructions"</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="RequestsDeleteToolWithParsing">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.RequestsDeleteToolWithParsing.html#langchain_community.agent_toolkits.openapi.planner.RequestsDeleteToolWithParsing">[docs]</a>
-<span class="k">class</span> <span class="nc">RequestsDeleteToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RequestsDeleteToolWithParsing</span><span class="p">(</span><span class="n">BaseRequestsTool</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Tool that sends a DELETE request and parses the response."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"requests_delete"</span>
@@ -444,8 +444,8 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""The LLM chain used to parse the response."""</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.output_parsers.json</span> <span class="kn">import</span> <span class="n">parse_json_markdown</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.output_parsers.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_json_markdown</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">parse_json_markdown</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -457,7 +457,7 @@
             <span class="n">response</span><span class="o">=</span><span class="n">response</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">"output_instructions"</span><span class="p">]</span>
         <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 
@@ -465,10 +465,10 @@
 <span class="c1">#</span>
 <span class="c1"># Orchestrator, planner, controller.</span>
 <span class="c1">#</span>
-<span class="k">def</span> <span class="nf">_create_api_planner_tool</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_api_planner_tool</span><span class="p">(</span>
     <span class="n">api_spec</span><span class="p">:</span> <span class="n">ReducedOpenAPISpec</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tool</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
 
     <span class="n">endpoint_descriptions</span> <span class="o">=</span> <span class="p">[</span>
         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">description</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">api_spec</span><span class="o">.</span><span class="n">endpoints</span>
@@ -487,7 +487,7 @@
     <span class="k">return</span> <span class="n">tool</span>
 
 
-<span class="k">def</span> <span class="nf">_create_api_controller_agent</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_api_controller_agent</span><span class="p">(</span>
     <span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">api_docs</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">requests_wrapper</span><span class="p">:</span> <span class="n">RequestsWrapper</span><span class="p">,</span>
@@ -495,9 +495,9 @@
     <span class="n">allow_dangerous_requests</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">allowed_operations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Operation</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain.agents.agent</span> <span class="kn">import</span> <span class="n">AgentExecutor</span>
-    <span class="kn">from</span> <span class="nn">langchain.agents.mrkl.base</span> <span class="kn">import</span> <span class="n">ZeroShotAgent</span>
-    <span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentExecutor</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.mrkl.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZeroShotAgent</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
 
     <span class="n">tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="s2">"GET"</span> <span class="ow">in</span> <span class="n">allowed_operations</span><span class="p">:</span>
@@ -566,7 +566,7 @@
     <span class="k">return</span> <span class="n">AgentExecutor</span><span class="o">.</span><span class="n">from_agent_and_tools</span><span class="p">(</span><span class="n">agent</span><span class="o">=</span><span class="n">agent</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_create_api_controller_tool</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_api_controller_tool</span><span class="p">(</span>
     <span class="n">api_spec</span><span class="p">:</span> <span class="n">ReducedOpenAPISpec</span><span class="p">,</span>
     <span class="n">requests_wrapper</span><span class="p">:</span> <span class="n">RequestsWrapper</span><span class="p">,</span>
     <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
@@ -582,7 +582,7 @@
 
     <span class="n">base_url</span> <span class="o">=</span> <span class="n">api_spec</span><span class="o">.</span><span class="n">servers</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"url"</span><span class="p">]</span>  <span class="c1"># TODO: do better.</span>
 
-    <span class="k">def</span> <span class="nf">_create_and_run_api_controller_agent</span><span class="p">(</span><span class="n">plan_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_and_run_api_controller_agent</span><span class="p">(</span><span class="n">plan_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"\b(GET|POST|PATCH|DELETE|PUT)\s+(/\S+)*"</span>
         <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">plan_str</span><span class="p">)</span>
         <span class="n">endpoint_names</span> <span class="o">=</span> <span class="p">[</span>
@@ -619,7 +619,7 @@
 
 <div class="viewcode-block" id="create_openapi_agent">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.openapi.planner.create_openapi_agent.html#langchain_community.agent_toolkits.openapi.planner.create_openapi_agent">[docs]</a>
-<span class="k">def</span> <span class="nf">create_openapi_agent</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_openapi_agent</span><span class="p">(</span>
     <span class="n">api_spec</span><span class="p">:</span> <span class="n">ReducedOpenAPISpec</span><span class="p">,</span>
     <span class="n">requests_wrapper</span><span class="p">:</span> <span class="n">RequestsWrapper</span><span class="p">,</span>
     <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLanguageModel</span><span class="p">,</span>
@@ -665,9 +665,9 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        The agent executor.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain.agents.agent</span> <span class="kn">import</span> <span class="n">AgentExecutor</span>
-    <span class="kn">from</span> <span class="nn">langchain.agents.mrkl.base</span> <span class="kn">import</span> <span class="n">ZeroShotAgent</span>
-    <span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentExecutor</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.mrkl.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZeroShotAgent</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
 
     <span class="n">tools</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">_create_api_planner_tool</span><span class="p">(</span><span class="n">api_spec</span><span class="p">,</span> <span class="n">llm</span><span class="p">),</span>

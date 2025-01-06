@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,21 +220,21 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_core.runnables.config</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">Executor</span><span class="p">,</span> <span class="n">Future</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span>
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">contextvars</span> <span class="kn">import</span> <span class="n">ContextVar</span><span class="p">,</span> <span class="n">copy_context</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Executor</span><span class="p">,</span> <span class="n">Future</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextvars</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContextVar</span><span class="p">,</span> <span class="n">copy_context</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">ParamSpec</span><span class="p">,</span> <span class="n">TypedDict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParamSpec</span><span class="p">,</span> <span class="n">TypedDict</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.runnables.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Input</span><span class="p">,</span>
     <span class="n">Output</span><span class="p">,</span>
     <span class="n">accepts_config</span><span class="p">,</span>
@@ -242,8 +242,8 @@
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.callbacks.base</span> <span class="kn">import</span> <span class="n">BaseCallbackManager</span><span class="p">,</span> <span class="n">Callbacks</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCallbackManager</span><span class="p">,</span> <span class="n">Callbacks</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">AsyncCallbackManager</span><span class="p">,</span>
         <span class="n">AsyncCallbackManagerForChainRun</span><span class="p">,</span>
         <span class="n">CallbackManager</span><span class="p">,</span>
@@ -257,14 +257,14 @@
 
 <div class="viewcode-block" id="EmptyDict">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.EmptyDict.html#langchain_core.runnables.config.EmptyDict">[docs]</a>
-<span class="k">class</span> <span class="nc">EmptyDict</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmptyDict</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Empty dict type."""</span></div>
 
 
 
 <div class="viewcode-block" id="RunnableConfig">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.RunnableConfig.html#langchain_core.runnables.config.RunnableConfig">[docs]</a>
-<span class="k">class</span> <span class="nc">RunnableConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RunnableConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Configuration for a Runnable."""</span>
 
     <span class="n">tags</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
@@ -343,13 +343,13 @@
 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_set_config_context</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_set_config_context</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Set the child Runnable config + tracing context</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        config (RunnableConfig): The config to set.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.tracers.langchain</span> <span class="kn">import</span> <span class="n">LangChainTracer</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.langchain</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangChainTracer</span>
 
     <span class="n">var_child_runnable_config</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span>
@@ -369,14 +369,14 @@
         <span class="p">)</span>
         <span class="ow">and</span> <span class="p">(</span><span class="n">run</span> <span class="o">:=</span> <span class="n">tracer</span><span class="o">.</span><span class="n">run_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">parent_run_id</span><span class="p">)))</span>
     <span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">langsmith.run_helpers</span> <span class="kn">import</span> <span class="n">_set_tracing_context</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langsmith.run_helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_set_tracing_context</span>
 
         <span class="n">_set_tracing_context</span><span class="p">({</span><span class="s2">"parent"</span><span class="p">:</span> <span class="n">run</span><span class="p">})</span>
 
 
 <div class="viewcode-block" id="ensure_config">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.ensure_config.html#langchain_core.runnables.config.ensure_config">[docs]</a>
-<span class="k">def</span> <span class="nf">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Ensure that a config is a dict with all keys present.</span>
 
 <span class="sd">    Args:</span>
@@ -432,7 +432,7 @@
 
 <div class="viewcode-block" id="get_config_list">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.get_config_list.html#langchain_core.runnables.config.get_config_list">[docs]</a>
-<span class="k">def</span> <span class="nf">get_config_list</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_config_list</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]]],</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get a list of configs from a single config or a list of configs.</span>
@@ -482,7 +482,7 @@
 
 <div class="viewcode-block" id="patch_config">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.patch_config.html#langchain_core.runnables.config.patch_config">[docs]</a>
-<span class="k">def</span> <span class="nf">patch_config</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">patch_config</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseCallbackManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -531,7 +531,7 @@
 
 <div class="viewcode-block" id="merge_configs">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.merge_configs.html#langchain_core.runnables.config.merge_configs">[docs]</a>
-<span class="k">def</span> <span class="nf">merge_configs</span><span class="p">(</span><span class="o">*</span><span class="n">configs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_configs</span><span class="p">(</span><span class="o">*</span><span class="n">configs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">RunnableConfig</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Merge multiple configs into one.</span>
 
 <span class="sd">    Args:</span>
@@ -600,7 +600,7 @@
 
 <div class="viewcode-block" id="call_func_with_variable_args">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.call_func_with_variable_args.html#langchain_core.runnables.config.call_func_with_variable_args">[docs]</a>
-<span class="k">def</span> <span class="nf">call_func_with_variable_args</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">call_func_with_variable_args</span><span class="p">(</span>
     <span class="n">func</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">Callable</span><span class="p">[[</span><span class="n">Input</span><span class="p">],</span> <span class="n">Output</span><span class="p">],</span>
         <span class="n">Callable</span><span class="p">[[</span><span class="n">Input</span><span class="p">,</span> <span class="n">RunnableConfig</span><span class="p">],</span> <span class="n">Output</span><span class="p">],</span>
@@ -641,7 +641,7 @@
 
 <div class="viewcode-block" id="acall_func_with_variable_args">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.acall_func_with_variable_args.html#langchain_core.runnables.config.acall_func_with_variable_args">[docs]</a>
-<span class="k">def</span> <span class="nf">acall_func_with_variable_args</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">acall_func_with_variable_args</span><span class="p">(</span>
     <span class="n">func</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">Callable</span><span class="p">[[</span><span class="n">Input</span><span class="p">],</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">Output</span><span class="p">]],</span>
         <span class="n">Callable</span><span class="p">[[</span><span class="n">Input</span><span class="p">,</span> <span class="n">RunnableConfig</span><span class="p">],</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">Output</span><span class="p">]],</span>
@@ -685,7 +685,7 @@
 
 <div class="viewcode-block" id="get_callback_manager_for_config">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.get_callback_manager_for_config.html#langchain_core.runnables.config.get_callback_manager_for_config">[docs]</a>
-<span class="k">def</span> <span class="nf">get_callback_manager_for_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManager</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_callback_manager_for_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CallbackManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get a callback manager for a config.</span>
 
 <span class="sd">    Args:</span>
@@ -694,7 +694,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        CallbackManager: The callback manager.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="n">CallbackManager</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManager</span>
 
     <span class="k">return</span> <span class="n">CallbackManager</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
         <span class="n">inheritable_callbacks</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"callbacks"</span><span class="p">),</span>
@@ -706,7 +706,7 @@
 
 <div class="viewcode-block" id="get_async_callback_manager_for_config">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.get_async_callback_manager_for_config.html#langchain_core.runnables.config.get_async_callback_manager_for_config">[docs]</a>
-<span class="k">def</span> <span class="nf">get_async_callback_manager_for_config</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_async_callback_manager_for_config</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">RunnableConfig</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncCallbackManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get an async callback manager for a config.</span>
@@ -717,7 +717,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        AsyncCallbackManager: The async callback manager.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="n">AsyncCallbackManager</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncCallbackManager</span>
 
     <span class="k">return</span> <span class="n">AsyncCallbackManager</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
         <span class="n">inheritable_callbacks</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"callbacks"</span><span class="p">),</span>
@@ -733,12 +733,12 @@
 
 <div class="viewcode-block" id="ContextThreadPoolExecutor">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.ContextThreadPoolExecutor.html#langchain_core.runnables.config.ContextThreadPoolExecutor">[docs]</a>
-<span class="k">class</span> <span class="nc">ContextThreadPoolExecutor</span><span class="p">(</span><span class="n">ThreadPoolExecutor</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ContextThreadPoolExecutor</span><span class="p">(</span><span class="n">ThreadPoolExecutor</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""ThreadPoolExecutor that copies the context to the child thread."""</span>
 
 <div class="viewcode-block" id="ContextThreadPoolExecutor.submit">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.ContextThreadPoolExecutor.html#langchain_core.runnables.config.ContextThreadPoolExecutor.submit">[docs]</a>
-    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span>
         <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
@@ -761,7 +761,7 @@
 
 <div class="viewcode-block" id="ContextThreadPoolExecutor.map">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.ContextThreadPoolExecutor.html#langchain_core.runnables.config.ContextThreadPoolExecutor.map">[docs]</a>
-    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span>
         <span class="o">*</span><span class="n">iterables</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
@@ -782,7 +782,7 @@
 <span class="sd">        """</span>
         <span class="n">contexts</span> <span class="o">=</span> <span class="p">[</span><span class="n">copy_context</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iterables</span><span class="p">[</span><span class="mi">0</span><span class="p">]))]</span>  <span class="c1"># type: ignore[arg-type]</span>
 
-        <span class="k">def</span> <span class="nf">_wrapped_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_wrapped_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">contexts</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
@@ -798,7 +798,7 @@
 <div class="viewcode-block" id="get_executor_for_config">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.get_executor_for_config.html#langchain_core.runnables.config.get_executor_for_config">[docs]</a>
 <span class="nd">@contextmanager</span>
-<span class="k">def</span> <span class="nf">get_executor_for_config</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_executor_for_config</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Executor</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get an executor for a config.</span>
@@ -819,7 +819,7 @@
 
 <div class="viewcode-block" id="run_in_executor">
 <a class="viewcode-back" href="../../../core/runnables/langchain_core.runnables.config.run_in_executor.html#langchain_core.runnables.config.run_in_executor">[docs]</a>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">run_in_executor</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_in_executor</span><span class="p">(</span>
     <span class="n">executor_or_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Executor</span><span class="p">,</span> <span class="n">RunnableConfig</span><span class="p">]],</span>
     <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">],</span>
     <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
@@ -840,14 +840,14 @@
 <span class="sd">        RuntimeError: If the function raises a StopIteration.</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">StopIteration</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="c1"># StopIteration can't be set on an asyncio.Future</span>
             <span class="c1"># it raises a TypeError and leaves the Future pending forever</span>
             <span class="c1"># so we need to convert it to a RuntimeError</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span> <span class="kn">from</span> <span class="nn">exc</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">if</span> <span class="n">executor_or_config</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">executor_or_config</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="c1"># Use default executor with context copied from current context</span>

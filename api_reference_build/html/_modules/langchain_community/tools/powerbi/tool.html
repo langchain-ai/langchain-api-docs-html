@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,31 +222,31 @@
 <h1>Source code for langchain_community.tools.powerbi.tool</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Tools for interacting with a Power BI dataset."""</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">perf_counter</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">perf_counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForToolRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForToolRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.chat_models.openai</span> <span class="kn">import</span> <span class="n">_import_tiktoken</span>
-<span class="kn">from</span> <span class="nn">langchain_community.tools.powerbi.prompt</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.chat_models.openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">_import_tiktoken</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.tools.powerbi.prompt</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BAD_REQUEST_RESPONSE</span><span class="p">,</span>
     <span class="n">DEFAULT_FEWSHOT_EXAMPLES</span><span class="p">,</span>
     <span class="n">RETRY_RESPONSE</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_community.utilities.powerbi</span> <span class="kn">import</span> <span class="n">PowerBIDataset</span><span class="p">,</span> <span class="n">json_to_md</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.utilities.powerbi</span><span class="w"> </span><span class="kn">import</span> <span class="n">PowerBIDataset</span><span class="p">,</span> <span class="n">json_to_md</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="QueryPowerBITool">
 <a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.powerbi.tool.QueryPowerBITool.html#langchain_community.tools.powerbi.tool.QueryPowerBITool">[docs]</a>
-<span class="k">class</span> <span class="nc">QueryPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QueryPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Tool for querying a Power BI Dataset."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"query_powerbi"</span>
@@ -269,7 +269,7 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">validate_llm_chain_input_variables</span><span class="p">(</span>  <span class="c1"># pylint: disable=E0213</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_llm_chain_input_variables</span><span class="p">(</span>  <span class="c1"># pylint: disable=E0213</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Make sure the LLM chain has the correct input variables."""</span>
@@ -282,7 +282,7 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">values</span>
 
-    <span class="k">def</span> <span class="nf">_check_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Check if the input is present in the cache.</span>
 
 <span class="sd">        If the value is a bad request, overwrite with the escalated version,</span>
@@ -291,7 +291,7 @@
             <span class="k">return</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_cache</span><span class="p">[</span><span class="n">tool_input</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -345,7 +345,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_cache</span><span class="p">[</span><span class="n">tool_input</span><span class="p">]</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -399,7 +399,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_cache</span><span class="p">[</span><span class="n">tool_input</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_parse_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbi_result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Parse the output of the query to a markdown table."""</span>
@@ -429,7 +429,7 @@
             <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pbi_result</span><span class="p">[</span><span class="s2">"error"</span><span class="p">]</span>
         <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">pbi_result</span>
 
-    <span class="k">def</span> <span class="nf">_result_too_large</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_result_too_large</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Tokenize the output of the query."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tiktoken_model_name</span><span class="p">:</span>
             <span class="n">tiktoken_</span> <span class="o">=</span> <span class="n">_import_tiktoken</span><span class="p">()</span>
@@ -443,7 +443,7 @@
 
 <div class="viewcode-block" id="InfoPowerBITool">
 <a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.powerbi.tool.InfoPowerBITool.html#langchain_community.tools.powerbi.tool.InfoPowerBITool">[docs]</a>
-<span class="k">class</span> <span class="nc">InfoPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InfoPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Tool for getting metadata about a PowerBI Dataset."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"schema_powerbi"</span>
@@ -459,7 +459,7 @@
         <span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -467,7 +467,7 @@
 <span class="w">        </span><span class="sd">"""Get the schema for tables in a comma-separated list."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">powerbi</span><span class="o">.</span><span class="n">get_table_info</span><span class="p">(</span><span class="n">tool_input</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">", "</span><span class="p">))</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -478,7 +478,7 @@
 
 <div class="viewcode-block" id="ListPowerBITool">
 <a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.powerbi.tool.ListPowerBITool.html#langchain_community.tools.powerbi.tool.ListPowerBITool">[docs]</a>
-<span class="k">class</span> <span class="nc">ListPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ListPowerBITool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
 <span class="w">    </span><span class="sd">"""Tool for getting tables names."""</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"list_tables_powerbi"</span>
@@ -489,7 +489,7 @@
         <span class="n">arbitrary_types_allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -497,7 +497,7 @@
 <span class="w">        </span><span class="sd">"""Get the names of the tables."""</span>
         <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">powerbi</span><span class="o">.</span><span class="n">get_table_names</span><span class="p">())</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arun</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tool_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForToolRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

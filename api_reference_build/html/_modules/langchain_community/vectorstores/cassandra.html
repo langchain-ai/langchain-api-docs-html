@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,14 +220,14 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.vectorstores.cassandra</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">importlib.metadata</span>
-<span class="kn">import</span> <span class="nn">typing</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib.metadata</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Awaitable</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -241,18 +241,18 @@
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">Version</span>  <span class="c1"># this is a lancghain-core dependency</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">packaging.version</span><span class="w"> </span><span class="kn">import</span> <span class="n">Version</span>  <span class="c1"># this is a lancghain-core dependency</span>
 
 <span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">cassandra.cluster</span> <span class="kn">import</span> <span class="n">Session</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cassandra.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span><span class="p">,</span> <span class="n">VectorStoreRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span><span class="p">,</span> <span class="n">VectorStoreRetriever</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.utilities.cassandra</span> <span class="kn">import</span> <span class="n">SetupMode</span>
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.utilities.cassandra</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetupMode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
 
 <span class="n">CVST</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"CVST"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s2">"Cassandra"</span><span class="p">)</span>
 <span class="n">MIN_CASSIO_VERSION</span> <span class="o">=</span> <span class="n">Version</span><span class="p">(</span><span class="s2">"0.1.10"</span><span class="p">)</span>
@@ -260,17 +260,17 @@
 
 <div class="viewcode-block" id="Cassandra">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra">[docs]</a>
-<span class="k">class</span> <span class="nc">Cassandra</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Cassandra</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
     <span class="n">_embedding_dimension</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_get_embedding_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_embedding_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_dimension</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="s2">"This is a sample sentence."</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_dimension</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_embedding_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_embedding_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_dimension</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
                 <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="s2">"This is a sample sentence."</span><span class="p">)</span>
@@ -279,7 +279,7 @@
 
 <div class="viewcode-block" id="Cassandra.__init__">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Session</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -334,7 +334,7 @@
 <span class="sd">                (and to overcome max-length limitations).</span>
 <span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">cassio.table</span> <span class="kn">import</span> <span class="n">MetadataVectorCassandraTable</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">cassio.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetadataVectorCassandraTable</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">ModuleNotFoundError</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Could not import cassio python package. "</span>
@@ -387,10 +387,10 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span>
 
-    <span class="k">def</span> <span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        The underlying VectorTable already returns a "score proper",</span>
 <span class="sd">        i.e. one in [0, 1] where higher means more *similar*,</span>
@@ -400,7 +400,7 @@
 
 <div class="viewcode-block" id="Cassandra.delete_collection">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.delete_collection">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Just an alias for `clear`</span>
 <span class="sd">        (to better align with other VectorStore implementations).</span>
@@ -410,7 +410,7 @@
 
 <div class="viewcode-block" id="Cassandra.adelete_collection">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.adelete_collection">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Just an alias for `aclear`</span>
 <span class="sd">        (to better align with other VectorStore implementations).</span>
@@ -420,21 +420,21 @@
 
 <div class="viewcode-block" id="Cassandra.clear">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.clear">[docs]</a>
-    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Empty the table."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Cassandra.aclear">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.aclear">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aclear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Empty the table."""</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">aclear</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="Cassandra.delete_by_document_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.delete_by_document_id">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete by document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -445,7 +445,7 @@
 
 <div class="viewcode-block" id="Cassandra.adelete_by_document_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.adelete_by_document_id">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete by document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -456,7 +456,7 @@
 
 <div class="viewcode-block" id="Cassandra.delete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.delete">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector IDs.</span>
 
 <span class="sd">        Args:</span>
@@ -477,7 +477,7 @@
 
 <div class="viewcode-block" id="Cassandra.adelete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.adelete">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector IDs.</span>
@@ -500,7 +500,7 @@
 
 <div class="viewcode-block" id="Cassandra.delete_by_metadata_filter">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.delete_by_metadata_filter">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete_by_metadata_filter</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_by_metadata_filter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -535,7 +535,7 @@
 
 <div class="viewcode-block" id="Cassandra.adelete_by_metadata_filter">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.adelete_by_metadata_filter">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete_by_metadata_filter</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete_by_metadata_filter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -570,7 +570,7 @@
 
 <div class="viewcode-block" id="Cassandra.add_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.add_texts">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -622,7 +622,7 @@
 
 <div class="viewcode-block" id="Cassandra.aadd_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.aadd_texts">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_texts</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -652,7 +652,7 @@
 
         <span class="n">sem</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Semaphore</span><span class="p">(</span><span class="n">concurrency</span><span class="p">)</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">send_concurrently</span><span class="p">(</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_concurrently</span><span class="p">(</span>
             <span class="n">row_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">embedding_vector</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
@@ -678,7 +678,7 @@
 
 <div class="viewcode-block" id="Cassandra.replace_metadata">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.replace_metadata">[docs]</a>
-    <span class="k">def</span> <span class="nf">replace_metadata</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">replace_metadata</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">id_to_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -719,7 +719,7 @@
 
 <div class="viewcode-block" id="Cassandra.areplace_metadata">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.areplace_metadata">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">areplace_metadata</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">areplace_metadata</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">id_to_metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -748,7 +748,7 @@
 
         <span class="n">sem</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Semaphore</span><span class="p">(</span><span class="n">concurrency</span><span class="p">)</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">send_concurrently</span><span class="p">(</span><span class="n">doc_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">doc_md</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_concurrently</span><span class="p">(</span><span class="n">doc_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">doc_md</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
                 <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">aput</span><span class="p">(</span>
                     <span class="n">row_id</span><span class="o">=</span><span class="n">doc_id</span><span class="p">,</span>
@@ -763,7 +763,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_row_to_document</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_row_to_document</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Document</span><span class="p">(</span>
             <span class="nb">id</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">"row_id"</span><span class="p">],</span>
             <span class="n">page_content</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">"body_blob"</span><span class="p">],</span>
@@ -772,7 +772,7 @@
 
 <div class="viewcode-block" id="Cassandra.get_by_document_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.get_by_document_id">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single document from the store, given its document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -789,7 +789,7 @@
 
 <div class="viewcode-block" id="Cassandra.aget_by_document_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.aget_by_document_id">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aget_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single document from the store, given its document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -806,7 +806,7 @@
 
 <div class="viewcode-block" id="Cassandra.metadata_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.metadata_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">metadata_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>  <span class="c1"># noqa: B006</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -823,7 +823,7 @@
 
 <div class="viewcode-block" id="Cassandra.ametadata_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.ametadata_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ametadata_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ametadata_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>  <span class="c1"># noqa: B006</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -840,7 +840,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_with_embedding_id_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_with_embedding_id_by_vector">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_embedding_id_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_embedding_id_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -880,7 +880,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_search_to_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_search_to_documents</span><span class="p">(</span>
         <span class="n">hits</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
         <span class="c1"># We stick to 'cos' distance as it can be normalized on a 0-1 axis</span>
@@ -897,7 +897,7 @@
     <span class="c1"># id-returning search facilities</span>
 <div class="viewcode-block" id="Cassandra.similarity_search_with_score_id_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search_with_score_id_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score_id_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score_id_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -931,7 +931,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_with_score_id_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_with_score_id_by_vector">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_score_id_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score_id_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -966,7 +966,7 @@
 
 <div class="viewcode-block" id="Cassandra.similarity_search_with_score_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search_with_score_id">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score_id</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score_id</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -995,7 +995,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_with_score_id">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_with_score_id">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_score_id</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score_id</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1025,7 +1025,7 @@
     <span class="c1"># id-unaware search facilities</span>
 <div class="viewcode-block" id="Cassandra.similarity_search_with_score_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search_with_score_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1056,7 +1056,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_with_score_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_with_score_by_vector">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_score_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1091,7 +1091,7 @@
 
 <div class="viewcode-block" id="Cassandra.similarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1121,7 +1121,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1151,7 +1151,7 @@
 
 <div class="viewcode-block" id="Cassandra.similarity_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1183,7 +1183,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_by_vector">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1215,7 +1215,7 @@
 
 <div class="viewcode-block" id="Cassandra.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.similarity_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1244,7 +1244,7 @@
 
 <div class="viewcode-block" id="Cassandra.asimilarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.asimilarity_search_with_score">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_with_score</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1272,7 +1272,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_mmr_search_to_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mmr_search_to_documents</span><span class="p">(</span>
         <span class="n">prefetch_hits</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1294,7 +1294,7 @@
 
 <div class="viewcode-block" id="Cassandra.max_marginal_relevance_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.max_marginal_relevance_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1341,7 +1341,7 @@
 
 <div class="viewcode-block" id="Cassandra.amax_marginal_relevance_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.amax_marginal_relevance_search_by_vector">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amax_marginal_relevance_search_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amax_marginal_relevance_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1388,7 +1388,7 @@
 
 <div class="viewcode-block" id="Cassandra.max_marginal_relevance_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.max_marginal_relevance_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1429,7 +1429,7 @@
 
 <div class="viewcode-block" id="Cassandra.amax_marginal_relevance_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.amax_marginal_relevance_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">amax_marginal_relevance_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amax_marginal_relevance_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -1468,7 +1468,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_build_docs_from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_docs_from_texts</span><span class="p">(</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1488,7 +1488,7 @@
 <div class="viewcode-block" id="Cassandra.from_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">CVST</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1555,7 +1555,7 @@
 <div class="viewcode-block" id="Cassandra.afrom_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.afrom_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_texts</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">CVST</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1620,7 +1620,7 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_add_ids_to_docs</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_ids_to_docs</span><span class="p">(</span>
         <span class="n">docs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
@@ -1632,7 +1632,7 @@
 <div class="viewcode-block" id="Cassandra.from_documents">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.from_documents">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_documents</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">CVST</span><span class="p">],</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1704,7 +1704,7 @@
 <div class="viewcode-block" id="Cassandra.afrom_documents">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.afrom_documents">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_documents</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">CVST</span><span class="p">],</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -1778,7 +1778,7 @@
 
 <div class="viewcode-block" id="Cassandra.as_retriever">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.cassandra.Cassandra.html#langchain_community.vectorstores.cassandra.Cassandra.as_retriever">[docs]</a>
-    <span class="k">def</span> <span class="nf">as_retriever</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">as_retriever</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"similarity"</span><span class="p">,</span>
         <span class="n">search_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>

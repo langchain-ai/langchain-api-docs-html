@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,29 +220,29 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_google_community.bq_storage_vectorstores.featurestore</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
-<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">TimeoutExpired</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">subprocess</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeoutExpired</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">proto</span>  <span class="c1"># type: ignore[import-untyped]</span>
-<span class="kn">from</span> <span class="nn">google.api_core.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">proto</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.api_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">MethodNotImplemented</span><span class="p">,</span>
     <span class="n">NotFound</span><span class="p">,</span>
     <span class="n">ServiceUnavailable</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">model_validator</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
-<span class="kn">from</span> <span class="nn">langchain_google_community._utils</span> <span class="kn">import</span> <span class="n">get_client_info</span><span class="p">,</span> <span class="n">get_user_agent</span>
-<span class="kn">from</span> <span class="nn">langchain_google_community.bq_storage_vectorstores._base</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_client_info</span><span class="p">,</span> <span class="n">get_user_agent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community.bq_storage_vectorstores._base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseBigQueryVectorStore</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_google_community.bq_storage_vectorstores.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community.bq_storage_vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">cast_proto_type</span><span class="p">,</span>
     <span class="n">doc_match_filter</span><span class="p">,</span>
 <span class="p">)</span>
@@ -255,7 +255,7 @@
 
 <div class="viewcode-block" id="VertexFSVectorStore">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore">[docs]</a>
-<span class="k">class</span> <span class="nc">VertexFSVectorStore</span><span class="p">(</span><span class="n">BaseBigQueryVectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VertexFSVectorStore</span><span class="p">(</span><span class="n">BaseBigQueryVectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A vector store implementation that utilizes BigQuery Storage and Vertex AI Feature</span>
 <span class="sd">    Store.</span>
@@ -335,17 +335,17 @@
     <span class="n">_admin_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">_initialize_bq_vector_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">vertexai</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_bq_vector_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">vertexai</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">FeatureOnlineStoreAdminServiceClient</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># ruff: noqa: E501</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1.services.feature_online_store_service.transports.base</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1.services.feature_online_store_service.transports.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">FeatureOnlineStoreServiceTransport</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="kn">from</span> <span class="nn">vertexai.resources.preview.feature_store</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.resources.preview.feature_store</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">utils</span><span class="p">,</span>  <span class="c1"># type: ignore[import-untyped]</span>
         <span class="p">)</span>
 
@@ -387,8 +387,8 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">_get_search_client</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">public_endpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1</span> <span class="kn">import</span> <span class="n">FeatureOnlineStoreServiceClient</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_search_client</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">public_endpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureOnlineStoreServiceClient</span>
 
         <span class="k">return</span> <span class="n">FeatureOnlineStoreServiceClient</span><span class="p">(</span>
             <span class="n">transport</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="p">,</span>
@@ -396,7 +396,7 @@
             <span class="n">client_info</span><span class="o">=</span><span class="n">get_client_info</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_init_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_online_store</span><span class="p">()</span>
         <span class="n">gca_resource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="o">.</span><span class="n">gca_resource</span>
         <span class="n">public_endpoint</span> <span class="o">=</span> <span class="p">(</span>
@@ -405,7 +405,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_search_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_search_client</span><span class="p">(</span><span class="n">public_endpoint</span><span class="o">=</span><span class="n">public_endpoint</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_feature_view</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_validate_bq_existing_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_bq_existing_source</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">bq_uri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_view</span><span class="o">.</span><span class="n">gca_resource</span><span class="o">.</span><span class="n">big_query_source</span><span class="o">.</span><span class="n">uri</span>  <span class="c1"># type: ignore[union-attr]</span>
@@ -428,7 +428,7 @@
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_wait_until_dummy_query_success</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wait_until_dummy_query_success</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Waits until a dummy query succeeds, indicating the system is ready.</span>
 <span class="sd">        """</span>
@@ -454,7 +454,7 @@
 
 <div class="viewcode-block" id="VertexFSVectorStore.sync_data">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.sync_data">[docs]</a>
-    <span class="k">def</span> <span class="nf">sync_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sync_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Sync the data from the BigQuery source into the Executor source"""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_feature_view</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_bq_existing_source</span><span class="p">()</span>
@@ -483,7 +483,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_wait_until_dummy_query_success</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -523,7 +523,7 @@
 
 <div class="viewcode-block" id="VertexFSVectorStore.get_documents">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.get_documents">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -540,7 +540,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List of ids from adding the texts into the vectorstore.</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">aiplatform</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">aiplatform</span>
 
         <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -574,7 +574,7 @@
 
 <div class="viewcode-block" id="VertexFSVectorStore.search_neighbors_by_ids">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.search_neighbors_by_ids">[docs]</a>
-    <span class="k">def</span> <span class="nf">search_neighbors_by_ids</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search_neighbors_by_ids</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -606,7 +606,7 @@
         <span class="k">return</span> <span class="n">output</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_parse_proto_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_proto_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">search_results</span><span class="p">:</span> <span class="n">MutableSequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -649,7 +649,7 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">documents</span>
 
-    <span class="k">def</span> <span class="nf">_search_embedding</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_search_embedding</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">entity_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -660,8 +660,8 @@
         <span class="n">approximate_neighbor_candidates</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">leaf_nodes_search_fraction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableSequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-        <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">aiplatform</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.aiplatform_v1.types</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">aiplatform</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">NearestNeighborQuery</span><span class="p">,</span>
             <span class="n">feature_online_store_service</span><span class="p">,</span>
         <span class="p">)</span>
@@ -690,9 +690,9 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">nearest_neighbors</span><span class="o">.</span><span class="n">neighbors</span>
 
-    <span class="k">def</span> <span class="nf">_create_online_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_online_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="c1"># Search for existing Online store</span>
-        <span class="kn">import</span> <span class="nn">vertexai</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">vertexai</span>
 
         <span class="n">stores_list</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureOnlineStore</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
             <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span>
@@ -723,9 +723,9 @@
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">fos</span>
 
-    <span class="k">def</span> <span class="nf">_create_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">vertexai</span>
-        <span class="kn">from</span> <span class="nn">vertexai.resources.preview.feature_store</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">vertexai</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.resources.preview.feature_store</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">utils</span><span class="p">,</span>  <span class="c1"># type: ignore[import-untyped]</span>
         <span class="p">)</span>
 
@@ -757,14 +757,14 @@
                 <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Search for existing Feature view</span>
         <span class="k">return</span> <span class="n">_get_feature_view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">online_store</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">view_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VertexFSVectorStore.from_texts">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="s2">"VertexFSVectorStore"</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -789,7 +789,7 @@
 
 <div class="viewcode-block" id="VertexFSVectorStore.to_bq_vector_store">
 <a class="viewcode-back" href="../../../google_community/bq_storage_vectorstores/langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.html#langchain_google_community.bq_storage_vectorstores.featurestore.VertexFSVectorStore.to_bq_vector_store">[docs]</a>
-    <span class="k">def</span> <span class="nf">to_bq_vector_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_bq_vector_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Converts the current object's parameters into a `BigQueryVectorStore` instance.</span>
 
@@ -809,7 +809,7 @@
 <span class="sd">            ValueError: If any of the combined parameters are invalid for initializing</span>
 <span class="sd">                a `BigQueryVectorStore`.</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">langchain_google_community.bq_storage_vectorstores.bigquery</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community.bq_storage_vectorstores.bigquery</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">BigQueryVectorStore</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -824,9 +824,9 @@
 
 
 
-<span class="k">def</span> <span class="nf">_get_feature_view</span><span class="p">(</span><span class="n">online_store</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_feature_view</span><span class="p">(</span><span class="n">online_store</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="c1"># Search for existing Feature view</span>
-    <span class="kn">import</span> <span class="nn">vertexai</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">vertexai</span>
 
     <span class="n">fv_list</span> <span class="o">=</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">preview</span><span class="o">.</span><span class="n">FeatureView</span><span class="o">.</span><span class="n">list</span><span class="p">(</span>
         <span class="n">feature_online_store_id</span><span class="o">=</span><span class="n">online_store</span><span class="o">.</span><span class="n">gca_resource</span><span class="o">.</span><span class="n">name</span>

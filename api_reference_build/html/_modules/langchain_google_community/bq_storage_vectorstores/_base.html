@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,27 +220,27 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_google_community.bq_storage_vectorstores._base</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
-<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
-<span class="kn">from</span> <span class="nn">importlib.util</span> <span class="kn">import</span> <span class="n">find_spec</span>
-<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Lock</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_spec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lock</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Self</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
-<span class="kn">from</span> <span class="nn">langchain_google_community._utils</span> <span class="kn">import</span> <span class="n">get_client_info</span>
-<span class="kn">from</span> <span class="nn">langchain_google_community.bq_storage_vectorstores.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_client_info</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_community.bq_storage_vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">check_bq_dataset_exists</span><span class="p">,</span>
     <span class="n">validate_column_in_bq_schema</span><span class="p">,</span>
 <span class="p">)</span>
@@ -253,7 +253,7 @@
 <span class="n">USER_AGENT_PREFIX</span> <span class="o">=</span> <span class="s2">"FeatureStore"</span>
 
 
-<span class="k">class</span> <span class="nc">BaseBigQueryVectorStore</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseBigQueryVectorStore</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Abstract base class for BigQuery-based vector stores.</span>
 
@@ -306,11 +306,11 @@
     <span class="p">)</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">sync_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sync_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="o">...</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">get_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_documents</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -331,7 +331,7 @@
         <span class="o">...</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_by_vectors_with_scores_and_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -341,11 +341,11 @@
         <span class="o">...</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">validate_vals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_vals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">pandas</span>  <span class="c1"># noqa: F401</span>
-            <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
-            <span class="kn">from</span> <span class="nn">google.cloud.aiplatform</span> <span class="kn">import</span> <span class="n">base</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span>  <span class="c1"># noqa: F401</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform</span><span class="w"> </span><span class="kn">import</span> <span class="n">base</span>
 
             <span class="n">find_spec</span><span class="p">(</span><span class="s2">"pyarrow"</span><span class="p">)</span>
             <span class="n">find_spec</span><span class="p">(</span><span class="s2">"db_types"</span><span class="p">)</span>
@@ -390,16 +390,16 @@
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">full_table_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_table_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_full_table_id</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_validate_bq_table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
-        <span class="kn">from</span> <span class="nn">google.cloud.exceptions</span> <span class="kn">import</span> <span class="n">NotFound</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_bq_table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NotFound</span>
 
         <span class="n">table_ref</span> <span class="o">=</span> <span class="n">bigquery</span><span class="o">.</span><span class="n">TableReference</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_table_id</span><span class="p">)</span>
 
@@ -463,7 +463,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Table </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">full_table_id</span><span class="si">}</span><span class="s2"> validated"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">table_ref</span>
 
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -485,7 +485,7 @@
             <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">embs</span><span class="o">=</span><span class="n">embs</span><span class="p">,</span> <span class="n">metadatas</span><span class="o">=</span><span class="n">metadatas</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_texts_with_embeddings</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts_with_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
@@ -503,7 +503,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List of ids from adding the texts into the vectorstore.</span>
 <span class="sd">        """</span>
-        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
         <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">metadatas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -530,7 +530,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sync_data</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">ids</span>
 
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Delete documents by record IDs</span>
 
 <span class="sd">        Args:</span>
@@ -541,7 +541,7 @@
 <span class="sd">            Optional[bool]: True if deletion is successful,</span>
 <span class="sd">            False otherwise, None if not implemented.</span>
 <span class="sd">        """</span>
-        <span class="kn">from</span> <span class="nn">google.cloud</span> <span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">bigquery</span>  <span class="c1"># type: ignore[attr-defined]</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ids</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
@@ -559,7 +559,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sync_data</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">adelete</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector ID or other criteria.</span>
@@ -576,7 +576,7 @@
             <span class="kc">None</span><span class="p">,</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">ids</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">similarity_search_by_vectors</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vectors</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -621,7 +621,7 @@
 
         <span class="k">return</span> <span class="n">results</span>  <span class="c1"># type: ignore[return-value]</span>
 
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -642,7 +642,7 @@
             <span class="mi">0</span>
         <span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -663,7 +663,7 @@
             <span class="n">embeddings</span><span class="o">=</span><span class="p">[</span><span class="n">embedding</span><span class="p">],</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">with_scores</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Search for top `k` docs most similar to input query.</span>
@@ -682,7 +682,7 @@
             <span class="mi">0</span>
         <span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -707,7 +707,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="s2">"BaseBigQueryVectorStore"</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
@@ -716,7 +716,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"BaseBigQueryVectorStore"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -751,7 +751,7 @@
             <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span> <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>

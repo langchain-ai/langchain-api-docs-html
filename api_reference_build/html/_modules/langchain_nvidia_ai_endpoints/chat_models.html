@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,16 +222,16 @@
 <h1>Source code for langchain_nvidia_ai_endpoints.chat_models</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Chat Model Components Derived from ChatModel/NVIDIA"""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">enum</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">urllib.parse</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.parse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
@@ -245,45 +245,45 @@
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_core.callbacks.manager</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.exceptions</span> <span class="kn">import</span> <span class="n">OutputParserException</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models</span> <span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">LanguageModelInput</span>
-<span class="kn">from</span> <span class="nn">langchain_core.language_models.chat_models</span> <span class="kn">import</span> <span class="n">LangSmithParams</span>
-<span class="kn">from</span> <span class="nn">langchain_core.messages</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">LanguageModelInput</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangSmithParams</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.output_parsers</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseOutputParser</span><span class="p">,</span>
     <span class="n">JsonOutputParser</span><span class="p">,</span>
     <span class="n">PydanticOutputParser</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.outputs</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatGeneration</span><span class="p">,</span>
     <span class="n">ChatGenerationChunk</span><span class="p">,</span>
     <span class="n">ChatResult</span><span class="p">,</span>
     <span class="n">Generation</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">langchain_core.runnables</span> <span class="kn">import</span> <span class="n">Runnable</span>
-<span class="kn">from</span> <span class="nn">langchain_core.tools</span> <span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.function_calling</span> <span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils.pydantic</span> <span class="kn">import</span> <span class="n">is_basemodel_subclass</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">PrivateAttr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_basemodel_subclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">PrivateAttr</span>
 
-<span class="kn">from</span> <span class="nn">langchain_nvidia_ai_endpoints._common</span> <span class="kn">import</span> <span class="n">_NVIDIAClient</span>
-<span class="kn">from</span> <span class="nn">langchain_nvidia_ai_endpoints._statics</span> <span class="kn">import</span> <span class="n">Model</span>
-<span class="kn">from</span> <span class="nn">langchain_nvidia_ai_endpoints._utils</span> <span class="kn">import</span> <span class="n">convert_message_to_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_nvidia_ai_endpoints._common</span><span class="w"> </span><span class="kn">import</span> <span class="n">_NVIDIAClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_nvidia_ai_endpoints._statics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_nvidia_ai_endpoints._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_message_to_dict</span>
 
 <span class="n">_CallbackManager</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span> <span class="n">CallbackManagerForLLMRun</span><span class="p">]</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_is_url</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_url</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">all</span><span class="p">([</span><span class="n">result</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">netloc</span><span class="p">])</span>
@@ -292,7 +292,7 @@
         <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">def</span> <span class="nf">_url_to_b64_string</span><span class="p">(</span><span class="n">image_source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_url_to_b64_string</span><span class="p">(</span><span class="n">image_source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">_is_url</span><span class="p">(</span><span class="n">image_source</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">image_source</span>
@@ -337,7 +337,7 @@
         <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image_source</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">image_source</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">image_data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                <span class="kn">import</span> <span class="nn">imghdr</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">imghdr</span>
 
                 <span class="n">image_type</span> <span class="o">=</span> <span class="n">imghdr</span><span class="o">.</span><span class="n">what</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">image_data</span><span class="p">)</span>
                 <span class="n">encoded</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">image_data</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
@@ -350,7 +350,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unable to process the provided image source: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_nv_vlm_adjust_input</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_nv_vlm_adjust_input</span><span class="p">(</span>
     <span class="n">message_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -403,7 +403,7 @@
     <span class="k">return</span> <span class="n">message_dict</span>
 
 
-<span class="k">def</span> <span class="nf">_nv_vlm_get_asset_ids</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_nv_vlm_get_asset_ids</span><span class="p">(</span>
     <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -414,7 +414,7 @@
 <span class="sd">    This function extracts asset IDs from the message content.</span>
 <span class="sd">    """</span>
 
-    <span class="k">def</span> <span class="nf">extract_asset_id</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_asset_id</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'data:image/[^;]+;asset_id,([^"</span><span class="se">\'</span><span class="s1">\s]+)'</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
@@ -433,7 +433,7 @@
     <span class="k">return</span> <span class="n">asset_ids</span>
 
 
-<span class="k">def</span> <span class="nf">_process_for_vlm</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_process_for_vlm</span><span class="p">(</span>
     <span class="n">inputs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Model</span><span class="p">],</span>  <span class="c1"># not optional, Optional for type alignment</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
@@ -464,7 +464,7 @@
 
 <div class="viewcode-block" id="ChatNVIDIA">
 <a class="viewcode-back" href="../../nvidia_ai_endpoints/chat_models/langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.html#langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA">[docs]</a>
-<span class="k">class</span> <span class="nc">ChatNVIDIA</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatNVIDIA</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""NVIDIA chat model.</span>
 
 <span class="sd">    Example:</span>
@@ -493,7 +493,7 @@
     <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"The seed for deterministic results"</span><span class="p">)</span>
     <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Stop words (cased)"</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Create a new NVIDIAChat chat model.</span>
 
@@ -547,7 +547,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">base_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">base_url</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">available_models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Model</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">available_models</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Model</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Get a list of available models that work with ChatNVIDIA.</span>
 <span class="sd">        """</span>
@@ -556,7 +556,7 @@
 <div class="viewcode-block" id="ChatNVIDIA.get_available_models">
 <a class="viewcode-back" href="../../nvidia_ai_endpoints/chat_models/langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.html#langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.get_available_models">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_available_models</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_available_models</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Model</span><span class="p">]:</span>
@@ -567,11 +567,11 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return type of NVIDIA AI Foundation Model Interface."""</span>
         <span class="k">return</span> <span class="s2">"chat-nvidia-ai-playground"</span>
 
-    <span class="k">def</span> <span class="nf">_get_ls_params</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -593,7 +593,7 @@
             <span class="n">ls_stop</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_generate</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -616,7 +616,7 @@
         <span class="n">generation</span> <span class="o">=</span> <span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">AIMessage</span><span class="p">(</span><span class="o">**</span><span class="n">parsed_response</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">generation</span><span class="p">],</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">responses</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -660,7 +660,7 @@
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">chunk</span>
 
-    <span class="k">def</span> <span class="nf">_set_callback_out</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_callback_out</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_CallbackManager</span><span class="p">],</span>
@@ -671,7 +671,7 @@
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="s2">"llm_output"</span><span class="p">):</span>
                     <span class="n">cb</span><span class="o">.</span><span class="n">llm_output</span> <span class="o">=</span> <span class="n">result</span>
 
-    <span class="k">def</span> <span class="nf">_custom_postprocess</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_custom_postprocess</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># todo: remove</span>
         <span class="n">kw_left</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -732,7 +732,7 @@
     <span class="c1">######################################################################################</span>
     <span class="c1">## Core client-side interfaces</span>
 
-    <span class="k">def</span> <span class="nf">_get_payload</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_payload</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># todo: remove</span>
 <span class="w">        </span><span class="sd">"""Generates payload for the _NVIDIAClient API to send to service."""</span>
@@ -782,7 +782,7 @@
 
 <div class="viewcode-block" id="ChatNVIDIA.bind_tools">
 <a class="viewcode-back" href="../../nvidia_ai_endpoints/chat_models/langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.html#langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.bind_tools">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_tools</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_tools</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -868,7 +868,7 @@
 
 <div class="viewcode-block" id="ChatNVIDIA.bind_functions">
 <a class="viewcode-back" href="../../nvidia_ai_endpoints/chat_models/langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.html#langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.bind_functions">[docs]</a>
-    <span class="k">def</span> <span class="nf">bind_functions</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bind_functions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">functions</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">Callable</span><span class="p">]],</span>
         <span class="n">function_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -881,7 +881,7 @@
     <span class="c1"># as a result need to type ignore for the schema parameter and return type.</span>
 <div class="viewcode-block" id="ChatNVIDIA.with_structured_output">
 <a class="viewcode-back" href="../../nvidia_ai_endpoints/chat_models/langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.html#langchain_nvidia_ai_endpoints.chat_models.ChatNVIDIA.with_structured_output">[docs]</a>
-    <span class="k">def</span> <span class="nf">with_structured_output</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_structured_output</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1060,10 +1060,10 @@
             <span class="c1"># and doesn't support streaming. this is a simple implementation</span>
             <span class="c1"># that supports streaming with our semantics of returning None</span>
             <span class="c1"># if no complete object can be constructed.</span>
-            <span class="k">class</span> <span class="nc">EnumOutputParser</span><span class="p">(</span><span class="n">BaseOutputParser</span><span class="p">):</span>
+            <span class="k">class</span><span class="w"> </span><span class="nc">EnumOutputParser</span><span class="p">(</span><span class="n">BaseOutputParser</span><span class="p">):</span>
                 <span class="n">enum</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">]</span>
 
-                <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
                     <span class="k">try</span><span class="p">:</span>
                         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enum</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
                     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -1088,8 +1088,8 @@
             <span class="c1"># instead is ignore all inputs that are incomplete wrt the</span>
             <span class="c1"># underlying Pydantic schema. if the entire input is invalid,</span>
             <span class="c1"># we return None.</span>
-            <span class="k">class</span> <span class="nc">ForgivingPydanticOutputParser</span><span class="p">(</span><span class="n">PydanticOutputParser</span><span class="p">):</span>
-                <span class="k">def</span> <span class="nf">parse_result</span><span class="p">(</span>
+            <span class="k">class</span><span class="w"> </span><span class="nc">ForgivingPydanticOutputParser</span><span class="p">(</span><span class="n">PydanticOutputParser</span><span class="p">):</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">parse_result</span><span class="p">(</span>
                     <span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Generation</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">partial</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
                     <span class="k">try</span><span class="p">:</span>

@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,14 +222,14 @@
 <h1>Source code for langchain_astradb.graph_vectorstores</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Astra DB graph vector store integration."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">secrets</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">is_dataclass</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">secrets</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">is_dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncIterable</span><span class="p">,</span>
@@ -238,22 +238,22 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.graph_vectorstores.base</span> <span class="kn">import</span> <span class="n">GraphVectorStore</span><span class="p">,</span> <span class="n">Node</span>
-<span class="kn">from</span> <span class="nn">langchain_community.graph_vectorstores.links</span> <span class="kn">import</span> <span class="n">METADATA_LINKS_KEY</span><span class="p">,</span> <span class="n">Link</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">beta</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">override</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.graph_vectorstores.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphVectorStore</span><span class="p">,</span> <span class="n">Node</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.graph_vectorstores.links</span><span class="w"> </span><span class="kn">import</span> <span class="n">METADATA_LINKS_KEY</span><span class="p">,</span> <span class="n">Link</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
-<span class="kn">from</span> <span class="nn">langchain_astradb.utils.astradb</span> <span class="kn">import</span> <span class="n">COMPONENT_NAME_GRAPHVECTORSTORE</span><span class="p">,</span> <span class="n">SetupMode</span>
-<span class="kn">from</span> <span class="nn">langchain_astradb.utils.mmr_helper</span> <span class="kn">import</span> <span class="n">MmrHelper</span>
-<span class="kn">from</span> <span class="nn">langchain_astradb.vectorstores</span> <span class="kn">import</span> <span class="n">AstraDBVectorStore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.utils.astradb</span><span class="w"> </span><span class="kn">import</span> <span class="n">COMPONENT_NAME_GRAPHVECTORSTORE</span><span class="p">,</span> <span class="n">SetupMode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.utils.mmr_helper</span><span class="w"> </span><span class="kn">import</span> <span class="n">MmrHelper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDBVectorStore</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">astrapy.authentication</span> <span class="kn">import</span> <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span> <span class="n">TokenProvider</span>
-    <span class="kn">from</span> <span class="nn">astrapy.db</span> <span class="kn">import</span> <span class="n">AstraDB</span> <span class="k">as</span> <span class="n">AstraDBClient</span>
-    <span class="kn">from</span> <span class="nn">astrapy.db</span> <span class="kn">import</span> <span class="n">AsyncAstraDB</span> <span class="k">as</span> <span class="n">AsyncAstraDBClient</span>
-    <span class="kn">from</span> <span class="nn">astrapy.info</span> <span class="kn">import</span> <span class="n">CollectionVectorServiceOptions</span>
-    <span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span> <span class="n">TokenProvider</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDB</span> <span class="k">as</span> <span class="n">AstraDBClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncAstraDB</span> <span class="k">as</span> <span class="n">AsyncAstraDBClient</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionVectorServiceOptions</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 
 <span class="n">DEFAULT_INDEXING_OPTIONS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"allow"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"metadata"</span><span class="p">]}</span>
 
@@ -263,14 +263,14 @@
 
 <div class="viewcode-block" id="EmbeddedNode">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.EmbeddedNode.html#langchain_astradb.graph_vectorstores.EmbeddedNode">[docs]</a>
-<span class="k">class</span> <span class="nc">EmbeddedNode</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmbeddedNode</span><span class="p">:</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">links</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Link</span><span class="p">]</span>
     <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
 
 <div class="viewcode-block" id="EmbeddedNode.__init__">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.EmbeddedNode.html#langchain_astradb.graph_vectorstores.EmbeddedNode.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">,</span> <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">,</span> <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create an Embedded Node."""</span>
         <span class="n">node</span> <span class="o">=</span> <span class="n">_doc_to_node</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="s2">""</span>
@@ -280,9 +280,9 @@
 
 
 
-<span class="k">def</span> <span class="nf">_serialize_links</span><span class="p">(</span><span class="n">links</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Link</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">class</span> <span class="nc">SetAndLinkEncoder</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
-        <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>  <span class="c1"># noqa: ANN401</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_serialize_links</span><span class="p">(</span><span class="n">links</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Link</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">SetAndLinkEncoder</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>  <span class="c1"># noqa: ANN401</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_dataclass</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
 
@@ -295,18 +295,18 @@
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">SetAndLinkEncoder</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_deserialize_links</span><span class="p">(</span><span class="n">json_blob</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_deserialize_links</span><span class="p">(</span><span class="n">json_blob</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="n">Link</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="n">link</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">],</span> <span class="n">direction</span><span class="o">=</span><span class="n">link</span><span class="p">[</span><span class="s2">"direction"</span><span class="p">],</span> <span class="n">tag</span><span class="o">=</span><span class="n">link</span><span class="p">[</span><span class="s2">"tag"</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">json_blob</span> <span class="ow">or</span> <span class="s2">"[]"</span><span class="p">))</span>
     <span class="p">}</span>
 
 
-<span class="k">def</span> <span class="nf">_metadata_link_key</span><span class="p">(</span><span class="n">link</span><span class="p">:</span> <span class="n">Link</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_metadata_link_key</span><span class="p">(</span><span class="n">link</span><span class="p">:</span> <span class="n">Link</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">"link:</span><span class="si">{</span><span class="n">link</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">link</span><span class="o">.</span><span class="n">tag</span><span class="si">}</span><span class="s2">"</span>
 
 
-<span class="k">def</span> <span class="nf">_doc_to_node</span><span class="p">(</span><span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_doc_to_node</span><span class="p">(</span><span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">links</span> <span class="o">=</span> <span class="n">_deserialize_links</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">METADATA_LINKS_KEY</span><span class="p">))</span>
     <span class="n">metadata</span><span class="p">[</span><span class="n">METADATA_LINKS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">links</span>
@@ -319,21 +319,21 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_incoming_links</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">EmbeddedNode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_incoming_links</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">EmbeddedNode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">{</span><span class="n">link</span> <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">links</span> <span class="k">if</span> <span class="n">link</span><span class="o">.</span><span class="n">direction</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"in"</span><span class="p">,</span> <span class="s2">"bidir"</span><span class="p">]}</span>
 
 
-<span class="k">def</span> <span class="nf">_outgoing_links</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">EmbeddedNode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_outgoing_links</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">EmbeddedNode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">{</span><span class="n">link</span> <span class="k">for</span> <span class="n">link</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">links</span> <span class="k">if</span> <span class="n">link</span><span class="o">.</span><span class="n">direction</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"out"</span><span class="p">,</span> <span class="s2">"bidir"</span><span class="p">]}</span>
 
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore">[docs]</a>
 <span class="nd">@beta</span><span class="p">()</span>
-<span class="k">class</span> <span class="nc">AstraDBGraphVectorStore</span><span class="p">(</span><span class="n">GraphVectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AstraDBGraphVectorStore</span><span class="p">(</span><span class="n">GraphVectorStore</span><span class="p">):</span>
 <div class="viewcode-block" id="AstraDBGraphVectorStore.__init__">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -586,7 +586,7 @@
                     <span class="s2">"path is not excluded by indexing."</span>
                 <span class="p">)</span>
 
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">exp</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exp</span>
             <span class="k">raise</span> <span class="n">exp</span>  <span class="c1"># noqa: TRY201</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_store</span><span class="o">.</span><span class="n">astra_env</span></div>
@@ -594,10 +594,10 @@
 
     <span class="nd">@property</span>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_store</span><span class="o">.</span><span class="n">embedding</span>
 
-    <span class="k">def</span> <span class="nf">_get_metadata_filter</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_metadata_filter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">outgoing_link</span><span class="p">:</span> <span class="n">Link</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -611,7 +611,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">metadata_filter</span>
 
-    <span class="k">def</span> <span class="nf">_restore_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_restore_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Restores the links in the document by deserializing them from metadata.</span>
 
 <span class="sd">        Args:</span>
@@ -626,7 +626,7 @@
             <span class="k">del</span> <span class="n">doc</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_incoming_links_key</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">doc</span>
 
-    <span class="k">def</span> <span class="nf">_get_node_metadata_for_insertion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_metadata_for_insertion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">metadata</span><span class="p">[</span><span class="n">METADATA_LINKS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">_serialize_links</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">links</span><span class="p">)</span>
         <span class="n">metadata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_incoming_links_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
@@ -634,7 +634,7 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">metadata</span>
 
-    <span class="k">def</span> <span class="nf">_get_docs_for_insertion</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_docs_for_insertion</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Node</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="p">[]</span>
@@ -654,7 +654,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.add_nodes">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.add_nodes">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">add_nodes</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_nodes</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Node</span><span class="p">],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -672,7 +672,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.aadd_nodes">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.aadd_nodes">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aadd_nodes</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_nodes</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Node</span><span class="p">],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -692,7 +692,7 @@
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">AstraDBGraphVectorStore</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -717,7 +717,7 @@
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.afrom_texts">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_texts</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">AstraDBGraphVectorStore</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -743,7 +743,7 @@
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.from_documents">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">from_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_documents</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">AstraDBGraphVectorStore</span><span class="p">],</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -767,7 +767,7 @@
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.afrom_documents">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">afrom_documents</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_documents</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">AstraDBGraphVectorStore</span><span class="p">],</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -791,7 +791,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.similarity_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.similarity_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -823,7 +823,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.asimilarity_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.asimilarity_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -855,7 +855,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.similarity_search_by_vector">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.similarity_search_by_vector">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -887,7 +887,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.asimilarity_search_by_vector">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.asimilarity_search_by_vector">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">asimilarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -918,7 +918,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.metadata_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.metadata_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">metadata_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -940,7 +940,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.ametadata_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.ametadata_search">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ametadata_search</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ametadata_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -962,7 +962,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.get_by_document_id">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.get_by_document_id">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single document from the store, given its document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -977,7 +977,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.aget_by_document_id">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.aget_by_document_id">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aget_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_by_document_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Document</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single document from the store, given its document ID.</span>
 
 <span class="sd">        Args:</span>
@@ -992,7 +992,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.get_node">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.get_node">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single node from the store, given its ID.</span>
 
 <span class="sd">        Args:</span>
@@ -1009,7 +1009,7 @@
 
 <div class="viewcode-block" id="AstraDBGraphVectorStore.aget_node">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.aget_node">[docs]</a>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">aget_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aget_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Retrieve a single node from the store, given its ID.</span>
 
 <span class="sd">        Args:</span>
@@ -1027,7 +1027,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.ammr_traversal_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.ammr_traversal_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">ammr_traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ammr_traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1079,7 +1079,7 @@
         <span class="c1"># Map from id to Document, used as a cache</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">def</span> <span class="nf">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">EmbeddedNode</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">EmbeddedNode</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
             <span class="k">nonlocal</span> <span class="n">outgoing_links_map</span>
 
             <span class="n">candidates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1089,7 +1089,7 @@
                     <span class="n">candidates</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">embedding</span>
             <span class="k">return</span> <span class="n">candidates</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">fetch_initial_candidates</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="p">(</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_initial_candidates</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="p">(</span>
             <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span>
         <span class="p">):</span>
 <span class="w">            </span><span class="sd">"""Gets the embedded query and the set of initial candidates.</span>
@@ -1107,7 +1107,7 @@
 
             <span class="k">return</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="o">=</span><span class="n">initial_nodes</span><span class="p">)</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">fetch_neighborhood_candidates</span><span class="p">(</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">fetch_neighborhood_candidates</span><span class="p">(</span>
             <span class="n">neighborhood</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
             <span class="k">nonlocal</span> <span class="n">outgoing_links_map</span><span class="p">,</span> <span class="n">visited_links</span><span class="p">,</span> <span class="n">retrieved_docs</span>
@@ -1218,7 +1218,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.mmr_traversal_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.mmr_traversal_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">mmr_traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mmr_traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1270,7 +1270,7 @@
         <span class="c1"># Map from id to Document, used as a cache</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">def</span> <span class="nf">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">EmbeddedNode</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">EmbeddedNode</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
             <span class="k">nonlocal</span> <span class="n">outgoing_links_map</span>
 
             <span class="n">candidates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1280,7 +1280,7 @@
                     <span class="n">candidates</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">embedding</span>
             <span class="k">return</span> <span class="n">candidates</span>
 
-        <span class="k">def</span> <span class="nf">fetch_initial_candidates</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">fetch_initial_candidates</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
 <span class="w">            </span><span class="sd">"""Gets the embedded query and the set of initial candidates.</span>
 
 <span class="sd">            If fetch_k is zero, there will be no initial candidates.</span>
@@ -1296,7 +1296,7 @@
 
             <span class="k">return</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">get_candidates</span><span class="p">(</span><span class="n">nodes</span><span class="o">=</span><span class="n">initial_nodes</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">fetch_neighborhood_candidates</span><span class="p">(</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">fetch_neighborhood_candidates</span><span class="p">(</span>
             <span class="n">neighborhood</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
             <span class="k">nonlocal</span> <span class="n">outgoing_links_map</span><span class="p">,</span> <span class="n">visited_links</span><span class="p">,</span> <span class="n">retrieved_docs</span>
@@ -1407,7 +1407,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.atraversal_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.atraversal_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">atraversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">atraversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1453,7 +1453,7 @@
         <span class="c1"># Map from id to Document</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">visit_nodes</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">visit_nodes</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">"""Recursively visit nodes and their outgoing links."""</span>
             <span class="k">nonlocal</span> <span class="n">visited_ids</span><span class="p">,</span> <span class="n">visited_links</span><span class="p">,</span> <span class="n">retrieved_docs</span>
 
@@ -1505,7 +1505,7 @@
                 <span class="p">]</span>
                 <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">visit_target_tasks</span><span class="p">)</span>
 
-        <span class="k">async</span> <span class="k">def</span> <span class="nf">visit_targets</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">visit_targets</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">"""Visit target nodes retrieved from outgoing links."""</span>
             <span class="k">nonlocal</span> <span class="n">visited_ids</span><span class="p">,</span> <span class="n">retrieved_docs</span>
 
@@ -1562,7 +1562,7 @@
 <div class="viewcode-block" id="AstraDBGraphVectorStore.traversal_search">
 <a class="viewcode-back" href="../../astradb/graph_vectorstores/langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.html#langchain_astradb.graph_vectorstores.AstraDBGraphVectorStore.traversal_search">[docs]</a>
     <span class="nd">@override</span>
-    <span class="k">def</span> <span class="nf">traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">traversal_search</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -1608,7 +1608,7 @@
         <span class="c1"># Map from id to Document</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">def</span> <span class="nf">visit_nodes</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">visit_nodes</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">"""Recursively visit nodes and their outgoing links."""</span>
             <span class="k">nonlocal</span> <span class="n">visited_ids</span><span class="p">,</span> <span class="n">visited_links</span><span class="p">,</span> <span class="n">retrieved_docs</span>
 
@@ -1651,7 +1651,7 @@
 
                     <span class="n">visit_targets</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">docs</span><span class="o">=</span><span class="n">docs</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">visit_targets</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">visit_targets</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">docs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">"""Visit target nodes retrieved from outgoing links."""</span>
             <span class="k">nonlocal</span> <span class="n">visited_ids</span><span class="p">,</span> <span class="n">retrieved_docs</span>
 
@@ -1691,7 +1691,7 @@
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_get_outgoing_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_ids</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_outgoing_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_ids</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return the set of outgoing links for the given source IDs synchronously.</span>
 
 <span class="sd">        Args:</span>
@@ -1711,7 +1711,7 @@
 
         <span class="k">return</span> <span class="n">links</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_outgoing_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_ids</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_outgoing_links</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_ids</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return the set of outgoing links for the given source IDs asynchronously.</span>
 
 <span class="sd">        Args:</span>
@@ -1739,7 +1739,7 @@
 
         <span class="k">return</span> <span class="n">links</span>
 
-    <span class="k">def</span> <span class="nf">_get_initial</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_initial</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">],</span>
@@ -1763,7 +1763,7 @@
 
         <span class="k">return</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">initial_nodes</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_initial</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_initial</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">retrieved_docs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Document</span><span class="p">],</span>
@@ -1787,7 +1787,7 @@
 
         <span class="k">return</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="n">initial_nodes</span>
 
-    <span class="k">def</span> <span class="nf">_get_adjacent</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_adjacent</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">links</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">],</span>
         <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -1831,7 +1831,7 @@
         <span class="c1"># predicated MMR score?</span>
         <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_aget_adjacent</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aget_adjacent</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">links</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">Link</span><span class="p">],</span>
         <span class="n">query_embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>

@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,53 +222,53 @@
 <h1>Source code for langchain.chains.loading</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Functionality for loading chains."""</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">yaml</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.prompts.loading</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.loading</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_load_output_parser</span><span class="p">,</span>
     <span class="n">load_prompt</span><span class="p">,</span>
     <span class="n">load_prompt_from_config</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">langchain.chains</span> <span class="kn">import</span> <span class="n">ReduceDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.api.base</span> <span class="kn">import</span> <span class="n">APIChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.base</span> <span class="kn">import</span> <span class="n">Chain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.map_reduce</span> <span class="kn">import</span> <span class="n">MapReduceDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.map_rerank</span> <span class="kn">import</span> <span class="n">MapRerankDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.refine</span> <span class="kn">import</span> <span class="n">RefineDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.combine_documents.stuff</span> <span class="kn">import</span> <span class="n">StuffDocumentsChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.hyde.base</span> <span class="kn">import</span> <span class="n">HypotheticalDocumentEmbedder</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm</span> <span class="kn">import</span> <span class="n">LLMChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm_checker.base</span> <span class="kn">import</span> <span class="n">LLMCheckerChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.llm_math.base</span> <span class="kn">import</span> <span class="n">LLMMathChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.qa_with_sources.base</span> <span class="kn">import</span> <span class="n">QAWithSourcesChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.qa_with_sources.retrieval</span> <span class="kn">import</span> <span class="n">RetrievalQAWithSourcesChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.qa_with_sources.vector_db</span> <span class="kn">import</span> <span class="n">VectorDBQAWithSourcesChain</span>
-<span class="kn">from</span> <span class="nn">langchain.chains.retrieval_qa.base</span> <span class="kn">import</span> <span class="n">RetrievalQA</span><span class="p">,</span> <span class="n">VectorDBQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReduceDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.api.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.map_reduce</span><span class="w"> </span><span class="kn">import</span> <span class="n">MapReduceDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.map_rerank</span><span class="w"> </span><span class="kn">import</span> <span class="n">MapRerankDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.refine</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefineDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.combine_documents.stuff</span><span class="w"> </span><span class="kn">import</span> <span class="n">StuffDocumentsChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.hyde.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">HypotheticalDocumentEmbedder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm_checker.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMCheckerChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm_math.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMMathChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.qa_with_sources.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">QAWithSourcesChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.qa_with_sources.retrieval</span><span class="w"> </span><span class="kn">import</span> <span class="n">RetrievalQAWithSourcesChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.qa_with_sources.vector_db</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorDBQAWithSourcesChain</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.retrieval_qa.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">RetrievalQA</span><span class="p">,</span> <span class="n">VectorDBQA</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.chains.graph_qa.cypher</span> <span class="kn">import</span> <span class="n">GraphCypherQAChain</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.chains.graph_qa.cypher</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphCypherQAChain</span>
 
-    <span class="kn">from</span> <span class="nn">langchain.chains.llm_requests</span> <span class="kn">import</span> <span class="n">LLMRequestsChain</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm_requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMRequestsChain</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_community.llms.loading</span> <span class="kn">import</span> <span class="n">load_llm</span><span class="p">,</span> <span class="n">load_llm_from_config</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.llms.loading</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_llm</span><span class="p">,</span> <span class="n">load_llm_from_config</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
 
-    <span class="k">def</span> <span class="nf">load_llm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_llm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"To use this load_llm functionality you must install the "</span>
             <span class="s2">"langchain_community package. "</span>
             <span class="s2">"You can install it with `pip install langchain_community`"</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">load_llm_from_config</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_llm_from_config</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
         <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
@@ -281,7 +281,7 @@
 <span class="n">URL_BASE</span> <span class="o">=</span> <span class="s2">"https://raw.githubusercontent.com/hwchase17/langchain-hub/master/chains/"</span>
 
 
-<span class="k">def</span> <span class="nf">_load_llm_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_llm_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMChain</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load LLM chain from config dict."""</span>
     <span class="k">if</span> <span class="s2">"llm"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm"</span><span class="p">)</span>
@@ -303,7 +303,7 @@
     <span class="k">return</span> <span class="n">LLMChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_hyde_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HypotheticalDocumentEmbedder</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_hyde_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HypotheticalDocumentEmbedder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load hypothetical document embedder chain from config dict."""</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm_chain"</span><span class="p">)</span>
@@ -323,7 +323,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_stuff_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StuffDocumentsChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_stuff_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StuffDocumentsChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm_chain"</span><span class="p">)</span>
         <span class="n">llm_chain</span> <span class="o">=</span> <span class="n">load_chain_from_config</span><span class="p">(</span><span class="n">llm_chain_config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -350,7 +350,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_map_reduce_documents_chain</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_map_reduce_documents_chain</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MapReduceDocumentsChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
@@ -382,7 +382,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_reduce_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReduceDocumentsChain</span><span class="p">:</span>  <span class="c1"># type: ignore[valid-type]</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_reduce_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReduceDocumentsChain</span><span class="p">:</span>  <span class="c1"># type: ignore[valid-type]</span>
     <span class="n">combine_documents_chain</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">collapse_documents_chain</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -442,8 +442,8 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_llm_bash_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_experimental.llm_bash.base</span> <span class="kn">import</span> <span class="n">LLMBashChain</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_llm_bash_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_experimental.llm_bash.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMBashChain</span>
 
     <span class="n">llm_chain</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
@@ -472,7 +472,7 @@
         <span class="k">return</span> <span class="n">LLMBashChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_llm_checker_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMCheckerChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_llm_checker_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMCheckerChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"llm"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm"</span><span class="p">)</span>
         <span class="n">llm</span> <span class="o">=</span> <span class="n">load_llm_from_config</span><span class="p">(</span><span class="n">llm_config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -518,7 +518,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_llm_math_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMMathChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_llm_math_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMMathChain</span><span class="p">:</span>
     <span class="n">llm_chain</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm_chain"</span><span class="p">)</span>
@@ -546,7 +546,7 @@
         <span class="k">return</span> <span class="n">LLMMathChain</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_map_rerank_documents_chain</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_map_rerank_documents_chain</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MapRerankDocumentsChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
@@ -559,8 +559,8 @@
     <span class="k">return</span> <span class="n">MapRerankDocumentsChain</span><span class="p">(</span><span class="n">llm_chain</span><span class="o">=</span><span class="n">llm_chain</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
 
 
-<span class="k">def</span> <span class="nf">_load_pal_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_experimental.pal_chain</span> <span class="kn">import</span> <span class="n">PALChain</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_pal_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_experimental.pal_chain</span><span class="w"> </span><span class="kn">import</span> <span class="n">PALChain</span>
 
     <span class="k">if</span> <span class="s2">"llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">llm_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"llm_chain"</span><span class="p">)</span>
@@ -572,7 +572,7 @@
     <span class="k">return</span> <span class="n">PALChain</span><span class="p">(</span><span class="n">llm_chain</span><span class="o">=</span><span class="n">llm_chain</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
 
 
-<span class="k">def</span> <span class="nf">_load_refine_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RefineDocumentsChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_refine_documents_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RefineDocumentsChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"initial_llm_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">initial_llm_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"initial_llm_chain"</span><span class="p">)</span>
         <span class="n">initial_llm_chain</span> <span class="o">=</span> <span class="n">load_chain_from_config</span><span class="p">(</span><span class="n">initial_llm_chain_config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -604,7 +604,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_qa_with_sources_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QAWithSourcesChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_qa_with_sources_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QAWithSourcesChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"combine_documents_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">combine_documents_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"combine_documents_chain"</span><span class="p">)</span>
         <span class="n">combine_documents_chain</span> <span class="o">=</span> <span class="n">load_chain_from_config</span><span class="p">(</span>
@@ -622,8 +622,8 @@
     <span class="k">return</span> <span class="n">QAWithSourcesChain</span><span class="p">(</span><span class="n">combine_documents_chain</span><span class="o">=</span><span class="n">combine_documents_chain</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
 
 
-<span class="k">def</span> <span class="nf">_load_sql_database_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">langchain_experimental.sql</span> <span class="kn">import</span> <span class="n">SQLDatabaseChain</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_sql_database_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_experimental.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLDatabaseChain</span>
 
     <span class="k">if</span> <span class="s2">"database"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">database</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"database"</span><span class="p">)</span>
@@ -649,7 +649,7 @@
     <span class="k">return</span> <span class="n">SQLDatabaseChain</span><span class="o">.</span><span class="n">from_llm</span><span class="p">(</span><span class="n">llm</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_vector_db_qa_with_sources_chain</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_vector_db_qa_with_sources_chain</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VectorDBQAWithSourcesChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"vectorstore"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -677,7 +677,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_retrieval_qa</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalQA</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_retrieval_qa</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalQA</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"retriever"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">retriever</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"retriever"</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -703,7 +703,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_retrieval_qa_with_sources_chain</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_retrieval_qa_with_sources_chain</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalQAWithSourcesChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"retriever"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
@@ -731,7 +731,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_vector_db_qa</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VectorDBQA</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_vector_db_qa</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VectorDBQA</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"vectorstore"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">vectorstore</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"vectorstore"</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -757,7 +757,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_graph_cypher_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphCypherQAChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_graph_cypher_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphCypherQAChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"graph"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
         <span class="n">graph</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"graph"</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -776,7 +776,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"`qa_chain` must be present."</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain_community.chains.graph_qa.cypher</span> <span class="kn">import</span> <span class="n">GraphCypherQAChain</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.chains.graph_qa.cypher</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphCypherQAChain</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"To use this GraphCypherQAChain functionality you must install the "</span>
@@ -791,7 +791,7 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_api_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_api_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">APIChain</span><span class="p">:</span>
     <span class="k">if</span> <span class="s2">"api_request_chain"</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">api_request_chain_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"api_request_chain"</span><span class="p">)</span>
         <span class="n">api_request_chain</span> <span class="o">=</span> <span class="n">load_chain_from_config</span><span class="p">(</span><span class="n">api_request_chain_config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -822,9 +822,9 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_load_llm_requests_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMRequestsChain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_llm_requests_chain</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMRequestsChain</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">langchain.chains.llm_requests</span> <span class="kn">import</span> <span class="n">LLMRequestsChain</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.llm_requests</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMRequestsChain</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"To use this LLMRequestsChain functionality you must install the "</span>
@@ -882,7 +882,7 @@
     <span class="p">),</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">load_chain_from_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_chain_from_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load chain from Config Dict."""</span>
     <span class="k">if</span> <span class="s2">"_type"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Must specify a chain Type in config"</span><span class="p">)</span>
@@ -906,7 +906,7 @@
     <span class="p">),</span>
     <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span> <span class="nf">load_chain</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_chain</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Unified method for loading a chain from LangChainHub or local fs."""</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"lc://"</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -918,7 +918,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_load_chain_from_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_chain_from_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chain</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Load chain from file."""</span>
     <span class="c1"># Convert file to Path object.</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>

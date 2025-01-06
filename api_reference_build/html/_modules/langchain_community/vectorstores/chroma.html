@@ -30,7 +30,7 @@
 <!-- Loaded before other Sphinx assets -->
 <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
 <link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet"/>
-<link href="../../../_static/pygments.css?v=a746c00c" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/pygments.css?v=8f2a1f02" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 05, 2025" name="docbuild:last-update"/>
+<meta content="Jan 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,12 +220,12 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.vectorstores.chroma</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
@@ -237,29 +237,29 @@
     <span class="n">Type</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">langchain_core._api</span> <span class="kn">import</span> <span class="n">deprecated</span>
-<span class="kn">from</span> <span class="nn">langchain_core.documents</span> <span class="kn">import</span> <span class="n">Document</span>
-<span class="kn">from</span> <span class="nn">langchain_core.embeddings</span> <span class="kn">import</span> <span class="n">Embeddings</span>
-<span class="kn">from</span> <span class="nn">langchain_core.utils</span> <span class="kn">import</span> <span class="n">xor_args</span>
-<span class="kn">from</span> <span class="nn">langchain_core.vectorstores</span> <span class="kn">import</span> <span class="n">VectorStore</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">xor_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
 
-<span class="kn">from</span> <span class="nn">langchain_community.vectorstores.utils</span> <span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">chromadb</span>
-    <span class="kn">import</span> <span class="nn">chromadb.config</span>
-    <span class="kn">from</span> <span class="nn">chromadb.api.types</span> <span class="kn">import</span> <span class="n">ID</span><span class="p">,</span> <span class="n">OneOrMany</span><span class="p">,</span> <span class="n">Where</span><span class="p">,</span> <span class="n">WhereDocument</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb.config</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">chromadb.api.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ID</span><span class="p">,</span> <span class="n">OneOrMany</span><span class="p">,</span> <span class="n">Where</span><span class="p">,</span> <span class="n">WhereDocument</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 <span class="n">DEFAULT_K</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># Number of Documents to return.</span>
 
 
-<span class="k">def</span> <span class="nf">_results_to_docs</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_results_to_docs</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">_results_to_docs_and_scores</span><span class="p">(</span><span class="n">results</span><span class="p">)]</span>
 
 
-<span class="k">def</span> <span class="nf">_results_to_docs_and_scores</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_results_to_docs_and_scores</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="c1"># TODO: Chroma can do batch querying,</span>
         <span class="c1"># we shouldn't hard code to the 1st result</span>
@@ -275,7 +275,7 @@
 <div class="viewcode-block" id="Chroma">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma">[docs]</a>
 <span class="nd">@deprecated</span><span class="p">(</span><span class="n">since</span><span class="o">=</span><span class="s2">"0.2.9"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span> <span class="n">alternative_import</span><span class="o">=</span><span class="s2">"langchain_chroma.Chroma"</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">Chroma</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Chroma</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""`ChromaDB` vector store.</span>
 
 <span class="sd">    To use, you should have the ``chromadb`` python package installed.</span>
@@ -294,7 +294,7 @@
 
 <div class="viewcode-block" id="Chroma.__init__">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_LANGCHAIN_DEFAULT_COLLECTION_NAME</span><span class="p">,</span>
         <span class="n">embedding_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -306,8 +306,8 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Initialize with a Chroma client."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">chromadb</span>
-            <span class="kn">import</span> <span class="nn">chromadb.config</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb.config</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Could not import chromadb python package. "</span>
@@ -360,11 +360,11 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_function</span>
 
     <span class="nd">@xor_args</span><span class="p">((</span><span class="s2">"query_texts"</span><span class="p">,</span> <span class="s2">"query_embeddings"</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">__query_collection</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__query_collection</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query_texts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">query_embeddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -375,7 +375,7 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Query the chroma collection."""</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">chromadb</span>  <span class="c1"># noqa: F401</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb</span>  <span class="c1"># noqa: F401</span>
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
                 <span class="s2">"Could not import chromadb python package. "</span>
@@ -392,7 +392,7 @@
 
 <div class="viewcode-block" id="Chroma.encode_image">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.encode_image">[docs]</a>
-    <span class="k">def</span> <span class="nf">encode_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Get base64 string from image URI."""</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">uri</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">image_file</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">image_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span></div>
@@ -400,7 +400,7 @@
 
 <div class="viewcode-block" id="Chroma.add_images">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.add_images">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_images</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_images</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">uris</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -486,7 +486,7 @@
 
 <div class="viewcode-block" id="Chroma.add_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.add_texts">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -568,7 +568,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -593,7 +593,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -621,7 +621,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search_by_vector_with_relevance_scores">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search_by_vector_with_relevance_scores">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_vector_with_relevance_scores</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector_with_relevance_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -654,7 +654,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search_with_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search_with_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_with_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_with_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -695,7 +695,7 @@
         <span class="k">return</span> <span class="n">_results_to_docs_and_scores</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_select_relevance_score_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        The 'correct' relevance function</span>
 <span class="sd">        may differ depending on a few things, including:</span>
@@ -729,7 +729,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search_by_image">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search_by_image">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_image</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_image</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -775,7 +775,7 @@
 
 <div class="viewcode-block" id="Chroma.similarity_search_by_image_with_relevance_score">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.similarity_search_by_image_with_relevance_score">[docs]</a>
-    <span class="k">def</span> <span class="nf">similarity_search_by_image_with_relevance_score</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_image_with_relevance_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -822,7 +822,7 @@
 
 <div class="viewcode-block" id="Chroma.max_marginal_relevance_search_by_vector">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.max_marginal_relevance_search_by_vector">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -873,7 +873,7 @@
 
 <div class="viewcode-block" id="Chroma.max_marginal_relevance_search">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.max_marginal_relevance_search">[docs]</a>
-    <span class="k">def</span> <span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">max_marginal_relevance_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_K</span><span class="p">,</span>
@@ -919,14 +919,14 @@
 
 <div class="viewcode-block" id="Chroma.delete_collection">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.delete_collection">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete the collection."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">delete_collection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>  <span class="c1"># type: ignore[has-type]</span></div>
 
 
 <div class="viewcode-block" id="Chroma.get">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.get">[docs]</a>
-    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">OneOrMany</span><span class="p">[</span><span class="n">ID</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Where</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -975,7 +975,7 @@
         <span class="p">),</span>
         <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">persist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">persist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Persist the collection.</span>
 
 <span class="sd">        This can be used to explicitly persist the data to disk.</span>
@@ -989,7 +989,7 @@
                 <span class="s2">"You must specify a persist_directory on"</span>
                 <span class="s2">"creation to persist the collection."</span>
             <span class="p">)</span>
-        <span class="kn">import</span> <span class="nn">chromadb</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">chromadb</span>
 
         <span class="c1"># Maintain backwards compatibility with chromadb &lt; 0.4.0</span>
         <span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">chromadb</span><span class="o">.</span><span class="n">__version__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
@@ -999,7 +999,7 @@
 
 <div class="viewcode-block" id="Chroma.update_document">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.update_document">[docs]</a>
-    <span class="k">def</span> <span class="nf">update_document</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_document</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">document_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">document</span><span class="p">:</span> <span class="n">Document</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Update a document in the collection.</span>
 
 <span class="sd">        Args:</span>
@@ -1011,7 +1011,7 @@
 
 <div class="viewcode-block" id="Chroma.update_documents">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.update_documents">[docs]</a>
-    <span class="k">def</span> <span class="nf">update_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Update a document in the collection.</span>
 
 <span class="sd">        Args:</span>
@@ -1032,7 +1032,7 @@
         <span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span> <span class="s2">"max_batch_size"</span>
         <span class="p">):</span>  <span class="c1"># for Chroma 0.4.10 and above</span>
-            <span class="kn">from</span> <span class="nn">chromadb.utils.batch_utils</span> <span class="kn">import</span> <span class="n">create_batches</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">chromadb.utils.batch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_batches</span>
 
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">create_batches</span><span class="p">(</span>
                 <span class="n">api</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span>
@@ -1059,7 +1059,7 @@
 <div class="viewcode-block" id="Chroma.from_texts">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.from_texts">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_texts</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Chroma</span><span class="p">],</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1109,7 +1109,7 @@
             <span class="n">chroma_collection</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span>  <span class="c1"># type: ignore[has-type]</span>
             <span class="s2">"max_batch_size"</span><span class="p">,</span>
         <span class="p">):</span>  <span class="c1"># for Chroma 0.4.10 and above</span>
-            <span class="kn">from</span> <span class="nn">chromadb.utils.batch_utils</span> <span class="kn">import</span> <span class="n">create_batches</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">chromadb.utils.batch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_batches</span>
 
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">create_batches</span><span class="p">(</span>
                 <span class="n">api</span><span class="o">=</span><span class="n">chroma_collection</span><span class="o">.</span><span class="n">_client</span><span class="p">,</span>  <span class="c1"># type: ignore[has-type]</span>
@@ -1130,7 +1130,7 @@
 <div class="viewcode-block" id="Chroma.from_documents">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.from_documents">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_documents</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_documents</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">Chroma</span><span class="p">],</span>
         <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span>
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1180,7 +1180,7 @@
 
 <div class="viewcode-block" id="Chroma.delete">
 <a class="viewcode-back" href="../../../community/vectorstores/langchain_community.vectorstores.chroma.Chroma.html#langchain_community.vectorstores.chroma.Chroma.delete">[docs]</a>
-    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Delete by vector IDs.</span>
 
 <span class="sd">        Args:</span>
@@ -1189,7 +1189,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Count the number of documents in the collection."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">count</span><span class="p">()</span></div>
 
