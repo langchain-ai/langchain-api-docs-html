@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 07, 2025" name="docbuild:last-update"/>
+<meta content="Jan 08, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -717,6 +717,8 @@
 <span class="sd">            (default: False). Useful for testing.</span>
 <span class="sd">        effective_search_ratio: Controls the candidate pool size by multiplying $k</span>
 <span class="sd">            to balance query accuracy and performance.</span>
+<span class="sd">        embedding_dimension: The dimension of the embeddings. If not provided,</span>
+<span class="sd">            will query the embedding model to calculate the dimension.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -762,6 +764,7 @@
         <span class="n">relevance_score_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">index_type</span><span class="p">:</span> <span class="n">IndexType</span> <span class="o">=</span> <span class="n">DEFAULT_INDEX_TYPE</span><span class="p">,</span>
         <span class="n">graph</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Neo4jGraph</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">embedding_dimension</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
@@ -846,8 +849,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">=</span> <span class="n">search_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span> <span class="o">=</span> <span class="n">index_type</span>
 
-        <span class="c1"># Calculate embedding dimension</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">embedding_dimension</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">embedding_dimension</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Calculate embedding dimension</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">))</span>
 
         <span class="c1"># Delete existing data if flagged</span>
         <span class="k">if</span> <span class="n">pre_delete_collection</span><span class="p">:</span>
@@ -1634,6 +1640,7 @@
         <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">search_type</span><span class="p">:</span> <span class="n">SearchType</span> <span class="o">=</span> <span class="n">DEFAULT_SEARCH_TYPE</span><span class="p">,</span>
         <span class="n">keyword_index_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">embedding_dimension</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Neo4jVector</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1656,10 +1663,24 @@
             <span class="n">index_name</span><span class="o">=</span><span class="n">index_name</span><span class="p">,</span>
             <span class="n">keyword_index_name</span><span class="o">=</span><span class="n">keyword_index_name</span><span class="p">,</span>
             <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">embedding_dimension</span><span class="o">=</span><span class="n">embedding_dimension</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">embedding_dimension</span><span class="p">:</span>
+            <span class="p">(</span>
+                <span class="n">embedding_dimension_from_existing</span><span class="p">,</span>
+                <span class="n">index_type</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">embedding_dimension_from_existing</span> <span class="o">!=</span> <span class="n">embedding_dimension</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"The provided embedding function and vector index "</span>
+                    <span class="s2">"dimensions do not match.</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"Embedding function dimension: </span><span class="si">{</span><span class="n">embedding_dimension</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"Vector index dimension: </span><span class="si">{</span><span class="n">embedding_dimension_from_existing</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
 
         <span class="c1"># Raise error if relationship index type</span>
         <span class="k">if</span> <span class="n">index_type</span> <span class="o">==</span> <span class="s2">"RELATIONSHIP"</span><span class="p">:</span>
@@ -1709,6 +1730,7 @@
         <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
         <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">search_type</span><span class="p">:</span> <span class="n">SearchType</span> <span class="o">=</span> <span class="n">DEFAULT_SEARCH_TYPE</span><span class="p">,</span>
+        <span class="n">embedding_dimension</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Neo4jVector</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
@@ -1729,10 +1751,24 @@
         <span class="n">store</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
             <span class="n">index_name</span><span class="o">=</span><span class="n">index_name</span><span class="p">,</span>
+            <span class="n">embedding_dimension</span><span class="o">=</span><span class="n">embedding_dimension</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">embedding_dimension</span><span class="p">:</span>
+            <span class="p">(</span>
+                <span class="n">embedding_dimension_from_existing</span><span class="p">,</span>
+                <span class="n">index_type</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">embedding_dimension_from_existing</span> <span class="o">!=</span> <span class="n">embedding_dimension</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"The provided embedding function and vector index "</span>
+                    <span class="s2">"dimensions do not match.</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"Embedding function dimension: </span><span class="si">{</span><span class="n">embedding_dimension</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"Vector index dimension: </span><span class="si">{</span><span class="n">embedding_dimension_from_existing</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">index_type</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

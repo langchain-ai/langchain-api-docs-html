@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 07, 2025" name="docbuild:last-update"/>
+<meta content="Jan 08, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -857,7 +857,7 @@
 <span class="sd">        - graph_documents (List[GraphDocument]): A list of GraphDocument objects</span>
 <span class="sd">        that contain the nodes and relationships to be added to the graph. Each</span>
 <span class="sd">        GraphDocument should encapsulate the structure of part of the graph,</span>
-<span class="sd">        including nodes, relationships, and the source document information.</span>
+<span class="sd">        including nodes, relationships, and optionally the source document information.</span>
 <span class="sd">        - include_source (bool, optional): If True, stores the source document</span>
 <span class="sd">        and links it to nodes in the graph using the MENTIONS relationship.</span>
 <span class="sd">        This is useful for tracing back the origin of data. Merges source</span>
@@ -891,25 +891,33 @@
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">refresh_schema</span><span class="p">()</span>  <span class="c1"># Refresh constraint information</span>
 
+        <span class="c1"># Check each graph_document has a source when include_source is true</span>
+        <span class="k">if</span> <span class="n">include_source</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">graph_documents</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">doc</span><span class="o">.</span><span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="s2">"include_source is set to True, "</span>
+                        <span class="s2">"but at least one document has no `source`."</span>
+                    <span class="p">)</span>
+
         <span class="n">node_import_query</span> <span class="o">=</span> <span class="n">_get_node_import_query</span><span class="p">(</span><span class="n">baseEntityLabel</span><span class="p">,</span> <span class="n">include_source</span><span class="p">)</span>
         <span class="n">rel_import_query</span> <span class="o">=</span> <span class="n">_get_rel_import_query</span><span class="p">(</span><span class="n">baseEntityLabel</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">document</span> <span class="ow">in</span> <span class="n">graph_documents</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">):</span>
-                <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span>
-                    <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">page_content</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+            <span class="n">node_import_query_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"data"</span><span class="p">:</span> <span class="p">[</span><span class="n">el</span><span class="o">.</span><span class="vm">__dict__</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">document</span><span class="o">.</span><span class="n">nodes</span><span class="p">]</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">include_source</span> <span class="ow">and</span> <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">):</span>
+                    <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">md5</span><span class="p">(</span>
+                        <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">page_content</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+                <span class="n">node_import_query_params</span><span class="p">[</span><span class="s2">"document"</span><span class="p">]</span> <span class="o">=</span> <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="vm">__dict__</span>
 
             <span class="c1"># Remove backticks from node types</span>
             <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">document</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
                 <span class="n">node</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">_remove_backticks</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
             <span class="c1"># Import nodes</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="n">node_import_query</span><span class="p">,</span>
-                <span class="p">{</span>
-                    <span class="s2">"data"</span><span class="p">:</span> <span class="p">[</span><span class="n">el</span><span class="o">.</span><span class="vm">__dict__</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">document</span><span class="o">.</span><span class="n">nodes</span><span class="p">],</span>
-                    <span class="s2">"document"</span><span class="p">:</span> <span class="n">document</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
-                <span class="p">},</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">node_import_query</span><span class="p">,</span> <span class="n">node_import_query_params</span><span class="p">)</span>
             <span class="c1"># Import relationships</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
                 <span class="n">rel_import_query</span><span class="p">,</span>
