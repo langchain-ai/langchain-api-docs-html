@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 09, 2025" name="docbuild:last-update"/>
+<meta content="Jan 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -540,7 +540,6 @@
 <span class="sd">    enhanced_schema (bool): A flag whether to scan the database for</span>
 <span class="sd">            example values and use them in the graph schema. Default is False.</span>
 <span class="sd">    driver_config (Dict): Configuration passed to Neo4j Driver.</span>
-<span class="sd">            Defaults to {"notifications_min_severity", "OFF"} if not set.</span>
 
 <span class="sd">    *Security note*: Make sure that the database connection uses credentials</span>
 <span class="sd">        that are narrowly-scoped to only include necessary permissions.</span>
@@ -598,10 +597,9 @@
             <span class="p">{</span><span class="s2">"database"</span><span class="p">:</span> <span class="n">database</span><span class="p">},</span> <span class="s2">"database"</span><span class="p">,</span> <span class="s2">"NEO4J_DATABASE"</span><span class="p">,</span> <span class="s2">"neo4j"</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">driver_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">driver_config</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">driver_config</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"notifications_min_severity"</span><span class="p">,</span> <span class="s2">"OFF"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span> <span class="o">=</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">auth</span><span class="p">,</span> <span class="o">**</span><span class="n">driver_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span> <span class="o">=</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span>
+            <span class="n">url</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">auth</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">driver_config</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_database</span> <span class="o">=</span> <span class="n">database</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span> <span class="o">=</span> <span class="n">sanitize</span>
@@ -611,20 +609,11 @@
         <span class="c1"># Verify connection</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">verify_connectivity</span><span class="p">()</span>
-        <span class="k">except</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ConfigurationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="c1"># If notification filtering is not supported</span>
-            <span class="k">if</span> <span class="s2">"Notification filtering is not supported"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
-                <span class="c1"># Retry without notifications_min_severity</span>
-                <span class="n">driver_config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"notifications_min_severity"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span> <span class="o">=</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">GraphDatabase</span><span class="o">.</span><span class="n">driver</span><span class="p">(</span>
-                    <span class="n">url</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">auth</span><span class="p">,</span> <span class="o">**</span><span class="n">driver_config</span>
-                <span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">verify_connectivity</span><span class="p">()</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Could not connect to Neo4j database. "</span>
-                    <span class="s2">"Please ensure that the driver config is correct"</span>
-                <span class="p">)</span>
+        <span class="k">except</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ConfigurationError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Could not connect to Neo4j database. "</span>
+                <span class="s2">"Please ensure that the driver config is correct"</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="n">neo4j</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ServiceUnavailable</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Could not connect to Neo4j database. "</span>
@@ -677,12 +666,15 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">session_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Query Neo4j database.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (str): The Cypher query to execute.</span>
 <span class="sd">            params (dict): The parameters to pass to the query.</span>
+<span class="sd">            session_params (dict): Parameters to pass to the session used for executing</span>
+<span class="sd">                the query.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List[Dict[str, Any]]: The list of dictionaries containing the query results.</span>
@@ -694,39 +686,42 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">neo4j</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">neo4j.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neo4jError</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">data</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
-                <span class="n">Query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">),</span>
-                <span class="n">database_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">,</span>
-                <span class="n">parameters_</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">:</span>
-                <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">json_data</span>
-        <span class="k">except</span> <span class="n">Neo4jError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="p">(</span>  <span class="c1"># isCallInTransactionError</span>
-                        <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="s2">"Neo.DatabaseError.Statement.ExecutionFailed"</span>
-                        <span class="ow">or</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span>
-                        <span class="o">==</span> <span class="s2">"Neo.DatabaseError.Transaction.TransactionStartFailed"</span>
-                    <span class="p">)</span>
-                    <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                    <span class="ow">and</span> <span class="s2">"in an implicit transaction"</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">session_params</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+                    <span class="n">Query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">),</span>
+                    <span class="n">database_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">,</span>
+                    <span class="n">parameters_</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="ow">or</span> <span class="p">(</span>  <span class="c1"># isPeriodicCommitError</span>
-                    <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="s2">"Neo.ClientError.Statement.SemanticError"</span>
-                    <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                    <span class="ow">and</span> <span class="p">(</span>
-                        <span class="s2">"in an open transaction is not possible"</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
-                        <span class="ow">or</span> <span class="s2">"tried to execute in an explicit transaction"</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
+                <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">:</span>
+                    <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">json_data</span>
+            <span class="k">except</span> <span class="n">Neo4jError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="p">(</span>  <span class="c1"># isCallInTransactionError</span>
+                            <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="s2">"Neo.DatabaseError.Statement.ExecutionFailed"</span>
+                            <span class="ow">or</span> <span class="n">e</span><span class="o">.</span><span class="n">code</span>
+                            <span class="o">==</span> <span class="s2">"Neo.DatabaseError.Transaction.TransactionStartFailed"</span>
+                        <span class="p">)</span>
+                        <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="ow">and</span> <span class="s2">"in an implicit transaction"</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
                     <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="p">):</span>
-                <span class="k">raise</span>
+                    <span class="ow">or</span> <span class="p">(</span>  <span class="c1"># isPeriodicCommitError</span>
+                        <span class="n">e</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="s2">"Neo.ClientError.Statement.SemanticError"</span>
+                        <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="ow">and</span> <span class="p">(</span>
+                            <span class="s2">"in an open transaction is not possible"</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
+                            <span class="ow">or</span> <span class="s2">"tried to execute in an explicit transaction"</span>
+                            <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="k">raise</span>
         <span class="c1"># fallback to allow implicit transactions</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+        <span class="n">session_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"database"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="o">**</span><span class="n">session_params</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
             <span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">Query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">),</span> <span class="n">params</span><span class="p">)</span>
             <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">result</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">:</span>
@@ -789,7 +784,8 @@
         <span class="p">}</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema</span><span class="p">:</span>
             <span class="n">schema_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="s2">"CALL apoc.meta.graphSample() YIELD nodes, relationships "</span>
+                <span class="s2">"CALL apoc.meta.graph({sample: 1000, maxRels: 100}) "</span>
+                <span class="s2">"YIELD nodes, relationships "</span>
                 <span class="s2">"RETURN nodes, [rel in relationships | {name:apoc.any.property"</span>
                 <span class="s2">"(rel, 'type'), count: apoc.any.property(rel, 'count')}]"</span>
                 <span class="s2">" AS relationships"</span>
@@ -807,7 +803,16 @@
                 <span class="p">)</span>
                 <span class="c1"># Due to schema-flexible nature of neo4j errors can happen</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">enhanced_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">enhanced_cypher</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"output"</span><span class="p">]</span>
+                    <span class="n">enhanced_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="n">enhanced_cypher</span><span class="p">,</span>
+                        <span class="c1"># Disable the</span>
+                        <span class="c1"># Neo.ClientNotification.Statement.AggregationSkippedNull</span>
+                        <span class="c1"># notifications raised by the use of collect in the enhanced</span>
+                        <span class="c1"># schema query</span>
+                        <span class="n">session_params</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s2">"notifications_disabled_categories"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"UNRECOGNIZED"</span><span class="p">]</span>
+                        <span class="p">},</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"output"</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">node_props</span><span class="p">:</span>
                         <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">enhanced_info</span><span class="p">:</span>
                             <span class="n">prop</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">enhanced_info</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]])</span>

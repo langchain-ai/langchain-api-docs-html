@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 09, 2025" name="docbuild:last-update"/>
+<meta content="Jan 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -221,7 +221,7 @@
 <article class="bd-article">
 <h1>Source code for sqlalchemy.sql.type_api</h1><div class="highlight"><pre>
 <span></span><span class="c1"># sql/type_api.py</span>
-<span class="c1"># Copyright (C) 2005-2024 the SQLAlchemy authors and contributors</span>
+<span class="c1"># Copyright (C) 2005-2025 the SQLAlchemy authors and contributors</span>
 <span class="c1"># &lt;see AUTHORS file&gt;</span>
 <span class="c1">#</span>
 <span class="c1"># This module is part of SQLAlchemy and is released under</span>
@@ -533,11 +533,13 @@
 <span class="sd">        E.g.::</span>
 
 <span class="sd">                Table(</span>
-<span class="sd">                    'some_table', metadata,</span>
+<span class="sd">                    "some_table",</span>
+<span class="sd">                    metadata,</span>
 <span class="sd">                    Column(</span>
 <span class="sd">                        String(50).evaluates_none(),</span>
 <span class="sd">                        nullable=True,</span>
-<span class="sd">                        server_default='no value')</span>
+<span class="sd">                        server_default="no value",</span>
+<span class="sd">                    ),</span>
 <span class="sd">                )</span>
 
 <span class="sd">        The ORM uses this flag to indicate that a positive value of ``None``</span>
@@ -863,7 +865,7 @@
 <span class="sd">            string_type = String()</span>
 
 <span class="sd">            string_type = string_type.with_variant(</span>
-<span class="sd">                mysql.VARCHAR(collation='foo'), 'mysql', 'mariadb'</span>
+<span class="sd">                mysql.VARCHAR(collation="foo"), "mysql", "mariadb"</span>
 <span class="sd">            )</span>
 
 <span class="sd">        The variant mapping indicates that when this type is</span>
@@ -1350,7 +1352,7 @@
 <span class="sd">    """</span>
 
     <span class="n">cache_ok</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">    </span><span class="sd">"""Indicate if statements using this :class:`.ExternalType` are "safe to</span>
+<span class="w">    </span><span class="sd">'''Indicate if statements using this :class:`.ExternalType` are "safe to</span>
 <span class="sd">    cache".</span>
 
 <span class="sd">    The default value ``None`` will emit a warning and then not allow caching</span>
@@ -1391,12 +1393,12 @@
 <span class="sd">    series of tuples.   Given a previously un-cacheable type as::</span>
 
 <span class="sd">        class LookupType(UserDefinedType):</span>
-<span class="sd">            '''a custom type that accepts a dictionary as a parameter.</span>
+<span class="sd">            """a custom type that accepts a dictionary as a parameter.</span>
 
 <span class="sd">            this is the non-cacheable version, as "self.lookup" is not</span>
 <span class="sd">            hashable.</span>
 
-<span class="sd">            '''</span>
+<span class="sd">            """</span>
 
 <span class="sd">            def __init__(self, lookup):</span>
 <span class="sd">                self.lookup = lookup</span>
@@ -1404,8 +1406,7 @@
 <span class="sd">            def get_col_spec(self, **kw):</span>
 <span class="sd">                return "VARCHAR(255)"</span>
 
-<span class="sd">            def bind_processor(self, dialect):</span>
-<span class="sd">                # ...  works with "self.lookup" ...</span>
+<span class="sd">            def bind_processor(self, dialect): ...  # works with "self.lookup" ...</span>
 
 <span class="sd">    Where "lookup" is a dictionary.  The type will not be able to generate</span>
 <span class="sd">    a cache key::</span>
@@ -1441,7 +1442,7 @@
 <span class="sd">    to the ".lookup" attribute::</span>
 
 <span class="sd">        class LookupType(UserDefinedType):</span>
-<span class="sd">            '''a custom type that accepts a dictionary as a parameter.</span>
+<span class="sd">            """a custom type that accepts a dictionary as a parameter.</span>
 
 <span class="sd">            The dictionary is stored both as itself in a private variable,</span>
 <span class="sd">            and published in a public variable as a sorted tuple of tuples,</span>
@@ -1449,7 +1450,7 @@
 <span class="sd">            two equivalent dictionaries.  Note it assumes the keys and</span>
 <span class="sd">            values of the dictionary are themselves hashable.</span>
 
-<span class="sd">            '''</span>
+<span class="sd">            """</span>
 
 <span class="sd">            cache_ok = True</span>
 
@@ -1458,15 +1459,12 @@
 
 <span class="sd">                # assume keys/values of "lookup" are hashable; otherwise</span>
 <span class="sd">                # they would also need to be converted in some way here</span>
-<span class="sd">                self.lookup = tuple(</span>
-<span class="sd">                    (key, lookup[key]) for key in sorted(lookup)</span>
-<span class="sd">                )</span>
+<span class="sd">                self.lookup = tuple((key, lookup[key]) for key in sorted(lookup))</span>
 
 <span class="sd">            def get_col_spec(self, **kw):</span>
 <span class="sd">                return "VARCHAR(255)"</span>
 
-<span class="sd">            def bind_processor(self, dialect):</span>
-<span class="sd">                # ...  works with "self._lookup" ...</span>
+<span class="sd">            def bind_processor(self, dialect): ...  # works with "self._lookup" ...</span>
 
 <span class="sd">    Where above, the cache key for ``LookupType({"a": 10, "b": 20})`` will be::</span>
 
@@ -1484,7 +1482,7 @@
 
 <span class="sd">        :ref:`sql_caching`</span>
 
-<span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
+<span class="sd">    '''</span>  <span class="c1"># noqa: E501</span>
 
     <span class="nd">@util</span><span class="o">.</span><span class="n">non_memoized_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_static_cache_key</span><span class="p">(</span>
@@ -1526,10 +1524,11 @@
 
 <span class="sd">      import sqlalchemy.types as types</span>
 
+
 <span class="sd">      class MyType(types.UserDefinedType):</span>
 <span class="sd">          cache_ok = True</span>
 
-<span class="sd">          def __init__(self, precision = 8):</span>
+<span class="sd">          def __init__(self, precision=8):</span>
 <span class="sd">              self.precision = precision</span>
 
 <span class="sd">          def get_col_spec(self, **kw):</span>
@@ -1538,19 +1537,23 @@
 <span class="sd">          def bind_processor(self, dialect):</span>
 <span class="sd">              def process(value):</span>
 <span class="sd">                  return value</span>
+
 <span class="sd">              return process</span>
 
 <span class="sd">          def result_processor(self, dialect, coltype):</span>
 <span class="sd">              def process(value):</span>
 <span class="sd">                  return value</span>
+
 <span class="sd">              return process</span>
 
 <span class="sd">    Once the type is made, it's immediately usable::</span>
 
-<span class="sd">      table = Table('foo', metadata_obj,</span>
-<span class="sd">          Column('id', Integer, primary_key=True),</span>
-<span class="sd">          Column('data', MyType(16))</span>
-<span class="sd">          )</span>
+<span class="sd">      table = Table(</span>
+<span class="sd">          "foo",</span>
+<span class="sd">          metadata_obj,</span>
+<span class="sd">          Column("id", Integer, primary_key=True),</span>
+<span class="sd">          Column("data", MyType(16)),</span>
+<span class="sd">      )</span>
 
 <span class="sd">    The ``get_col_spec()`` method will in most cases receive a keyword</span>
 <span class="sd">    argument ``type_expression`` which refers to the owning expression</span>
@@ -1715,7 +1718,7 @@
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">TypeDecorator</span><span class="p">(</span><span class="n">SchemaEventTarget</span><span class="p">,</span> <span class="n">ExternalType</span><span class="p">,</span> <span class="n">TypeEngine</span><span class="p">[</span><span class="n">_T</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">"""Allows the creation of types which add additional functionality</span>
+<span class="w">    </span><span class="sd">'''Allows the creation of types which add additional functionality</span>
 <span class="sd">    to an existing type.</span>
 
 <span class="sd">    This method is preferred to direct subclassing of SQLAlchemy's</span>
@@ -1726,10 +1729,11 @@
 
 <span class="sd">      import sqlalchemy.types as types</span>
 
+
 <span class="sd">      class MyType(types.TypeDecorator):</span>
-<span class="sd">          '''Prefixes Unicode values with "PREFIX:" on the way in and</span>
+<span class="sd">          """Prefixes Unicode values with "PREFIX:" on the way in and</span>
 <span class="sd">          strips it off on the way out.</span>
-<span class="sd">          '''</span>
+<span class="sd">          """</span>
 
 <span class="sd">          impl = types.Unicode</span>
 
@@ -1821,6 +1825,7 @@
 <span class="sd">            from sqlalchemy import JSON</span>
 <span class="sd">            from sqlalchemy import TypeDecorator</span>
 
+
 <span class="sd">            class MyJsonType(TypeDecorator):</span>
 <span class="sd">                impl = JSON</span>
 
@@ -1841,6 +1846,7 @@
 <span class="sd">            from sqlalchemy import ARRAY</span>
 <span class="sd">            from sqlalchemy import TypeDecorator</span>
 
+
 <span class="sd">            class MyArrayType(TypeDecorator):</span>
 <span class="sd">                impl = ARRAY</span>
 
@@ -1849,8 +1855,7 @@
 <span class="sd">                def coerce_compared_value(self, op, value):</span>
 <span class="sd">                    return self.impl.coerce_compared_value(op, value)</span>
 
-
-<span class="sd">    """</span>
+<span class="sd">    '''</span>
 
     <span class="n">__visit_name__</span> <span class="o">=</span> <span class="s2">"type_decorator"</span>
 
@@ -2537,11 +2542,10 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">adapt_type</span><span class="p">(</span>
-    <span class="n">typeobj</span><span class="p">:</span> <span class="n">TypeEngine</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">typeobj</span><span class="p">:</span> <span class="n">_TypeEngineArgument</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">colspecs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">TypeEngine</span><span class="p">[</span><span class="n">Any</span><span class="p">]]],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeEngine</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">typeobj</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
-        <span class="n">typeobj</span> <span class="o">=</span> <span class="n">typeobj</span><span class="p">()</span>
+    <span class="n">typeobj</span> <span class="o">=</span> <span class="n">to_instance</span><span class="p">(</span><span class="n">typeobj</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">typeobj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">impltype</span> <span class="o">=</span> <span class="n">colspecs</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>

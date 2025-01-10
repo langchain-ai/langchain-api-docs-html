@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 09, 2025" name="docbuild:last-update"/>
+<meta content="Jan 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -242,20 +242,24 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pymilvus</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnSearchRequest</span><span class="p">,</span>
     <span class="n">Collection</span><span class="p">,</span>
     <span class="n">CollectionSchema</span><span class="p">,</span>
     <span class="n">DataType</span><span class="p">,</span>
     <span class="n">FieldSchema</span><span class="p">,</span>
+    <span class="n">FunctionType</span><span class="p">,</span>
     <span class="n">MilvusClient</span><span class="p">,</span>
     <span class="n">MilvusException</span><span class="p">,</span>
     <span class="n">RRFRanker</span><span class="p">,</span>
+    <span class="n">SearchResult</span><span class="p">,</span>
     <span class="n">WeightedRanker</span><span class="p">,</span>
     <span class="n">utility</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pymilvus.client.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoadState</span>  <span class="c1"># type: ignore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pymilvus.orm.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">infer_dtype_bydata</span>  <span class="c1"># type: ignore</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">MilvusCollectionHybridSearchRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus.function</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMilvusBuiltInFunction</span><span class="p">,</span> <span class="n">BM25BuiltInFunction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus.utils.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">PRIMARY_FIELD</span><span class="p">,</span> <span class="n">TEXT_FIELD</span><span class="p">,</span> <span class="n">VECTOR_FIELD</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus.utils.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSparseEmbedding</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -499,7 +503,7 @@
 <a class="viewcode-back" href="../../../milvus/vectorstores/langchain_milvus.vectorstores.milvus.Milvus.html#langchain_milvus.vectorstores.milvus.Milvus.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">embedding_function</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]],</span>  <span class="c1"># type: ignore</span>
+        <span class="n">embedding_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]]],</span>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"LangChainCollection"</span><span class="p">,</span>
         <span class="n">collection_description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
         <span class="n">collection_properties</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -510,9 +514,9 @@
         <span class="n">drop_old</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">auto_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">primary_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"pk"</span><span class="p">,</span>
-        <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span><span class="p">,</span>
-        <span class="n">vector_field</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">"vector"</span><span class="p">,</span>
+        <span class="n">primary_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PRIMARY_FIELD</span><span class="p">,</span>
+        <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">TEXT_FIELD</span><span class="p">,</span>
+        <span class="n">vector_field</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">VECTOR_FIELD</span><span class="p">,</span>
         <span class="n">enable_dynamic_field</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">metadata_field</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">partition_key_field</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -522,6 +526,9 @@
         <span class="n">num_shards</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">vector_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">metadata_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">builtin_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize the Milvus vector store."""</span>
         <span class="c1"># Default search params when one is not provided.</span>
@@ -557,7 +564,17 @@
             <span class="s2">"SPARSE_WAND"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"IP"</span><span class="p">,</span> <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"drop_ratio_build"</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">}},</span>
         <span class="p">}</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span> <span class="o">=</span> <span class="n">embedding_function</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">embedding_function</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">builtin_function</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Either `embedding_function` or `builtin_function` should be provided."</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">embedding_function</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">builtin_function</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span> <span class="o">=</span> <span class="n">collection_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection_description</span> <span class="o">=</span> <span class="n">collection_description</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection_properties</span> <span class="o">=</span> <span class="n">collection_properties</span>
@@ -571,24 +588,7 @@
         <span class="c1"># In order for compatibility, the text field will need to be called "text"</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span> <span class="o">=</span> <span class="n">text_field</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="n">vector_field</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="sa">f</span><span class="s2">"vector_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>
-                    <span class="p">]</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                        <span class="s2">"When multiple embeddings function are used, one should provide"</span>
-                        <span class="s2">"matching `vector_field` names. "</span>
-                        <span class="s2">"Using generated vector names </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
-                        <span class="n">vector_field</span><span class="p">,</span>
-                    <span class="p">)</span>
-
-        <span class="c1"># In order for compatibility, the vector field needs to be called "vector"</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span> <span class="o">=</span> <span class="n">vector_field</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_vector_field</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_schema</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">metadata_field</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">"DeprecationWarning: `metadata_field` is about to be deprecated, "</span>
@@ -608,7 +608,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">=</span> <span class="n">num_shards</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata_schema</span> <span class="o">=</span> <span class="n">metadata_schema</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span> <span class="o">=</span> <span class="n">vector_schema</span>
 
         <span class="c1"># Create the connection to the server</span>
         <span class="k">if</span> <span class="n">connection_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -641,8 +640,155 @@
         <span class="p">)</span></div>
 
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_vector_field</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vector_field</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">vector_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Check the validity of vector_field and vector_schema,</span>
+<span class="sd">        as well as the relationships with embedding_func and builtin_func.</span>
+<span class="sd">        """</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">))</span>
+        <span class="p">),</span> <span class="s2">"Vector field names should be unique."</span>
+
+        <span class="n">vector_fields_from_function</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">builtin_function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">):</span>
+            <span class="n">vector_fields_from_function</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">builtin_function</span><span class="o">.</span><span class="n">output_field_names</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="c1"># Check there are not overlapping fields</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">vector_fields_from_function</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">vector_fields_from_function</span><span class="p">)</span>
+        <span class="p">),</span> <span class="s2">"When using builtin functions, there should be no overlapping fields."</span>
+
+        <span class="n">embedding_fields_expected</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vector_fields_from_function</span><span class="p">:</span>
+                <span class="n">embedding_fields_expected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+
+        <span class="c1"># Number of customized fields &lt;= number of embedding functions</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedding_fields_expected</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)):</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">vector_fields_from_embedding</span> <span class="o">=</span> <span class="n">embedding_fields_expected</span>
+            <span class="n">appending_fields</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">embedding_fields_expected</span><span class="p">),</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)),</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="p">):</span>
+                <span class="n">appending_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"vector_</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">vector_fields_from_embedding</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">appending_fields</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">appending_fields</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">"When multiple embeddings function are used, one should provide "</span>
+                    <span class="s2">"matching `vector_field` names. "</span>
+                    <span class="s2">"Using generated vector names </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">appending_fields</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="c1"># Number of customized fields &gt; number of embedding functions</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Too many custom fields: </span><span class="si">{</span><span class="n">embedding_fields_expected</span><span class="si">}</span><span class="s2">."</span>
+                <span class="sa">f</span><span class="s2">" They cannot be mapped to a limited number of embedding functions,"</span>
+                <span class="sa">f</span><span class="s2">" nor do they belong to any build-in function."</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">vector_fields_from_function</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">vector_fields_from_embedding</span><span class="p">))</span>
+            <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="p">(</span>
+            <span class="s2">"Vector fields from embeddings and vector fields from builtin functions "</span>
+            <span class="s2">"should not overlap."</span>
+        <span class="p">)</span>
+        <span class="n">all_vector_fields</span> <span class="o">=</span> <span class="n">vector_fields_from_embedding</span> <span class="o">+</span> <span class="n">vector_fields_from_function</span>
+        <span class="c1"># For backward compatibility, the vector field needs to be called "vector",</span>
+        <span class="c1"># and it can be either a list or a string.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">all_vector_fields</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_fields_from_embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_function</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_fields_from_function</span>
+
+        <span class="c1"># Check vector schema and prepare vector schema map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span> <span class="o">=</span> <span class="n">vector_schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s2">"When only one custom vector_schema is provided, "</span>
+                    <span class="s2">"it should keep the vector store has only one vector field."</span>
+                <span class="p">)</span>
+                <span class="n">vector_field_</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span>
+                <span class="n">vector_schema_</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span><span class="p">[</span><span class="n">vector_field_</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_schema_</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_embedding_only</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_function_only</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">)</span>
+                    <span class="p">),</span> <span class="p">(</span>
+                        <span class="s2">"You should provide the same number of custom `vector_schema`s "</span>
+                        <span class="s2">"as the number of corresponding `vector_field`s."</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If both embedding and builtin functions are provided,</span>
+                    <span class="c1"># it must specify vector_schema for each vector field.</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">)</span>
+                    <span class="p">),</span> <span class="p">(</span>
+                        <span class="s2">"When multiple custom `vector_schema`s are provided, "</span>
+                        <span class="s2">"you should provide the same number of corresponding "</span>
+                        <span class="s2">"`vector_field`s."</span>
+                    <span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">vector_schema</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_schema</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">field</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
+            <span class="p">}</span>
+
+        <span class="c1"># Check index param and prepare index param map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s2">"When only one custom index_params is provided, "</span>
+                    <span class="s2">"it should keep the vector store has only one vector field."</span>
+                <span class="p">)</span>
+                <span class="n">vector_field_</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span>
+                <span class="n">index_params_</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">vector_field_</span><span class="p">]</span> <span class="o">=</span> <span class="n">index_params_</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_embedding_only</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_function_only</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
+                    <span class="p">),</span> <span class="p">(</span>
+                        <span class="s2">"You should provide the same number of custom `index_params`s "</span>
+                        <span class="s2">"as the number of corresponding `vector_field`s."</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If both embedding and builtin functions are provided,</span>
+                    <span class="c1"># it must specify index_params for each vector field.</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
+                    <span class="p">),</span> <span class="p">(</span>
+                        <span class="s2">"When multiple custom `index_params`s are provided, "</span>
+                        <span class="s2">"you should provide the same number of corresponding "</span>
+                        <span class="s2">"`vector_field`s."</span>
+                    <span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">index_params</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">vector_field</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">index_params</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">field</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
+            <span class="p">}</span>
+
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]]:</span>  <span class="c1"># type: ignore</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]]]:</span>  <span class="c1"># type: ignore</span>
+<span class="w">        </span><span class="sd">"""Get embedding function(s)."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span>
 
     <span class="nd">@property</span>
@@ -651,16 +797,57 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_milvus_client</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vector_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Get vector field(s)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_is_multi_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Whether the sum of embedding functions and builtin functions is multi."""</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_multi_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether there are multi embedding functions in this instance."""</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_multi_function</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether there are multi builtin functions in this instance."""</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_embedding_only</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether there are only embedding function(s) but no builtin function(s)."""</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_function_only</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether there are only builtin function(s) but no embedding function(s)."""</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_is_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="n">embedding_func</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_sparse_embedding</span><span class="p">(</span><span class="n">embedding_func</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-            <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
+<span class="w">        </span><span class="sd">"""Detect whether there is only one sparse embedding/builtin function"""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_embedding_only</span><span class="p">:</span>
+            <span class="n">embedding_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedding_func</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_sparse_embedding</span><span class="p">(</span>
+                <span class="n">embedding_func</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_function_only</span><span class="p">:</span>
+            <span class="n">builtin_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">builtin_func</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">builtin_func</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">BM25BuiltInFunction</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_is_sparse_embedding</span><span class="p">(</span><span class="n">embeddings_function</span><span class="p">:</span> <span class="n">EmbeddingType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -688,16 +875,55 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_collection</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">],</span> <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">metadata_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_metadata_fields</span><span class="p">(</span><span class="n">metadatas</span><span class="p">)</span>
+        <span class="n">text_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_text_fields</span><span class="p">()</span>
+        <span class="n">primary_key_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_primary_key_fields</span><span class="p">()</span>
+        <span class="n">vector_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_vector_fields</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
+
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">text_fields</span> <span class="o">+</span> <span class="n">primary_key_fields</span> <span class="o">+</span> <span class="n">vector_fields</span> <span class="o">+</span> <span class="n">metadata_fields</span>
+
+        <span class="c1"># Create the schema for the collection</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">CollectionSchema</span><span class="p">(</span>
+            <span class="n">fields</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_description</span><span class="p">,</span>
+            <span class="n">partition_key_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_partition_key_field</span><span class="p">,</span>
+            <span class="n">enable_dynamic_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">,</span>
+            <span class="n">functions</span><span class="o">=</span><span class="p">[</span><span class="n">func</span><span class="o">.</span><span class="n">function</span> <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">)],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Create the collection</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_shards</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Issue with defaults:</span>
+                <span class="c1"># https://github.com/milvus-io/pymilvus/blob/59bf5e811ad56e20946559317fed855330758d9c/pymilvus/client/prepare.py#L82-L85</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                    <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                    <span class="n">consistency_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consistency_level</span><span class="p">,</span>
+                    <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                    <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_shards</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                    <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                    <span class="n">consistency_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consistency_level</span><span class="p">,</span>
+                    <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="c1"># Set the collection properties if they exist</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_properties</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">set_properties</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_properties</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">"Failed to create collection: </span><span class="si">%s</span><span class="s2"> error: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span> <span class="n">e</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_metadata_fields</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">FieldSchema</span><span class="p">]:</span>
         <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">vector_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
         <span class="c1"># If enable_dynamic_field, we don't need to create fields, and just pass it.</span>
-        <span class="c1"># In the future, when metadata_field is deprecated,</span>
-        <span class="c1"># This logical structure will be simplified like this:</span>
-        <span class="c1"># ```</span>
-        <span class="c1"># if not self.enable_dynamic_field and metadatas:</span>
-        <span class="c1">#     for key, value in metadatas[0].items():</span>
-        <span class="c1">#         ...</span>
-        <span class="c1"># ```</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">:</span>
             <span class="c1"># If both dynamic fields and partition key field are enabled</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_key_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -713,7 +939,9 @@
             <span class="c1"># Determine metadata schema</span>
             <span class="k">if</span> <span class="n">metadatas</span><span class="p">:</span>
                 <span class="c1"># Create FieldSchema for each entry in metadata.</span>
+                <span class="n">vector_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">metadatas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="c1"># Check if the key is reserved</span>
                     <span class="k">if</span> <span class="p">(</span>
                         <span class="n">key</span>
                         <span class="ow">in</span> <span class="p">[</span>
@@ -755,8 +983,19 @@
                             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unrecognized datatype for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
                         <span class="c1"># Datatype is a string/varchar equivalent</span>
                         <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">:</span>
+                            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+                            <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">):</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">BM25BuiltInFunction</span><span class="p">):</span>
+                                    <span class="k">if</span> <span class="n">function</span><span class="o">.</span><span class="n">input_field_names</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">:</span>
+                                        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">(</span>
+                                            <span class="n">function</span><span class="o">.</span><span class="n">get_input_field_schema_kwargs</span><span class="p">()</span>
+                                        <span class="p">)</span>
+                                        <span class="k">break</span>
+
                             <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                                <span class="n">FieldSchema</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65_535</span><span class="p">)</span>
+                                <span class="n">FieldSchema</span><span class="p">(</span>
+                                    <span class="n">key</span><span class="p">,</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65_535</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                                <span class="p">)</span>
                             <span class="p">)</span>
                         <span class="c1"># infer_dtype_bydata currently can't recognize array type,</span>
                         <span class="c1"># so this line can not be accessed.</span>
@@ -770,12 +1009,24 @@
                             <span class="p">)</span>
                         <span class="k">else</span><span class="p">:</span>
                             <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FieldSchema</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">fields</span>
 
-        <span class="c1"># Create the text field</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_text_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">FieldSchema</span><span class="p">]:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">BM25BuiltInFunction</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">input_field_names</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">:</span>
+                    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">function</span><span class="o">.</span><span class="n">get_input_field_schema_kwargs</span><span class="p">()</span>
+                    <span class="k">break</span>
+
         <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">FieldSchema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">,</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65_535</span><span class="p">)</span>
+            <span class="n">FieldSchema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">,</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">65_535</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="c1"># Create the primary key field</span>
+        <span class="k">return</span> <span class="n">fields</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_primary_key_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">FieldSchema</span><span class="p">]:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_id</span><span class="p">:</span>
             <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">FieldSchema</span><span class="p">(</span>
@@ -792,18 +1043,27 @@
                     <span class="n">max_length</span><span class="o">=</span><span class="mi">65_535</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+        <span class="k">return</span> <span class="n">fields</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_vector_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">FieldSchema</span><span class="p">]:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">embeddings_functions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>
-        <span class="n">vector_schemas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_schema</span>
-            <span class="k">else</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">))]</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">)</span>
+            <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">)</span>
+            <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
+        <span class="p">),</span> <span class="p">(</span>
+            <span class="s2">"The number of `self._vector_fields_from_embedding`, "</span>
+            <span class="s2">"`embeddings_functions`, and `embeddings` should be the same."</span>
+            <span class="sa">f</span><span class="s2">"Got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">)</span><span class="si">}</span><span class="s2">, and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_schema</span><span class="p">,</span> <span class="n">embedding_func</span><span class="p">,</span> <span class="n">vector_field_embeddings</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-            <span class="n">vector_fields</span><span class="p">,</span> <span class="n">vector_schemas</span><span class="p">,</span> <span class="n">embeddings_functions</span><span class="p">,</span> <span class="n">embeddings</span>
+        <span class="c1"># Loop through the embedding functions</span>
+        <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">embedding_func</span><span class="p">,</span> <span class="n">embedding</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">,</span> <span class="n">embeddings_functions</span><span class="p">,</span> <span class="n">embeddings</span>
         <span class="p">):</span>
-            <span class="n">dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vector_field_embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="c1"># Create the vector field</span>
+            <span class="n">vector_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">vector_schema</span> <span class="ow">and</span> <span class="s2">"dtype"</span> <span class="ow">in</span> <span class="n">vector_schema</span><span class="p">:</span>
                 <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_get_field_schema_from_dict</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_schema</span><span class="p">)</span>
@@ -818,48 +1078,31 @@
                     <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="n">FieldSchema</span><span class="p">(</span>
                             <span class="n">vector_field</span><span class="p">,</span>
-                            <span class="n">infer_dtype_bydata</span><span class="p">(</span><span class="n">vector_field_embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                            <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
+                            <span class="n">infer_dtype_bydata</span><span class="p">(</span><span class="n">embedding</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                            <span class="n">dim</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">embedding</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
-
-        <span class="c1"># Create the schema for the collection</span>
-        <span class="n">schema</span> <span class="o">=</span> <span class="n">CollectionSchema</span><span class="p">(</span>
-            <span class="n">fields</span><span class="p">,</span>
-            <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_description</span><span class="p">,</span>
-            <span class="n">partition_key_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_partition_key_field</span><span class="p">,</span>
-            <span class="n">enable_dynamic_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Create the collection</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_shards</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># Issue with defaults:</span>
-                <span class="c1"># https://github.com/milvus-io/pymilvus/blob/59bf5e811ad56e20946559317fed855330758d9c/pymilvus/client/prepare.py#L82-L85</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                    <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-                    <span class="n">consistency_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consistency_level</span><span class="p">,</span>
-                    <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
-                    <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_shards</span><span class="p">,</span>
-                <span class="p">)</span>
+        <span class="c1"># Loop through the built-in functions</span>
+        <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">builtin_function</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">vector_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_schema_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">vector_schema</span> <span class="ow">and</span> <span class="s2">"dtype"</span> <span class="ow">in</span> <span class="n">vector_schema</span><span class="p">:</span>
+                <span class="n">field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_field_schema_from_dict</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_schema</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">builtin_function</span><span class="p">,</span> <span class="n">BM25BuiltInFunction</span><span class="p">):</span>
+                <span class="n">field</span> <span class="o">=</span> <span class="n">FieldSchema</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="n">DataType</span><span class="o">.</span><span class="n">SPARSE_FLOAT_VECTOR</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="o">=</span> <span class="n">Collection</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                    <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-                    <span class="n">consistency_level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consistency_level</span><span class="p">,</span>
-                    <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Unsupported embedding function type: "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">builtin_function</span><span class="p">)</span><span class="si">}</span><span class="s2"> for field: </span><span class="si">{</span><span class="n">vector_field</span><span class="si">}</span><span class="s2">."</span>
                 <span class="p">)</span>
-            <span class="c1"># Set the collection properties if they exist</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_properties</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">set_properties</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_properties</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                <span class="s2">"Failed to create collection: </span><span class="si">%s</span><span class="s2"> error: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span> <span class="n">e</span>
-            <span class="p">)</span>
-            <span class="k">raise</span> <span class="n">e</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">is_function_output</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fields</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_field_schema_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schema_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>  <span class="c1"># type: ignore[no-untyped-def]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_field_schema_from_dict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schema_dict</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FieldSchema</span><span class="p">:</span>
         <span class="k">assert</span> <span class="s2">"dtype"</span> <span class="ow">in</span> <span class="n">schema_dict</span><span class="p">,</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Please provide `dtype` in the schema dict. "</span>
             <span class="sa">f</span><span class="s2">"Existing keys are: </span><span class="si">{</span><span class="n">schema_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
@@ -887,62 +1130,65 @@
                     <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">None</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_indexes</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">field_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Return the list of vector index information"""</span>
+        <span class="n">index_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">field_names</span><span class="p">:</span>
+            <span class="n">field_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">field_names</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">index_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">index_list</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create an index on the collection"""</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">Collection</span><span class="p">):</span>
             <span class="n">embeddings_functions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span>
             <span class="p">)</span>
-            <span class="n">vector_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">indexes_params</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="p">{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">))</span>
-                <span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">indexes_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">embeddings_func</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">):</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+            <span class="c1"># For backward compatibility</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Milvus</span><span class="p">:</span>
+                <span class="n">default_index_params</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
+                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"HNSW"</span><span class="p">,</span>
+                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"M"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="mi">64</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Zilliz, which is subclass of Milvus</span>
+                <span class="n">default_index_params</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
+                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"AUTOINDEX"</span><span class="p">,</span>
+                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{},</span>
+                <span class="p">}</span>
+            <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">embeddings_func</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">,</span> <span class="n">embeddings_functions</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">vector_field</span><span class="p">):</span>
                     <span class="k">try</span><span class="p">:</span>
-                        <span class="c1"># If no index params, use a default HNSW based one</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
                             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_sparse_embedding</span><span class="p">(</span><span class="n">embeddings_func</span><span class="p">):</span>
-                                <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="n">index_params</span> <span class="o">=</span> <span class="p">{</span>
                                     <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"IP"</span><span class="p">,</span>
                                     <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"SPARSE_INVERTED_INDEX"</span><span class="p">,</span>
                                     <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"drop_ratio_build"</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">},</span>
                                 <span class="p">}</span>
                             <span class="k">else</span><span class="p">:</span>
-                                <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
-                                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"HNSW"</span><span class="p">,</span>
-                                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"M"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="mi">64</span><span class="p">},</span>
-                                <span class="p">}</span>
-
-                        <span class="k">try</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
-                                <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">index_params</span><span class="o">=</span><span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
-                            <span class="p">)</span>
-
-                        <span class="c1"># If default did not work, most likely on Zilliz Cloud</span>
-                        <span class="k">except</span> <span class="n">MilvusException</span><span class="p">:</span>
-                            <span class="c1"># Use AUTOINDEX based index</span>
-                            <span class="n">index_params</span> <span class="o">=</span> <span class="p">{</span>
-                                <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
-                                <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"AUTOINDEX"</span><span class="p">,</span>
-                                <span class="s2">"params"</span><span class="p">:</span> <span class="p">{},</span>
-                            <span class="p">}</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
-                                <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">index_params</span><span class="o">=</span><span class="n">index_params</span><span class="p">,</span>
-                                <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
-                            <span class="p">)</span>
+                                <span class="n">index_params</span> <span class="o">=</span> <span class="n">default_index_params</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">vector_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">index_params</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">index_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">vector_field</span><span class="p">]</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
+                            <span class="n">vector_field</span><span class="p">,</span>
+                            <span class="n">index_params</span><span class="o">=</span><span class="n">index_params</span><span class="p">,</span>
+                            <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                        <span class="p">)</span>
                         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                             <span class="s2">"Successfully created an index"</span>
                             <span class="s2">"on </span><span class="si">%s</span><span class="s2"> field on collection: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
-                            <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                            <span class="n">vector_field</span><span class="p">,</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -951,10 +1197,48 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
                         <span class="p">)</span>
                         <span class="k">raise</span> <span class="n">e</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="n">indexes_params</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="n">indexes_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">builtin_function</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_function</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">vector_field</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">vector_field</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">builtin_function</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">FunctionType</span><span class="o">.</span><span class="n">BM25</span><span class="p">:</span>
+                                <span class="n">index_params</span> <span class="o">=</span> <span class="p">{</span>
+                                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"BM25"</span><span class="p">,</span>
+                                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"AUTOINDEX"</span><span class="p">,</span>
+                                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{},</span>
+                                <span class="p">}</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                    <span class="s2">"Unsupported built-in function type: "</span>
+                                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">builtin_function</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2"> for field: "</span>
+                                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">vector_field</span><span class="si">}</span><span class="s2">."</span>
+                                <span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">vector_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">index_params</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">index_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="p">[</span><span class="n">vector_field</span><span class="p">]</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
+                            <span class="n">vector_field</span><span class="p">,</span>
+                            <span class="n">index_params</span><span class="o">=</span><span class="n">index_params</span><span class="p">,</span>
+                            <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="s2">"Successfully created an index"</span>
+                            <span class="s2">"on </span><span class="si">%s</span><span class="s2"> field on collection: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="n">vector_field</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="s2">"Failed to create an index on collection: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">raise</span> <span class="n">e</span>
+            <span class="n">index_params_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">):</span>
+                <span class="n">index_params_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_index_param_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="p">{}))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">index_params_list</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_search_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generate search params based on the current index type"""</span>
@@ -974,10 +1258,7 @@
                     <span class="p">)</span>
                     <span class="n">search_params</span><span class="p">[</span><span class="s2">"metric_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">metric_type</span>
                     <span class="n">search_params_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">search_params</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">search_params</span> <span class="o">=</span> <span class="n">search_params_list</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">search_params</span> <span class="o">=</span> <span class="n">search_params_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">search_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">search_params_list</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -989,7 +1270,7 @@
         <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_indexes</span><span class="p">()</span>
             <span class="ow">and</span> <span class="n">utility</span><span class="o">.</span><span class="n">load_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span>
             <span class="o">==</span> <span class="n">LoadState</span><span class="o">.</span><span class="n">NotLoad</span>
         <span class="p">):</span>
@@ -1068,7 +1349,7 @@
                 <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_func</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span><span class="n">texts</span><span class="p">))</span>
             <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
                 <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">embedding_func</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">])</span>
-
+        <span class="c1"># Currently, it is field-wise</span>
         <span class="c1"># assuming [f1, f2] embeddings functions and [a, b, c] as texts:</span>
         <span class="c1"># embeddings = [</span>
         <span class="c1">#     [f1(a), f1(b), f1(c)],</span>
@@ -1079,11 +1360,12 @@
         <span class="c1">#     [f1(a), f1(b), f1(c)]</span>
         <span class="c1"># ]</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"Nothing to insert, skipping."</span><span class="p">)</span>
             <span class="k">return</span> <span class="p">[]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
+        <span class="c1"># Transpose it into row-wise</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_embedding</span><span class="p">:</span>
             <span class="c1"># transposed_embeddings = [</span>
             <span class="c1">#     [f1(a), f2(a)],</span>
             <span class="c1">#     [f1(b), f2(b)],</span>
@@ -1099,7 +1381,7 @@
             <span class="c1">#     f1(b),</span>
             <span class="c1">#     f1(c)</span>
             <span class="c1"># ]</span>
-            <span class="n">transposed_embeddings</span> <span class="o">=</span> <span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">transposed_embeddings</span> <span class="o">=</span> <span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_embeddings</span><span class="p">(</span>
             <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span>
@@ -1136,7 +1418,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            texts (List[str]): the texts to insert</span>
-<span class="sd">            embeddings (List[List[Union[float, List[float]]]]):</span>
+<span class="sd">            embeddings (List[List[float]] | List[List[List[float]]]):</span>
 <span class="sd">                A vector embeddings for each text (in case of a single vector)</span>
 <span class="sd">                or list of vectors for each text (in case of multi-vector)</span>
 <span class="sd">            metadatas (Optional[List[dict]]): Metadata dicts attached to each of</span>
@@ -1155,15 +1437,24 @@
 <span class="sd">            List[str]: The resulting keys for each inserted element.</span>
 <span class="sd">        """</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
-            <span class="n">embeddings</span> <span class="o">=</span> <span class="p">[[</span><span class="n">embedding</span><span class="p">]</span> <span class="k">for</span> <span class="n">embedding</span> <span class="ow">in</span> <span class="n">embeddings</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
-        <span class="c1"># Transpose embeddings to make it a list of embeddings of each type.</span>
-        <span class="n">embeddings</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># type: ignore</span>
-            <span class="p">[</span><span class="n">embeddings</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">))]</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="p">]</span>
-
-        <span class="n">vector_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">embeddings</span><span class="p">:</span>
+            <span class="c1"># row-wise -&gt; field-wise</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_embedding</span><span class="p">:</span>
+                <span class="n">embeddings</span> <span class="o">=</span> <span class="p">[[</span><span class="n">embedding</span><span class="p">]</span> <span class="k">for</span> <span class="n">embedding</span> <span class="ow">in</span> <span class="n">embeddings</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
+            <span class="c1"># transposed_embeddings = [</span>
+            <span class="c1">#     [f1(a), f2(a)],</span>
+            <span class="c1">#     [f1(b), f2(b)],</span>
+            <span class="c1">#     [f1(c), f2(c)]</span>
+            <span class="c1"># ]</span>
+            <span class="c1"># Transpose embeddings to make it a list of embeddings of each type.</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># type: ignore</span>
+                <span class="p">[</span><span class="n">embeddings</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">))]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="p">]</span>
+            <span class="c1"># embeddings = [</span>
+            <span class="c1">#     [f1(a), f1(b), f1(c)],</span>
+            <span class="c1">#     [f2(a), f2(b), f2(c)]</span>
+            <span class="c1"># ]</span>
 
         <span class="c1"># If the collection hasn't been initialized yet, perform all steps to do so</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">Collection</span><span class="p">):</span>
@@ -1196,7 +1487,9 @@
 
             <span class="n">entity_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
 
-            <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_field_embeddings</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vector_fields</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">):</span>  <span class="c1"># type: ignore</span>
+            <span class="k">for</span> <span class="n">vector_field</span><span class="p">,</span> <span class="n">vector_field_embeddings</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">,</span> <span class="n">embeddings</span>
+            <span class="p">):</span>
                 <span class="n">entity_dict</span><span class="p">[</span><span class="n">vector_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">vector_field_embeddings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_field</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">:</span>
@@ -1237,22 +1530,23 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_collection_search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">embedding_or_text</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"pymilvus.client.abstract.SearchResult | None"</span><span class="p">:</span>  <span class="c1"># type: ignore[name-defined] # noqa: F821</span>
-<span class="w">        </span><span class="sd">"""Perform a search on an embedding and return milvus search results.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SearchResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Perform a search on an embedding or a query text and return milvus search</span>
+<span class="sd">        results.</span>
 
 <span class="sd">        For more information about the search parameters, take a look at the pymilvus</span>
 <span class="sd">        documentation found here:</span>
-<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.4.x/ORM/Collection/search.md</span>
+<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.5.x/ORM/Collection/search.md</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            embedding (List[float] | Dict[int, float]): The embedding vector being</span>
-<span class="sd">                searched.</span>
+<span class="sd">            embedding_or_text (List[float] | Dict[int, float] | str): The embedding</span>
+<span class="sd">                vector or query text being searched.</span>
 <span class="sd">            k (int, optional): The amount of results to return. Defaults to 4.</span>
 <span class="sd">            param (dict): The search params for the specified index.</span>
 <span class="sd">                Defaults to None.</span>
@@ -1268,32 +1562,123 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"No existing collection to search."</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">,</span> <span class="nb">list</span>
-        <span class="p">),</span> <span class="s2">"_collection_search does not support multi-vector search."</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">"_collection_search does not support multi-vector search. "</span>
+            <span class="s2">"You can use _collection_hybrid_search instead."</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">param</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_params</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">"The number of search params is larger than 1, "</span>
+                <span class="s2">"please check the search_params in this Milvus instance."</span>
+            <span class="p">)</span>
+            <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="c1"># Determine result metadata fields with PK.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">:</span>
             <span class="n">output_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"*"</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">output_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[:]</span>
-            <span class="n">output_fields</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
-        <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span>
-        <span class="c1"># Perform the search.</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">embedding</span><span class="p">],</span>
+            <span class="n">output_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_forbidden_fields</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[:])</span>
+        <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">embedding_or_text</span><span class="p">],</span>
             <span class="n">anns_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">,</span>
             <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
             <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
             <span class="n">output_fields</span><span class="o">=</span><span class="n">output_fields</span><span class="p">,</span>
-            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span>
+        <span class="k">return</span> <span class="n">col_search_res</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collection_hybrid_search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fetch_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">ranker_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s2">"rrf"</span><span class="p">,</span> <span class="s2">"weighted"</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ranker_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SearchResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Perform a hybrid search on a query string and return milvus search results.</span>
+
+<span class="sd">        For more information about the search parameters, take a look at the pymilvus</span>
+<span class="sd">        documentation found here:</span>
+<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.5.x/ORM/Collection/hybrid_search.md</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query (str): The text being searched.</span>
+<span class="sd">            k (int, optional): The amount of results to return. Defaults to 4.</span>
+<span class="sd">            param (dict | list[dict], optional): The search params for the specified</span>
+<span class="sd">                index. Defaults to None.</span>
+<span class="sd">            expr (str, optional): Filtering expression. Defaults to None.</span>
+<span class="sd">            fetch_k (int, optional): The amount of pre-fetching results for each query.</span>
+<span class="sd">                Defaults to 4.</span>
+<span class="sd">            ranker_type (str, optional): The type of ranker to use. Defaults to None.</span>
+<span class="sd">            ranker_params (dict, optional): The parameters for the ranker.</span>
+<span class="sd">                Defaults to None.</span>
+<span class="sd">            timeout (float, optional): How long to wait before timeout error.</span>
+<span class="sd">                Defaults to None.</span>
+<span class="sd">            kwargs: Collection.hybrid_search() keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            pymilvus.client.abstract.SearchResult: Milvus search result.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"No existing collection to search."</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">search_requests</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">reranker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_ranker</span><span class="p">(</span>
+            <span class="n">ranker_type</span><span class="o">=</span><span class="n">ranker_type</span><span class="p">,</span>
+            <span class="n">ranker_params</span><span class="o">=</span><span class="n">ranker_params</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">param</span><span class="p">:</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">param</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">)</span>
+            <span class="p">),</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"The number of search params (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">param</span><span class="p">))</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="sa">f</span><span class="s2">" does not match the number of vector fields "</span>
+                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span><span class="si">}</span><span class="s2">)."</span>
+                <span class="sa">f</span><span class="s2">" All vector fields are: </span><span class="si">{</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span><span class="si">}</span><span class="s2">,"</span>
+                <span class="s2">" please provide a list of search params for each vector field."</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">param_dict</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">,</span> <span class="n">param_list</span><span class="p">):</span>
+            <span class="n">search_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="p">:</span>
+                <span class="n">embedding_func</span><span class="p">:</span> <span class="n">EmbeddingType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)[</span>  <span class="c1"># type: ignore</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_embedding</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">search_data</span> <span class="o">=</span> <span class="n">embedding_func</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">search_data</span> <span class="o">=</span> <span class="n">query</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="n">AnnSearchRequest</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">search_data</span><span class="p">],</span>
+                <span class="n">anns_field</span><span class="o">=</span><span class="n">field</span><span class="p">,</span>
+                <span class="n">param</span><span class="o">=</span><span class="n">param_dict</span><span class="p">,</span>
+                <span class="n">limit</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
+                <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">search_requests</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_dynamic_field</span><span class="p">:</span>
+            <span class="n">output_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"*"</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_forbidden_fields</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[:])</span>
+        <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">(</span>
+            <span class="n">reqs</span><span class="o">=</span><span class="n">search_requests</span><span class="p">,</span>
+            <span class="n">rerank</span><span class="o">=</span><span class="n">reranker</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">output_fields</span><span class="o">=</span><span class="n">output_fields</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">col_search_res</span>
 
 <div class="viewcode-block" id="Milvus.similarity_search">
 <a class="viewcode-back" href="../../../milvus/vectorstores/langchain_milvus.vectorstores.milvus.Milvus.html#langchain_milvus.vectorstores.milvus.Milvus.similarity_search">[docs]</a>
@@ -1301,7 +1686,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1311,7 +1696,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            query (str): The text to search.</span>
 <span class="sd">            k (int, optional): How many results to return. Defaults to 4.</span>
-<span class="sd">            param (dict, optional): The search params for the index type.</span>
+<span class="sd">            param (dict | list[dict], optional): The search params for the index type.</span>
 <span class="sd">                Defaults to None.</span>
 <span class="sd">            expr (str, optional): Filtering expression. Defaults to None.</span>
 <span class="sd">            timeout (int, optional): How long to wait before timeout error.</span>
@@ -1373,7 +1758,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">param</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1382,59 +1767,68 @@
 
 <span class="sd">        For more information about the search parameters, take a look at the pymilvus</span>
 <span class="sd">        documentation found here:</span>
-<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.4.x/ORM/Collection/search.md</span>
+<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.5.x/ORM/Collection/search.md</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (str): The text being searched.</span>
 <span class="sd">            k (int, optional): The amount of results to return. Defaults to 4.</span>
-<span class="sd">            param (dict): The search params for the specified index.</span>
-<span class="sd">                Defaults to None.</span>
+<span class="sd">            param (dict | list[dict], optional): The search params for the specified</span>
+<span class="sd">            index. Defaults to None.</span>
 <span class="sd">            expr (str, optional): Filtering expression. Defaults to None.</span>
 <span class="sd">            timeout (float, optional): How long to wait before timeout error.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            kwargs: Collection.search() keyword arguments.</span>
+<span class="sd">            kwargs: Collection.search() or hybrid_search() keyword arguments.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[float], List[Tuple[Document, any, any]]:</span>
+<span class="sd">            List[Tuple[Document, float]]: List of result doc and score.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"No existing collection to search."</span><span class="p">)</span>
             <span class="k">return</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># is multi-vector</span>
-            <span class="n">ranker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_ranker</span><span class="p">(</span>
-                <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"ranker_type"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"ranker_params"</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
+            <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection_hybrid_search</span><span class="p">(</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
-            <span class="n">hybrid_retriever</span> <span class="o">=</span> <span class="n">MilvusCollectionHybridSearchRetriever</span><span class="p">(</span>
-                <span class="n">collection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span>
-                <span class="n">rerank</span><span class="o">=</span><span class="n">ranker</span><span class="p">,</span>
-                <span class="n">anns_fields</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">,</span>
-                <span class="n">field_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span>
-                <span class="n">field_search_params</span><span class="o">=</span><span class="n">param</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_params</span><span class="p">,</span>
-                <span class="n">field_exprs</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
-                <span class="n">top_k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-                <span class="n">text_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">,</span>
-                <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">col_search_res</span> <span class="o">=</span> <span class="n">hybrid_retriever</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">col_search_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">fields</span><span class="p">}</span>
-                <span class="n">doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_document</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">doc</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">score</span><span class="p">))</span>
+
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Embed the query text.</span>
-            <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-            <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_with_score_by_vector</span><span class="p">(</span>
-                <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
-                <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-                <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
-                <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
-                <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">param</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">"When there is only one vector field, you can not provide multiple "</span>
+                <span class="s2">"search param dicts."</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span></div>
+            <span class="n">param</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_list</span><span class="p">(</span><span class="n">param</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+                <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection_search</span><span class="p">(</span>
+                    <span class="n">embedding_or_text</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+                    <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                    <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
+                    <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">):</span>
+                <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection_search</span><span class="p">(</span>
+                    <span class="n">embedding_or_text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+                    <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                    <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
+                    <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
+                    <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">"Check either it's multi vectors or single vector with "</span>
+                    <span class="s2">"only one embedding/builtin function."</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_documents_from_search_results</span><span class="p">(</span><span class="n">col_search_res</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Milvus.similarity_search_with_score_by_vector">
@@ -1452,7 +1846,7 @@
 
 <span class="sd">        For more information about the search parameters, take a look at the pymilvus</span>
 <span class="sd">        documentation found here:</span>
-<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.4.x/ORM/Collection/search.md</span>
+<span class="sd">        https://milvus.io/api-reference/pymilvus/v2.5.x/ORM/Collection/search.md</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            embedding (List[float] | Dict[int, float]): The embedding vector being</span>
@@ -1469,18 +1863,14 @@
 <span class="sd">            List[Tuple[Document, float]]: Result doc and score.</span>
 <span class="sd">        """</span>
         <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection_search</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="n">embedding_or_text</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
+            <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">col_search_res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[]</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">col_search_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">fields</span><span class="p">}</span>
-            <span class="n">doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_document</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-            <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
-            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">ret</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_documents_from_search_results</span><span class="p">(</span><span class="n">col_search_res</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Milvus.max_marginal_relevance_search">
@@ -1522,10 +1912,16 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"No existing collection to search."</span><span class="p">)</span>
             <span class="k">return</span> <span class="p">[]</span>
 
-        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">,</span> <span class="nb">list</span>
-        <span class="p">),</span> <span class="s2">"MMR is not-suported in multi-vector settings"</span>
-        <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="p">),</span> <span class="s2">"You must set only one embedding function for MMR search."</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_fields_from_function</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"MMR search will only use the embedding function, "</span>
+                <span class="s2">"without the built-in functions."</span>
+            <span class="p">)</span>
+
+        <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
         <span class="n">timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">or</span> <span class="n">timeout</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_marginal_relevance_search_by_vector</span><span class="p">(</span>
             <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
@@ -1575,7 +1971,7 @@
 <span class="sd">            List[Document]: Document results for search.</span>
 <span class="sd">        """</span>
         <span class="n">col_search_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection_search</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+            <span class="n">embedding_or_text</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
             <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="p">,</span>
             <span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span>
@@ -1634,7 +2030,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"No index params provided. Could not determine relevance function."</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_embedding</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_function</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"No supported normalization function for multi vectors. "</span>
                 <span class="s2">"Could not determine relevance function."</span>
@@ -1665,13 +2061,19 @@
 <span class="sd">            """</span>
             <span class="k">return</span> <span class="p">(</span><span class="n">ip_score</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">"No index params provided. Could not determine relevance function. "</span>
                 <span class="s2">"Use L2 distance as default."</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">_map_l2_to_similarity</span>
         <span class="n">indexes_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indexes_params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"No supported normalization function for multi vectors. "</span>
+                <span class="s2">"Could not determine relevance function."</span>
+            <span class="p">)</span>
+        <span class="c1"># In the left case, the len of indexes_params is 1.</span>
         <span class="n">metric_type</span> <span class="o">=</span> <span class="n">indexes_params</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"metric_type"</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">metric_type</span> <span class="o">==</span> <span class="s2">"L2"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">_map_l2_to_similarity</span>
@@ -1716,7 +2118,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">from_texts</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">embedding</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]],</span>  <span class="c1"># type: ignore</span>
+        <span class="n">embedding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]]],</span>
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"LangChainCollection"</span><span class="p">,</span>
         <span class="n">connection_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1727,13 +2129,17 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">auto_id</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">builtin_function</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMilvusBuiltInFunction</span><span class="p">]]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Milvus</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a Milvus collection, indexes it with HNSW, and insert data.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            texts (List[str]): Text data.</span>
-<span class="sd">            embedding (Union[Embeddings, BaseSparseEmbedding]): Embedding function.</span>
+<span class="sd">            embedding (Optional[Union[Embeddings, BaseSparseEmbedding]]): Embedding</span>
+<span class="sd">                function.</span>
 <span class="sd">            metadatas (Optional[List[dict]]): Metadata for each text if it exists.</span>
 <span class="sd">                Defaults to None.</span>
 <span class="sd">            collection_name (str, optional): Collection name to use. Defaults to</span>
@@ -1752,7 +2158,10 @@
 <span class="sd">            auto_id (bool): Whether to enable auto id for primary key. Defaults to</span>
 <span class="sd">                False. If False, you need to provide text ids (string less than 65535</span>
 <span class="sd">                bytes). If True, Milvus will generate unique integers as primary keys.</span>
-
+<span class="sd">            builtin_function (Optional[Union[BaseMilvusBuiltInFunction,</span>
+<span class="sd">                List[BaseMilvusBuiltInFunction]]]):</span>
+<span class="sd">                Built-in function to use. Defaults to None.</span>
+<span class="sd">            **kwargs: Other parameters in Milvus Collection.</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            Milvus: Milvus Vector Store</span>
 <span class="sd">        """</span>
@@ -1774,6 +2183,7 @@
             <span class="n">search_params</span><span class="o">=</span><span class="n">search_params</span><span class="p">,</span>
             <span class="n">drop_old</span><span class="o">=</span><span class="n">drop_old</span><span class="p">,</span>
             <span class="n">auto_id</span><span class="o">=</span><span class="n">auto_id</span><span class="p">,</span>
+            <span class="n">builtin_function</span><span class="o">=</span><span class="n">builtin_function</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">vector_db</span><span class="o">.</span><span class="n">add_texts</span><span class="p">(</span><span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">metadatas</span><span class="o">=</span><span class="n">metadatas</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
@@ -1789,6 +2199,20 @@
             <span class="n">page_content</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="p">),</span>
             <span class="n">metadata</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata_field</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_field</span> <span class="k">else</span> <span class="n">data</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_documents_from_search_results</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">col_search_res</span><span class="p">:</span> <span class="n">SearchResult</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">col_search_res</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">col_search_res</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">fields</span><span class="p">}</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_document</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
 
 <div class="viewcode-block" id="Milvus.add_documents">
 <a class="viewcode-back" href="../../../milvus/vectorstores/langchain_milvus.vectorstores.milvus.Milvus.html#langchain_milvus.vectorstores.milvus.Milvus.add_documents">[docs]</a>
@@ -1871,8 +2295,18 @@
 
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_as_list</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_as_list</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Try to cast a value to a list"""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_list</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">T</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">T</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">"""Try to cast a list to a single value"""</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">value</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_ranker</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1880,8 +2314,7 @@
         <span class="n">ranker_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">WeightedRanker</span><span class="p">,</span> <span class="n">RRFRanker</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""A Ranker factory method"""</span>
-        <span class="n">embeddings_functions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span><span class="p">)</span>
-        <span class="n">default_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">)</span>
+        <span class="n">default_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ranker_type</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">WeightedRanker</span><span class="p">(</span><span class="o">*</span><span class="n">default_weights</span><span class="p">)</span>
 
@@ -1901,7 +2334,17 @@
                 <span class="s2">"weighted"</span><span class="p">,</span>
                 <span class="s2">"rrf"</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unrecognized ranker of type </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">ranker_type</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Unrecognized ranker of type </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">ranker_type</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_forbidden_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Bm25 function fields are not allowed as output fields in Milvus."""</span>
+        <span class="n">forbidden_fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">builtin_function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_func</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">builtin_function</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">FunctionType</span><span class="o">.</span><span class="n">BM25</span><span class="p">:</span>
+                <span class="n">forbidden_fields</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="n">builtin_function</span><span class="o">.</span><span class="n">output_field_names</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">field</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span> <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">forbidden_fields</span><span class="p">]</span></div>
 
 </pre></div>
 </article>

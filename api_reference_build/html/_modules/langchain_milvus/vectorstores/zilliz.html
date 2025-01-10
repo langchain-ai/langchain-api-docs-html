@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 09, 2025" name="docbuild:last-update"/>
+<meta content="Jan 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,11 +223,8 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pymilvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">MilvusException</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus.vectorstores.milvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmbeddingType</span><span class="p">,</span> <span class="n">Milvus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_milvus.vectorstores.milvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">Milvus</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -295,80 +292,11 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If the pymilvus python package is not installed.</span>
-<span class="sd">    """</span>
+<span class="sd">    """</span></div>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_create_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Create an index on the collection"""</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
-
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="p">,</span> <span class="n">Collection</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">embeddings_functions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">EmbeddingType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">embedding_func</span>
-            <span class="p">)</span>
-            <span class="n">vector_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_field</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">indexes_params</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="p">{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">))</span>
-                <span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">indexes_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_params</span><span class="p">)</span>
-
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">embeddings_func</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">embeddings_functions</span><span class="p">):</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="c1"># If no index params, use a default *AutoIndex* based one</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_sparse_embedding</span><span class="p">(</span><span class="n">embeddings_func</span><span class="p">):</span>
-                                <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"IP"</span><span class="p">,</span>
-                                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"SPARSE_INVERTED_INDEX"</span><span class="p">,</span>
-                                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"drop_ratio_build"</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">},</span>
-                                <span class="p">}</span>
-                            <span class="k">else</span><span class="p">:</span>
-                                <span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-                                    <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
-                                    <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"AUTOINDEX"</span><span class="p">,</span>
-                                    <span class="s2">"params"</span><span class="p">:</span> <span class="p">{},</span>
-                                <span class="p">}</span>
-
-                        <span class="k">try</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
-                                <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">index_params</span><span class="o">=</span><span class="n">indexes_params</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
-                            <span class="p">)</span>
-
-                        <span class="c1"># If default did not work, most likely Milvus self-hosted</span>
-                        <span class="k">except</span> <span class="n">MilvusException</span><span class="p">:</span>
-                            <span class="c1"># Use HNSW based index</span>
-                            <span class="n">index_params</span> <span class="o">=</span> <span class="p">{</span>
-                                <span class="s2">"metric_type"</span><span class="p">:</span> <span class="s2">"L2"</span><span class="p">,</span>
-                                <span class="s2">"index_type"</span><span class="p">:</span> <span class="s2">"HNSW"</span><span class="p">,</span>
-                                <span class="s2">"params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"M"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="mi">64</span><span class="p">},</span>
-                            <span class="p">}</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">create_index</span><span class="p">(</span>
-                                <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                <span class="n">index_params</span><span class="o">=</span><span class="n">index_params</span><span class="p">,</span>
-                                <span class="n">using</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
-                            <span class="p">)</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                            <span class="s2">"Successfully created an index"</span>
-                            <span class="s2">"on </span><span class="si">%s</span><span class="s2"> field on collection: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
-                            <span class="n">vector_fields</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                        <span class="p">)</span>
-                    <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                            <span class="s2">"Failed to create an index on collection: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                        <span class="p">)</span>
-                        <span class="k">raise</span> <span class="n">e</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_multi_vector</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="n">indexes_params</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">index_params</span> <span class="o">=</span> <span class="n">indexes_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
-
+    <span class="c1"># For backwards compatibility, this class is preserved.</span>
+    <span class="c1"># But it is recommended to use Milvus instead.</span>
 </pre></div>
 </article>
 </div>
