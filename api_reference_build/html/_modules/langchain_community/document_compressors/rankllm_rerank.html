@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 11, 2025" name="docbuild:last-update"/>
+<meta content="Jan 13, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,12 +224,14 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.retrievers.document_compressors.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseDocumentCompressor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callbacks</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">packaging.version</span><span class="w"> </span><span class="kn">import</span> <span class="n">Version</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">PrivateAttr</span><span class="p">,</span> <span class="n">model_validator</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -273,6 +275,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"client"</span><span class="p">):</span>
             <span class="n">client_name</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">,</span> <span class="s2">"zephyr"</span><span class="p">)</span>
 
+            <span class="n">is_pre_rank_llm_revamp</span> <span class="o">=</span> <span class="n">Version</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">(</span><span class="s2">"rank_llm"</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">Version</span><span class="p">(</span>
+                <span class="s2">"0.12.8"</span>
+            <span class="p">)</span>
+
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">model_enum</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">(</span><span class="n">client_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -282,15 +288,29 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">model_enum</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">VICUNA</span><span class="p">:</span>
-                    <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.vicuna_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="n">VicunaReranker</span>
+                    <span class="k">if</span> <span class="n">is_pre_rank_llm_revamp</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.vicuna_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="n">VicunaReranker</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.listwise.vicuna_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                            <span class="n">VicunaReranker</span><span class="p">,</span>
+                        <span class="p">)</span>
 
                     <span class="n">values</span><span class="p">[</span><span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="n">VicunaReranker</span><span class="p">()</span>
                 <span class="k">elif</span> <span class="n">model_enum</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">ZEPHYR</span><span class="p">:</span>
-                    <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.zephyr_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZephyrReranker</span>
+                    <span class="k">if</span> <span class="n">is_pre_rank_llm_revamp</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.zephyr_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZephyrReranker</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.listwise.zephyr_reranker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                            <span class="n">ZephyrReranker</span><span class="p">,</span>
+                        <span class="p">)</span>
 
                     <span class="n">values</span><span class="p">[</span><span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ZephyrReranker</span><span class="p">()</span>
                 <span class="k">elif</span> <span class="n">model_enum</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">GPT</span><span class="p">:</span>
-                    <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.rank_gpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeOpenai</span>
+                    <span class="k">if</span> <span class="n">is_pre_rank_llm_revamp</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.rank_gpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeOpenai</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.listwise.rank_gpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">SafeOpenai</span>
+
                     <span class="kn">from</span><span class="w"> </span><span class="nn">rank_llm.rerank.reranker</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reranker</span>
 
                     <span class="n">openai_api_key</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span>
