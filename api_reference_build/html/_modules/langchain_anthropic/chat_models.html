@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 17, 2025" name="docbuild:last-update"/>
+<meta content="Jan 18, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1045,6 +1045,7 @@
         <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
             <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"any"</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
         <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parallel_tool_calls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">"""Bind tool-like objects to this chat model.</span>
@@ -1058,6 +1059,10 @@
 <span class="sd">                - name of the tool as a string or as dict ``{"type": "tool", "name": "&lt;&lt;tool_name&gt;&gt;"}``: calls corresponding tool;</span>
 <span class="sd">                - ``"auto"``, ``{"type: "auto"}``, or None: automatically selects a tool (including no tool);</span>
 <span class="sd">                - ``"any"`` or ``{"type: "any"}``: force at least one tool to be called;</span>
+<span class="sd">            parallel_tool_calls: Set to ``False`` to disable parallel tool use.</span>
+<span class="sd">                Defaults to ``None`` (no specification, which allows parallel tool use).</span>
+
+<span class="sd">                .. versionadded:: 0.3.2</span>
 <span class="sd">            kwargs: Any additional parameters are passed directly to</span>
 <span class="sd">                :meth:`~langchain_anthropic.chat_models.ChatAnthropic.bind`.</span>
 
@@ -1194,6 +1199,19 @@
                 <span class="sa">f</span><span class="s2">"Unrecognized 'tool_choice' type </span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="s2">. Expected dict, "</span>
                 <span class="sa">f</span><span class="s2">"str, or None."</span>
             <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">parallel_tool_calls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">disable_parallel_tool_use</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">parallel_tool_calls</span>
+            <span class="k">if</span> <span class="s2">"tool_choice"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tool_choice"</span><span class="p">][</span><span class="s2">"disable_parallel_tool_use"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">disable_parallel_tool_use</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tool_choice"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"auto"</span><span class="p">,</span>
+                    <span class="s2">"disable_parallel_tool_use"</span><span class="p">:</span> <span class="n">disable_parallel_tool_use</span><span class="p">,</span>
+                <span class="p">}</span>
+
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
