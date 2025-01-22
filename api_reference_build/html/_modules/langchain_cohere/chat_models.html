@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 21, 2025" name="docbuild:last-update"/>
+<meta content="Jan 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,23 +220,38 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_cohere.chat_models</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
     <span class="n">Iterator</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
+    <span class="n">MutableMapping</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
     <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">cohere.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">NonStreamedChatResponse</span><span class="p">,</span> <span class="n">ToolCall</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cohere.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AssistantChatMessageV2</span><span class="p">,</span>
+    <span class="n">ChatMessageV2</span><span class="p">,</span>
+    <span class="n">ChatResponse</span><span class="p">,</span>
+    <span class="n">DocumentToolContent</span><span class="p">,</span>
+    <span class="n">NonStreamedChatResponse</span><span class="p">,</span>
+    <span class="n">SystemChatMessageV2</span><span class="p">,</span>
+    <span class="n">ToolCall</span><span class="p">,</span>
+    <span class="n">ToolCallV2</span><span class="p">,</span>
+    <span class="n">ToolCallV2Function</span><span class="p">,</span>
+    <span class="n">ToolChatMessageV2</span><span class="p">,</span>
+    <span class="n">UserChatMessageV2</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cohere.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span> <span class="k">as</span> <span class="n">DocumentV2</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api.deprecation</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn_deprecated</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
@@ -264,6 +279,7 @@
     <span class="n">ToolCall</span> <span class="k">as</span> <span class="n">LC_ToolCall</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">UsageMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonOutputParser</span><span class="p">,</span> <span class="n">PydanticOutputParser</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserLike</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.openai_tools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">JsonOutputKeyToolsParser</span><span class="p">,</span>
@@ -276,10 +292,19 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_cohere.cohere_agent</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_convert_to_cohere_tool</span><span class="p">,</span>
-    <span class="n">_format_to_cohere_tools</span><span class="p">,</span>
+    <span class="n">_format_to_cohere_tools_v2</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_cohere.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCohere</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_cohere.react_multi_hop.prompt</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_to_documents</span>
+
+<span class="n">LC_TOOL_CALL_TEMPLATE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"id"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function"</span><span class="p">,</span>
+    <span class="s2">"function"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="s2">"arguments"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_message_to_cohere_tool_results</span><span class="p">(</span>
@@ -356,10 +381,6 @@
                 <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tool_results</span>
-
-
-<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">cohere.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ListModelsResponse</span>  <span class="c1"># noqa: F401</span>
 
 
 <div class="viewcode-block" id="get_role">
@@ -579,6 +600,209 @@
 
 
 
+<div class="viewcode-block" id="get_role_v2">
+<a class="viewcode-back" href="../../cohere/chat_models/langchain_cohere.chat_models.get_role_v2.html#langchain_cohere.chat_models.get_role_v2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Get the role of the message (V2).</span>
+<span class="sd">    Args:</span>
+<span class="sd">        message: The message.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The role of the message.</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the message is of an unknown type.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"user"</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"assistant"</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"system"</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"tool"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Got unknown type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_message_cohere_format_v2</span><span class="p">(</span>
+    <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">tool_results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">MutableMapping</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatMessageV2</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Get the formatted message as required in cohere's api (V2).</span>
+<span class="sd">    Args:</span>
+<span class="sd">        message: The BaseMessage.</span>
+<span class="sd">        tool_results: The tool results if any</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The formatted message as required in cohere's api.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">AssistantChatMessageV2</span><span class="p">(</span>
+                <span class="n">role</span><span class="o">=</span><span class="n">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">),</span>
+                <span class="n">tool_plan</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">else</span> <span class="s2">"I will assist you using the tools provided."</span><span class="p">,</span>
+                <span class="n">tool_calls</span><span class="o">=</span><span class="p">[</span>
+                    <span class="n">ToolCallV2</span><span class="p">(</span>
+                        <span class="nb">id</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">),</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="s2">"function"</span><span class="p">,</span>
+                        <span class="n">function</span><span class="o">=</span><span class="n">ToolCallV2Function</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span>
+                            <span class="n">arguments</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"args"</span><span class="p">)),</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">AssistantChatMessageV2</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">UserChatMessageV2</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SystemChatMessageV2</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tool_results</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Tool results are required for ToolMessage"</span><span class="p">)</span>
+
+        <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">DocumentToolContent</span><span class="p">(</span>
+                <span class="nb">type</span><span class="o">=</span><span class="s2">"document"</span><span class="p">,</span>
+                <span class="n">document</span><span class="o">=</span><span class="n">DocumentV2</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">tool_result</span><span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">tool_result</span> <span class="ow">in</span> <span class="n">tool_results</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">DocumentToolContent</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="s2">"document"</span><span class="p">,</span> <span class="n">document</span><span class="o">=</span><span class="n">DocumentV2</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"output"</span><span class="p">:</span> <span class="s2">""</span><span class="p">})</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">ToolChatMessageV2</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">get_role_v2</span><span class="p">(</span><span class="n">message</span><span class="p">),</span>
+            <span class="n">tool_call_id</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Got unknown type </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_cohere_chat_request_v2">
+<a class="viewcode-back" href="../../cohere/chat_models/langchain_cohere.chat_models.get_cohere_chat_request_v2.html#langchain_cohere.chat_models.get_cohere_chat_request_v2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_cohere_chat_request_v2</span><span class="p">(</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">documents</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">stop_sequences</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Get the request for the Cohere chat API (V2).</span>
+<span class="sd">    Args:</span>
+<span class="sd">        messages: The messages.</span>
+<span class="sd">        **kwargs: The keyword arguments.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The request for the Cohere chat API.</span>
+<span class="sd">    """</span>
+    <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">additional_kwargs</span>
+
+    <span class="c1"># cohere SDK will fail loudly if both connectors and documents are provided</span>
+    <span class="k">if</span> <span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">and</span> <span class="n">documents</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">documents</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"Received documents both as a keyword argument and as an prompt additional keyword argument. Please choose only one option."</span>  <span class="c1"># noqa: E501</span>
+        <span class="p">)</span>
+
+    <span class="n">parsed_docs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="s2">"documents"</span> <span class="ow">in</span> <span class="n">additional_kwargs</span><span class="p">:</span>
+        <span class="n">parsed_docs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"documents"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[])</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">documents</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">documents</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">parsed_docs</span> <span class="o">=</span> <span class="n">documents</span>
+
+    <span class="n">formatted_docs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">parsed_docs</span><span class="p">:</span>
+        <span class="n">formatted_docs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">parsed_doc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parsed_docs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parsed_doc</span><span class="p">,</span> <span class="n">Document</span><span class="p">):</span>
+                <span class="n">formatted_docs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">"id"</span><span class="p">:</span> <span class="n">parsed_doc</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"doc-</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                        <span class="s2">"data"</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">"text"</span><span class="p">:</span> <span class="n">parsed_doc</span><span class="o">.</span><span class="n">page_content</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parsed_doc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">"data"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_doc</span><span class="p">:</span>
+                    <span class="n">formatted_docs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">"id"</span><span class="p">:</span> <span class="n">parsed_doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"doc-</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                            <span class="s2">"data"</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="o">**</span><span class="n">parsed_doc</span><span class="p">,</span>
+                            <span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">formatted_docs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_doc</span><span class="p">)</span>
+
+    <span class="c1"># check if the last message is a tool message or human message</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">ToolMessage</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">HumanMessage</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"The last message is not an ToolMessage or HumanMessage"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"preamble"</span><span class="p">):</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">SystemMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"preamble"</span><span class="p">)))]</span> <span class="o">+</span> <span class="n">messages</span>
+        <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"preamble"</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connectors"</span><span class="p">):</span>
+        <span class="n">warn_deprecated</span><span class="p">(</span>
+            <span class="s2">"0.4.0"</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"The 'connectors' parameter is deprecated as of version 0.4.0.</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="s2">"Please use the 'tools' parameter instead."</span>
+            <span class="p">),</span>
+            <span class="n">removal</span><span class="o">=</span><span class="s2">"0.4.0"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"The 'connectors' parameter is deprecated as of version 0.4.0."</span>
+        <span class="p">)</span>
+
+    <span class="n">chat_history_with_curr_msg</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">):</span>
+            <span class="n">tool_output</span> <span class="o">=</span> <span class="n">convert_to_documents</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="n">chat_history_with_curr_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_get_message_cohere_format_v2</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">tool_output</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">chat_history_with_curr_msg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_get_message_cohere_format_v2</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">req</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"messages"</span><span class="p">:</span> <span class="n">chat_history_with_curr_msg</span><span class="p">,</span>
+        <span class="s2">"documents"</span><span class="p">:</span> <span class="n">formatted_docs</span><span class="p">,</span>
+        <span class="s2">"stop_sequences"</span><span class="p">:</span> <span class="n">stop_sequences</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">req</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span></div>
+
+
+
 <div class="viewcode-block" id="ChatCohere">
 <a class="viewcode-back" href="../../cohere/chat_models/langchain_cohere.chat_models.ChatCohere.html#langchain_cohere.chat_models.ChatCohere">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatCohere</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">BaseCohere</span><span class="p">):</span>
@@ -627,7 +851,7 @@
         <span class="n">tools</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">],</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">BaseTool</span><span class="p">]],</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]:</span>
-        <span class="n">formatted_tools</span> <span class="o">=</span> <span class="n">_format_to_cohere_tools</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
+        <span class="n">formatted_tools</span> <span class="o">=</span> <span class="n">_format_to_cohere_tools_v2</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
@@ -636,29 +860,85 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">with_structured_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]],</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">"function_calling"</span><span class="p">,</span> <span class="s2">"tool_calling"</span><span class="p">,</span> <span class="s2">"json_mode"</span><span class="p">,</span> <span class="s2">"json_schema"</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">"json_schema"</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Model wrapper that returns outputs formatted to match the given schema.</span>
+<span class="sd">        Given schema can be a Pydantic class or a dict.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            schema: The output schema as a dict or a Pydantic class. If a Pydantic class</span>
 <span class="sd">                then the model output will be an object of that class. If a dict then</span>
 <span class="sd">                the model output will be a dict.</span>
+<span class="sd">            method: The method for steering model generation, one of:</span>
+<span class="sd">                - "function_calling" or "tool_calling":</span>
+<span class="sd">                    Uses Cohere's tool-calling (formerly called function calling)</span>
+<span class="sd">                    API: https://docs.cohere.com/v2/docs/tool-use</span>
+<span class="sd">                - "json_schema":</span>
+<span class="sd">                    Uses Cohere's Structured Output API: https://docs.cohere.com/docs/structured-outputs</span>
+<span class="sd">                    Allows the user to pass a json schema (or pydantic)</span>
+<span class="sd">                        to the model for structured output.</span>
+<span class="sd">                    This is the default method.</span>
+<span class="sd">                    Supported for "command-r", "command-r-plus", and later</span>
+<span class="sd">                    models.</span>
+<span class="sd">                - "json_mode":</span>
+<span class="sd">                    Uses Cohere's Structured Output API: https://docs.cohere.com/docs/structured-outputs</span>
+<span class="sd">                    Supported for "command-r", "command-r-plus", and later</span>
+<span class="sd">                    models.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A Runnable that takes any ChatModel input and returns either a dict or</span>
 <span class="sd">            Pydantic class as output.</span>
 <span class="sd">        """</span>
-        <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">)</span>
-        <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
-            <span class="n">output_parser</span><span class="p">:</span> <span class="n">OutputParserLike</span> <span class="o">=</span> <span class="n">PydanticToolsParser</span><span class="p">(</span>
-                <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">schema</span><span class="p">],</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">schema</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">method</span> <span class="o">!=</span> <span class="s2">"json_mode"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"schema must be specified when method is not 'json_mode'. "</span>
+                <span class="sa">f</span><span class="s2">"Received </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">."</span>
             <span class="p">)</span>
+        <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"function_calling"</span> <span class="ow">or</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"tool_calling"</span><span class="p">:</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
+                <span class="n">output_parser</span><span class="p">:</span> <span class="n">OutputParserLike</span> <span class="o">=</span> <span class="n">PydanticToolsParser</span><span class="p">(</span>
+                    <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">schema</span><span class="p">],</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">key_name</span> <span class="o">=</span> <span class="n">_convert_to_cohere_tool</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="s2">"name"</span><span class="p">]</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputKeyToolsParser</span><span class="p">(</span>
+                    <span class="n">key_name</span><span class="o">=</span><span class="n">key_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_mode"</span><span class="p">:</span>
+            <span class="c1"># Refers to Cohere's `json_object` mode</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"json_object"</span><span class="p">})</span>
+            <span class="n">output_parser</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="k">if</span> <span class="n">is_pydantic_schema</span>
+                <span class="k">else</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span><span class="p">:</span>
+            <span class="n">response_format</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">schema</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>  <span class="c1"># type: ignore[union-attr]</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">is_pydantic_schema</span>
+                <span class="k">else</span> <span class="n">schema</span>
+            <span class="p">)</span>
+            <span class="n">cohere_response_format</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"json_object"</span><span class="p">}</span>
+            <span class="n">cohere_response_format</span><span class="p">[</span><span class="s2">"schema"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">response_format</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>  <span class="c1"># type: ignore[union-attr]</span>
+            <span class="p">}</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">response_format</span><span class="o">=</span><span class="n">cohere_response_format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_pydantic_schema</span><span class="p">:</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">key_name</span> <span class="o">=</span> <span class="n">_convert_to_cohere_tool</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="s2">"name"</span><span class="p">]</span>
-            <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputKeyToolsParser</span><span class="p">(</span>
-                <span class="n">key_name</span><span class="o">=</span><span class="n">key_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Unrecognized method argument. Expected one of 'function_calling' or "</span>
+                <span class="sa">f</span><span class="s2">"or 'json_schema' or 'json_mode'. Received: '</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">'"</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">output_parser</span></div>
@@ -701,7 +981,7 @@
             <span class="n">ls_params</span><span class="p">[</span><span class="s2">"ls_stop"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls_stop</span>
         <span class="k">return</span> <span class="n">ls_params</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream_v1</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -757,6 +1037,119 @@
                     <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
                 <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="c1"># Workaround to allow create_cohere_react_agent to work with the</span>
+        <span class="c1"># current implementation. create_cohere_react_agent relies on the</span>
+        <span class="c1"># 'raw_prompting' parameter to be set, which is only available</span>
+        <span class="c1"># in the v1 API.</span>
+        <span class="c1"># TODO: Remove this workaround once create_cohere_react_agent is</span>
+        <span class="c1"># updated to work with the v2 API.</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"raw_prompting"</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream_v1</span><span class="p">(</span>
+                <span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">):</span>
+                <span class="k">yield</span> <span class="n">value</span>
+            <span class="k">return</span>
+
+        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request_v2</span><span class="p">(</span>
+            <span class="n">messages</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="n">stream</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">chat_stream</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">curr_tool_call</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">LC_TOOL_CALL_TEMPLATE</span><span class="p">)</span>
+        <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"content-delta"</span><span class="p">:</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">text</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">delta</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                    <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">chunk</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span>
+                <span class="s2">"tool-call-start"</span><span class="p">,</span>
+                <span class="s2">"tool-call-delta"</span><span class="p">,</span>
+                <span class="s2">"tool-plan-delta"</span><span class="p">,</span>
+                <span class="s2">"tool-call-end"</span><span class="p">,</span>
+            <span class="p">}:</span>
+                <span class="c1"># tool-call-start: Contains the name of the tool function.</span>
+                <span class="c1">#                  No arguments are included</span>
+                <span class="c1"># tool-call-delta: Contains the arguments of the tool function.</span>
+                <span class="c1">#                  The function name is not included</span>
+                <span class="c1"># tool-plan-delta: Contains a chunk of the tool-plan message</span>
+                <span class="c1"># tool-call-end:   End of tool call streaming</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"tool-call-start"</span><span class="p">,</span> <span class="s2">"tool-call-delta"</span><span class="p">}:</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span>
+
+                    <span class="c1"># To construct the current tool call you need</span>
+                    <span class="c1"># to buffer all the deltas</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-start"</span><span class="p">:</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"id"</span><span class="p">]</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span>
+                            <span class="s2">"function"</span>
+                        <span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-delta"</span><span class="p">:</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"arguments"</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span>
+                            <span class="s2">"function"</span>
+                        <span class="p">][</span><span class="s2">"arguments"</span><span class="p">]</span>
+
+                    <span class="c1"># If the current stream event is a tool-call-start,</span>
+                    <span class="c1"># then the ToolCallV2 object will only contain the function</span>
+                    <span class="c1"># name. If the current stream event is a tool-call-delta,</span>
+                    <span class="c1"># then the ToolCallV2 object will only contain the arguments.</span>
+                    <span class="n">tool_call_v2</span> <span class="o">=</span> <span class="n">ToolCallV2</span><span class="p">(</span>
+                        <span class="n">function</span><span class="o">=</span><span class="n">ToolCallV2Function</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span>
+                            <span class="n">arguments</span><span class="o">=</span><span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="n">cohere_tool_call_chunk</span> <span class="o">=</span> <span class="n">_format_cohere_tool_calls_v2</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">tool_call_v2</span><span class="p">]</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
+                        <span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+                        <span class="n">tool_call_chunks</span><span class="o">=</span><span class="p">[</span>
+                            <span class="n">ToolCallChunk</span><span class="p">(</span>
+                                <span class="n">name</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span>
+                                <span class="n">args</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                    <span class="s2">"arguments"</span>
+                                <span class="p">),</span>
+                                <span class="nb">id</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">),</span>
+                                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-plan-delta"</span><span class="p">:</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span><span class="p">[</span><span class="s2">"tool_plan"</span><span class="p">]</span>
+                    <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">delta</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-end"</span><span class="p">:</span>
+                    <span class="c1"># Maintain a list of all of the tool calls seen during streaming</span>
+                    <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_tool_call</span><span class="p">)</span>
+                    <span class="n">curr_tool_call</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">LC_TOOL_CALL_TEMPLATE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                    <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">chunk</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"message-end"</span><span class="p">:</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span>
+                <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stream_info_v2</span><span class="p">(</span>
+                    <span class="n">delta</span><span class="p">,</span> <span class="n">documents</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">),</span> <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span>
+                <span class="p">)</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
+                    <span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+                    <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">yield</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
+                    <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
+                <span class="p">)</span>
+
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
@@ -764,27 +1157,96 @@
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
-        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request</span><span class="p">(</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request_v2</span><span class="p">(</span>
             <span class="n">messages</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">,</span> <span class="s2">"chat_stream"</span><span class="p">):</span>  <span class="c1"># detect and support sdk v5</span>
-            <span class="n">stream</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">chat_stream</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">stream</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
+        <span class="n">stream</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">chat_stream</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">curr_tool_call</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">LC_TOOL_CALL_TEMPLATE</span><span class="p">)</span>
+        <span class="n">tool_plan_deltas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">async</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">event_type</span> <span class="o">==</span> <span class="s2">"text-generation"</span><span class="p">:</span>
-                <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">text</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"content-delta"</span><span class="p">:</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">text</span>
                 <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">delta</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
                     <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
                 <span class="k">yield</span> <span class="n">chunk</span>
-            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">event_type</span> <span class="o">==</span> <span class="s2">"stream-end"</span><span class="p">:</span>
-                <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_generation_info</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">response</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span>
+                <span class="s2">"tool-call-start"</span><span class="p">,</span>
+                <span class="s2">"tool-call-delta"</span><span class="p">,</span>
+                <span class="s2">"tool-plan-delta"</span><span class="p">,</span>
+                <span class="s2">"tool-call-end"</span><span class="p">,</span>
+            <span class="p">}:</span>
+                <span class="c1"># tool-call-start: Contains the name of the tool function.</span>
+                <span class="c1">#                  No arguments are included</span>
+                <span class="c1"># tool-call-delta: Contains the arguments of the tool function.</span>
+                <span class="c1">#                  The function name is not included</span>
+                <span class="c1"># tool-plan-delta: Contains a chunk of the tool-plan message</span>
+                <span class="c1"># tool-call-end:   End of tool call streaming</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"tool-call-start"</span><span class="p">,</span> <span class="s2">"tool-call-delta"</span><span class="p">}:</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span>
+
+                    <span class="c1"># To construct the current tool call you</span>
+                    <span class="c1"># need to buffer all the deltas</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-start"</span><span class="p">:</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"id"</span><span class="p">]</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span>
+                            <span class="s2">"function"</span>
+                        <span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-delta"</span><span class="p">:</span>
+                        <span class="n">curr_tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"arguments"</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span>
+                            <span class="s2">"function"</span>
+                        <span class="p">][</span><span class="s2">"arguments"</span><span class="p">]</span>
+
+                    <span class="c1"># If the current stream event is a tool-call-start,</span>
+                    <span class="c1"># then the ToolCallV2 object will only contain the</span>
+                    <span class="c1"># function name. If the current stream event is a</span>
+                    <span class="c1"># tool-call-delta, then the ToolCallV2 object will</span>
+                    <span class="c1"># only contain the arguments.</span>
+                    <span class="n">tool_call_v2</span> <span class="o">=</span> <span class="n">ToolCallV2</span><span class="p">(</span>
+                        <span class="n">function</span><span class="o">=</span><span class="n">ToolCallV2Function</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span>
+                            <span class="n">arguments</span><span class="o">=</span><span class="n">delta</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">][</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="n">cohere_tool_call_chunk</span> <span class="o">=</span> <span class="n">_format_cohere_tool_calls_v2</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">tool_call_v2</span><span class="p">]</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
+                        <span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+                        <span class="n">tool_call_chunks</span><span class="o">=</span><span class="p">[</span>
+                            <span class="n">ToolCallChunk</span><span class="p">(</span>
+                                <span class="n">name</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">),</span>
+                                <span class="n">args</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                    <span class="s2">"arguments"</span>
+                                <span class="p">),</span>
+                                <span class="nb">id</span><span class="o">=</span><span class="n">cohere_tool_call_chunk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">),</span>
+                                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-plan-delta"</span><span class="p">:</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">message</span><span class="p">[</span><span class="s2">"tool_plan"</span><span class="p">]</span>
+                    <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">delta</span><span class="p">))</span>
+                    <span class="n">tool_plan_deltas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"tool-call-end"</span><span class="p">:</span>
+                    <span class="c1"># Maintain a list of all of the tool calls seen during streaming</span>
+                    <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_tool_call</span><span class="p">)</span>
+                    <span class="n">curr_tool_call</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">LC_TOOL_CALL_TEMPLATE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"message-end"</span><span class="p">:</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">delta</span>
+                <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stream_info_v2</span><span class="p">(</span>
+                    <span class="n">delta</span><span class="p">,</span> <span class="n">documents</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">),</span> <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span>
+                <span class="p">)</span>
+
                 <span class="n">tool_call_chunks</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="k">if</span> <span class="n">tool_calls</span> <span class="o">:=</span> <span class="n">generation_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">):</span>
-                    <span class="n">content</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">text</span>
+                <span class="k">if</span> <span class="n">tool_calls</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tool_plan_deltas</span><span class="p">)</span>
                     <span class="k">try</span><span class="p">:</span>
                         <span class="n">tool_call_chunks</span> <span class="o">=</span> <span class="p">[</span>
                             <span class="p">{</span>
@@ -799,15 +1261,12 @@
                         <span class="k">pass</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">response</span><span class="p">,</span> <span class="n">NonStreamedChatResponse</span><span class="p">):</span>
-                    <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_get_usage_metadata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">response</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">usage_metadata</span> <span class="o">=</span> <span class="kc">None</span>
+
                 <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
                     <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
                     <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
                     <span class="n">tool_call_chunks</span><span class="o">=</span><span class="n">tool_call_chunks</span><span class="p">,</span>
-                    <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>
+                    <span class="n">usage_metadata</span><span class="o">=</span><span class="n">generation_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"token_count"</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="k">yield</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
                     <span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span>
@@ -837,6 +1296,60 @@
                 <span class="n">generation_info</span><span class="p">[</span><span class="s2">"token_count"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">generation_info</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_generation_info_v2</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">ChatResponse</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Get the generation info from cohere API response (V2)."""</span>
+        <span class="n">generation_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"id"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">finish_reason</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">documents</span><span class="p">:</span>
+            <span class="n">generation_info</span><span class="p">[</span><span class="s2">"documents"</span><span class="p">]</span> <span class="o">=</span> <span class="n">documents</span>
+
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span><span class="p">:</span>
+                <span class="n">generation_info</span><span class="p">[</span><span class="s2">"tool_plan"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                <span class="n">generation_info</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_format_cohere_tool_calls_v2</span><span class="p">(</span>
+                    <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="n">generation_info</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">citations</span><span class="p">:</span>
+                <span class="n">generation_info</span><span class="p">[</span><span class="s2">"citations"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">citations</span>
+
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+                <span class="n">generation_info</span><span class="p">[</span><span class="s2">"token_count"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">generation_info</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_stream_info_v2</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">final_delta</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">documents</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tool_calls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Get the stream info from cohere API response (V2)."""</span>
+        <span class="n">input_tokens</span> <span class="o">=</span> <span class="n">final_delta</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">billed_units</span><span class="o">.</span><span class="n">input_tokens</span>
+        <span class="n">output_tokens</span> <span class="o">=</span> <span class="n">final_delta</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">billed_units</span><span class="o">.</span><span class="n">output_tokens</span>
+        <span class="n">total_tokens</span> <span class="o">=</span> <span class="n">input_tokens</span> <span class="o">+</span> <span class="n">output_tokens</span>
+        <span class="n">stream_info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"finish_reason"</span><span class="p">:</span> <span class="n">final_delta</span><span class="o">.</span><span class="n">finish_reason</span><span class="p">,</span>
+            <span class="s2">"token_count"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"total_tokens"</span><span class="p">:</span> <span class="n">total_tokens</span><span class="p">,</span>
+                <span class="s2">"input_tokens"</span><span class="p">:</span> <span class="n">input_tokens</span><span class="p">,</span>
+                <span class="s2">"output_tokens"</span><span class="p">:</span> <span class="n">output_tokens</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">documents</span><span class="p">:</span>
+            <span class="n">stream_info</span><span class="p">[</span><span class="s2">"documents"</span><span class="p">]</span> <span class="o">=</span> <span class="n">documents</span>
+        <span class="k">if</span> <span class="n">tool_calls</span><span class="p">:</span>
+            <span class="n">stream_info</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tool_calls</span>
+        <span class="k">return</span> <span class="n">stream_info</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
@@ -850,22 +1363,31 @@
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">generate_from_stream</span><span class="p">(</span><span class="n">stream_iter</span><span class="p">)</span>
 
-        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request</span><span class="p">(</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request_v2</span><span class="p">(</span>
             <span class="n">messages</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
 
-        <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_generation_info</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_generation_info_v2</span><span class="p">(</span>
+            <span class="n">response</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="s2">"tool_calls"</span> <span class="ow">in</span> <span class="n">generation_info</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span> <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span> <span class="k">else</span> <span class="s2">""</span>
             <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">_convert_cohere_tool_call_to_langchain</span><span class="p">(</span><span class="n">tool_call</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">tool_calls</span>
+                <span class="n">lc_tool_call</span>
+                <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">lc_tool_call</span> <span class="o">:=</span> <span class="n">_convert_cohere_v2_tool_call_to_langchain</span><span class="p">(</span><span class="n">tool_call</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span> <span class="k">else</span> <span class="s2">""</span>
+            <span class="p">)</span>
             <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_get_usage_metadata</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_get_usage_metadata_v2</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
         <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
-            <span class="n">content</span><span class="o">=</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
             <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
             <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
             <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>
@@ -889,23 +1411,32 @@
             <span class="p">)</span>
             <span class="k">return</span> <span class="k">await</span> <span class="n">agenerate_from_stream</span><span class="p">(</span><span class="n">stream_iter</span><span class="p">)</span>
 
-        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request</span><span class="p">(</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">get_cohere_chat_request_v2</span><span class="p">(</span>
             <span class="n">messages</span><span class="p">,</span> <span class="n">stop_sequences</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="o">**</span><span class="n">request</span><span class="p">)</span>
 
-        <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_generation_info</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">generation_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_generation_info_v2</span><span class="p">(</span>
+            <span class="n">response</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"documents"</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">if</span> <span class="s2">"tool_calls"</span> <span class="ow">in</span> <span class="n">generation_info</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span> <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">tool_plan</span> <span class="k">else</span> <span class="s2">""</span>
             <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">_convert_cohere_tool_call_to_langchain</span><span class="p">(</span><span class="n">tool_call</span><span class="p">)</span>
+                <span class="n">lc_tool_call</span>
                 <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">tool_calls</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">lc_tool_call</span> <span class="o">:=</span> <span class="n">_convert_cohere_v2_tool_call_to_langchain</span><span class="p">(</span><span class="n">tool_call</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span> <span class="k">else</span> <span class="s2">""</span>
+            <span class="p">)</span>
             <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_get_usage_metadata</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_get_usage_metadata_v2</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
         <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
-            <span class="n">content</span><span class="o">=</span><span class="n">response</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
             <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
             <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
             <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>
@@ -915,15 +1446,6 @@
                 <span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">,</span> <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">)</span>
             <span class="p">]</span>
         <span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_default_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Fetches the current default model name."""</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">list</span><span class="p">(</span><span class="n">default_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="s2">"chat"</span><span class="p">)</span>  <span class="c1"># type: "ListModelsResponse"</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"invalid cohere list models response"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">response</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"invalid cohere list models response"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">model_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -957,11 +1479,39 @@
         <span class="n">formatted_tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="p">{</span>
                 <span class="s2">"id"</span><span class="p">:</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:],</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function"</span><span class="p">,</span>
                 <span class="s2">"function"</span><span class="p">:</span> <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                     <span class="s2">"arguments"</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">parameters</span><span class="p">),</span>
                 <span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">formatted_tool_calls</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_cohere_tool_calls_v2</span><span class="p">(</span>
+    <span class="n">tool_calls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">ToolCallV2</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Formats a V2 Cohere API response into the tool</span>
+<span class="sd">    call format used elsewhere in Langchain.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_calls</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">formatted_tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">tool_calls</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">formatted_tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">"id"</span><span class="p">:</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:],</span>
                 <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function"</span><span class="p">,</span>
+                <span class="s2">"function"</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">"name"</span><span class="p">:</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">"arguments"</span><span class="p">:</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">,</span>
+                <span class="p">},</span>
             <span class="p">}</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">formatted_tool_calls</span>
@@ -973,9 +1523,41 @@
     <span class="k">return</span> <span class="n">LC_ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">_id</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_cohere_v2_tool_call_to_langchain</span><span class="p">(</span>
+    <span class="n">tool_call</span><span class="p">:</span> <span class="n">ToolCallV2</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LC_ToolCall</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Convert a Cohere V2 tool call into langchain_core.messages.ToolCall"""</span>
+    <span class="n">_id</span> <span class="o">=</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">id</span> <span class="ow">or</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">LC_ToolCall</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+        <span class="n">args</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span>
+        <span class="k">else</span> <span class="p">{},</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">_id</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_usage_metadata</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">NonStreamedChatResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">UsageMetadata</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get standard usage metadata from chat response."""</span>
     <span class="n">metadata</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">meta</span>
+    <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">tokens</span> <span class="o">:=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+            <span class="n">input_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">input_tokens</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">output_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">output_tokens</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">total_tokens</span> <span class="o">=</span> <span class="n">input_tokens</span> <span class="o">+</span> <span class="n">output_tokens</span>
+        <span class="k">return</span> <span class="n">UsageMetadata</span><span class="p">(</span>
+            <span class="n">input_tokens</span><span class="o">=</span><span class="n">input_tokens</span><span class="p">,</span>
+            <span class="n">output_tokens</span><span class="o">=</span><span class="n">output_tokens</span><span class="p">,</span>
+            <span class="n">total_tokens</span><span class="o">=</span><span class="n">total_tokens</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_usage_metadata_v2</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">ChatResponse</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">UsageMetadata</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Get standard usage metadata from chat response."""</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">usage</span>
     <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">tokens</span> <span class="o">:=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
             <span class="n">input_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">input_tokens</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span>

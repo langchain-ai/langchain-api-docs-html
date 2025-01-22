@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 21, 2025" name="docbuild:last-update"/>
+<meta content="Jan 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -232,7 +232,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.retrievers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRetriever</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span>
@@ -255,8 +255,6 @@
             <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
                 <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"model_response"</span><span class="p">,</span>
                 <span class="s2">"citations"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">generation_info</span><span class="p">[</span><span class="s2">"citations"</span><span class="p">],</span>
-                <span class="s2">"search_results"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">generation_info</span><span class="p">[</span><span class="s2">"search_results"</span><span class="p">],</span>
-                <span class="s2">"search_queries"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">generation_info</span><span class="p">[</span><span class="s2">"search_queries"</span><span class="p">],</span>
                 <span class="s2">"token_count"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">generation_info</span><span class="p">[</span><span class="s2">"token_count"</span><span class="p">],</span>
             <span class="p">},</span>
         <span class="p">)</span>
@@ -268,18 +266,6 @@
 <a class="viewcode-back" href="../../cohere/rag_retrievers/langchain_cohere.rag_retrievers.CohereRagRetriever.html#langchain_cohere.rag_retrievers.CohereRagRetriever">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CohereRagRetriever</span><span class="p">(</span><span class="n">BaseRetriever</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Cohere Chat API with RAG."""</span>
-
-    <span class="n">connectors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"id"</span><span class="p">:</span> <span class="s2">"web-search"</span><span class="p">}],</span>
-        <span class="n">deprecated</span><span class="o">=</span><span class="s2">"The 'connectors' parameter is deprecated as of version 0.3.3. Please use the 'tools' parameter instead."</span><span class="p">,</span>  <span class="c1"># noqa: E501</span>
-    <span class="p">)</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    When specified, the model's reply will be enriched with information found by</span>
-<span class="sd">    querying each of the connectors (RAG). These will be returned as langchain</span>
-<span class="sd">    documents.</span>
-
-<span class="sd">    Currently only accepts {"id": "web-search"}.</span>
-<span class="sd">    """</span>
 
     <span class="n">llm</span><span class="p">:</span> <span class="n">BaseChatModel</span>
 <span class="w">    </span><span class="sd">"""Cohere ChatModel to use."""</span>
@@ -299,7 +285,6 @@
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">query</span><span class="p">)]]</span>
         <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
             <span class="n">messages</span><span class="p">,</span>
-            <span class="n">connectors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">connectors</span> <span class="k">if</span> <span class="n">documents</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">documents</span><span class="o">=</span><span class="n">documents</span><span class="p">,</span>
             <span class="n">callbacks</span><span class="o">=</span><span class="n">run_manager</span><span class="o">.</span><span class="n">get_child</span><span class="p">(),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -318,7 +303,6 @@
         <span class="n">res</span> <span class="o">=</span> <span class="p">(</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">agenerate</span><span class="p">(</span>
                 <span class="n">messages</span><span class="p">,</span>
-                <span class="n">connectors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">connectors</span> <span class="k">if</span> <span class="n">documents</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">documents</span><span class="o">=</span><span class="n">documents</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="n">run_manager</span><span class="o">.</span><span class="n">get_child</span><span class="p">(),</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
