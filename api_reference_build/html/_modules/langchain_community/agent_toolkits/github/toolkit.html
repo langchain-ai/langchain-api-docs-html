@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 22, 2025" name="docbuild:last-update"/>
+<meta content="Jan 23, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -238,7 +238,10 @@
     <span class="n">GET_FILES_FROM_DIRECTORY_PROMPT</span><span class="p">,</span>
     <span class="n">GET_ISSUE_PROMPT</span><span class="p">,</span>
     <span class="n">GET_ISSUES_PROMPT</span><span class="p">,</span>
+    <span class="n">GET_LATEST_RELEASE_PROMPT</span><span class="p">,</span>
     <span class="n">GET_PR_PROMPT</span><span class="p">,</span>
+    <span class="n">GET_RELEASE_PROMPT</span><span class="p">,</span>
+    <span class="n">GET_RELEASES_PROMPT</span><span class="p">,</span>
     <span class="n">LIST_BRANCHES_IN_REPO_PROMPT</span><span class="p">,</span>
     <span class="n">LIST_PRS_PROMPT</span><span class="p">,</span>
     <span class="n">LIST_PULL_REQUEST_FILES</span><span class="p">,</span>
@@ -416,6 +419,18 @@
 
 
 
+<div class="viewcode-block" id="TagName">
+<a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.github.toolkit.TagName.html#langchain_community.agent_toolkits.github.toolkit.TagName">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TagName</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Schema for operations that require a tag name as input."""</span>
+
+    <span class="n">tag_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="o">...</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"The tag name of the release, e.g. `v1.0.0`."</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="GitHubToolkit">
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.github.toolkit.GitHubToolkit.html#langchain_community.agent_toolkits.github.toolkit.GitHubToolkit">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GitHubToolkit</span><span class="p">(</span><span class="n">BaseToolkit</span><span class="p">):</span>
@@ -484,6 +499,25 @@
 <span class="sd">            Search code</span>
 <span class="sd">            Create review request</span>
 
+<span class="sd">    Include release tools:</span>
+<span class="sd">        By default, the toolkit does not include release-related tools.</span>
+<span class="sd">        You can include them by setting ``include_release_tools=True`` when</span>
+<span class="sd">        initializing the toolkit:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            toolkit = GitHubToolkit.from_github_api_wrapper(</span>
+<span class="sd">                github, include_release_tools=True</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Setting ``include_release_tools=True`` will include the following tools:</span>
+
+<span class="sd">        .. code-block:: none</span>
+
+<span class="sd">            Get latest release</span>
+<span class="sd">            Get releases</span>
+<span class="sd">            Get release</span>
+
 <span class="sd">    Use within an agent:</span>
 <span class="sd">        .. code-block:: python</span>
 
@@ -536,12 +570,14 @@
 <a class="viewcode-back" href="../../../../community/agent_toolkits/langchain_community.agent_toolkits.github.toolkit.GitHubToolkit.html#langchain_community.agent_toolkits.github.toolkit.GitHubToolkit.from_github_api_wrapper">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_github_api_wrapper</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">github_api_wrapper</span><span class="p">:</span> <span class="n">GitHubAPIWrapper</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">github_api_wrapper</span><span class="p">:</span> <span class="n">GitHubAPIWrapper</span><span class="p">,</span> <span class="n">include_release_tools</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"GitHubToolkit"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a GitHubToolkit from a GitHubAPIWrapper.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            github_api_wrapper: GitHubAPIWrapper. The GitHub API wrapper.</span>
+<span class="sd">            include_release_tools: bool. Whether to include release-related tools.</span>
+<span class="sd">                Defaults to False.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            GitHubToolkit. The GitHub toolkit.</span>
@@ -674,6 +710,29 @@
                 <span class="s2">"args_schema"</span><span class="p">:</span> <span class="n">CreateReviewRequest</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">]</span>
+
+        <span class="n">release_operations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"get_latest_release"</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Get latest release"</span><span class="p">,</span>
+                <span class="s2">"description"</span><span class="p">:</span> <span class="n">GET_LATEST_RELEASE_PROMPT</span><span class="p">,</span>
+                <span class="s2">"args_schema"</span><span class="p">:</span> <span class="n">NoInput</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"get_releases"</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Get releases"</span><span class="p">,</span>
+                <span class="s2">"description"</span><span class="p">:</span> <span class="n">GET_RELEASES_PROMPT</span><span class="p">,</span>
+                <span class="s2">"args_schema"</span><span class="p">:</span> <span class="n">NoInput</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="p">{</span>
+                <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"get_release"</span><span class="p">,</span>
+                <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Get release"</span><span class="p">,</span>
+                <span class="s2">"description"</span><span class="p">:</span> <span class="n">GET_RELEASE_PROMPT</span><span class="p">,</span>
+                <span class="s2">"args_schema"</span><span class="p">:</span> <span class="n">TagName</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">]</span>
+
+        <span class="n">operations</span> <span class="o">=</span> <span class="n">operations</span> <span class="o">+</span> <span class="p">(</span><span class="n">release_operations</span> <span class="k">if</span> <span class="n">include_release_tools</span> <span class="k">else</span> <span class="p">[])</span>
         <span class="n">tools</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">GitHubAction</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">action</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
