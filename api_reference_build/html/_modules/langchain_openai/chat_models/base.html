@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 23, 2025" name="docbuild:last-update"/>
+<meta content="Jan 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1592,19 +1592,33 @@
             <span class="p">)</span>
         <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="n">_is_pydantic_class</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
-        <span class="c1"># Check for Pydantic BaseModel V1</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span>
-            <span class="ow">and</span> <span class="n">is_pydantic_schema</span>
-            <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">BaseModelV1</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
-        <span class="p">):</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">"Received a Pydantic BaseModel V1 schema. This is not supported by "</span>
-                <span class="s1">'method="json_schema". Please use method="function_calling" '</span>
-                <span class="s2">"or specify schema via JSON Schema or Pydantic V2 BaseModel. "</span>
-                <span class="s1">'Overriding to method="function_calling".'</span>
-            <span class="p">)</span>
-            <span class="n">method</span> <span class="o">=</span> <span class="s2">"function_calling"</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span><span class="p">:</span>
+            <span class="c1"># Check for Pydantic BaseModel V1</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">is_pydantic_schema</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">BaseModelV1</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">"Received a Pydantic BaseModel V1 schema. This is not supported by "</span>
+                    <span class="s1">'method="json_schema". Please use method="function_calling" '</span>
+                    <span class="s2">"or specify schema via JSON Schema or Pydantic V2 BaseModel. "</span>
+                    <span class="s1">'Overriding to method="function_calling".'</span>
+                <span class="p">)</span>
+                <span class="n">method</span> <span class="o">=</span> <span class="s2">"function_calling"</span>
+            <span class="c1"># Check for incompatible model</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-3"</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"gpt-4-"</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">==</span> <span class="s2">"gpt-4"</span>
+            <span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Cannot use method='json_schema' with model </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"since it doesn't support OpenAI's Structured Output API. You can "</span>
+                    <span class="sa">f</span><span class="s2">"see supported models here: "</span>
+                    <span class="sa">f</span><span class="s2">"https://platform.openai.com/docs/guides/structured-outputs#supported-models. "</span>  <span class="c1"># noqa: E501</span>
+                    <span class="s2">"To fix this warning, set `method='function_calling'. "</span>
+                    <span class="s2">"Overriding to method='function_calling'."</span>
+                <span class="p">)</span>
+                <span class="n">method</span> <span class="o">=</span> <span class="s2">"function_calling"</span>
 
         <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"function_calling"</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

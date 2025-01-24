@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jan 23, 2025" name="docbuild:last-update"/>
+<meta content="Jan 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -498,7 +498,7 @@
                 <span class="sa">f</span><span class="s2">"Invalid input type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span><span class="si">}</span><span class="s2">. "</span>
                 <span class="s2">"Must be a PromptValue, str, or list of BaseMessages."</span>
             <span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>  <span class="c1"># noqa: TRY004</span>
 
 <div class="viewcode-block" id="BaseChatModel.invoke">
 <a class="viewcode-back" href="../../../core/language_models/langchain_core.language_models.chat_models.BaseChatModel.html#langchain_cerebras.chat_models.BaseChatModel.invoke">[docs]</a>
@@ -645,9 +645,6 @@
                         <span class="n">generation</span> <span class="o">=</span> <span class="n">chunk</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">generation</span> <span class="o">+=</span> <span class="n">chunk</span>
-                <span class="k">if</span> <span class="n">generation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">"No generation chunks were returned"</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span>
                     <span class="n">e</span><span class="p">,</span>
@@ -655,9 +652,14 @@
                         <span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]</span> <span class="k">if</span> <span class="n">generation</span> <span class="k">else</span> <span class="p">[]</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
-                <span class="k">raise</span> <span class="n">e</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_end</span><span class="p">(</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]))</span></div>
+                <span class="k">raise</span>
+
+            <span class="k">if</span> <span class="n">generation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No generation chunks were returned"</span><span class="p">)</span>
+                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">response</span><span class="o">=</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[]))</span>
+                <span class="k">raise</span> <span class="n">err</span>
+
+            <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_end</span><span class="p">(</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]))</span></div>
 
 
 <div class="viewcode-block" id="BaseChatModel.astream">
@@ -726,19 +728,21 @@
                     <span class="n">generation</span> <span class="o">=</span> <span class="n">chunk</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">generation</span> <span class="o">+=</span> <span class="n">chunk</span>
-            <span class="k">if</span> <span class="n">generation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="s2">"No generation chunks were returned"</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span>
                 <span class="n">e</span><span class="p">,</span>
                 <span class="n">response</span><span class="o">=</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]</span> <span class="k">if</span> <span class="n">generation</span> <span class="k">else</span> <span class="p">[]),</span>
             <span class="p">)</span>
-            <span class="k">raise</span> <span class="n">e</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_end</span><span class="p">(</span>
-                <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]),</span>
-            <span class="p">)</span></div>
+            <span class="k">raise</span>
+
+        <span class="k">if</span> <span class="n">generation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No generation chunks were returned"</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">response</span><span class="o">=</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[]))</span>
+            <span class="k">raise</span> <span class="n">err</span>
+
+        <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_end</span><span class="p">(</span>
+            <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[[</span><span class="n">generation</span><span class="p">]]),</span>
+        <span class="p">)</span></div>
 
 
     <span class="c1"># --- Custom methods ---</span>
@@ -883,7 +887,7 @@
             <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">run_managers</span><span class="p">:</span>
                     <span class="n">run_managers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">response</span><span class="o">=</span><span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[]))</span>
-                <span class="k">raise</span> <span class="n">e</span>
+                <span class="k">raise</span>
         <span class="n">flattened_outputs</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">generations</span><span class="p">],</span> <span class="n">llm_output</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">llm_output</span><span class="p">)</span>  <span class="c1"># type: ignore[list-item]</span>
             <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span>
@@ -1266,7 +1270,7 @@
             <span class="k">return</span> <span class="n">generation</span><span class="o">.</span><span class="n">message</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unexpected generation type"</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>  <span class="c1"># noqa: TRY004</span></div>
 
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_call_async</span><span class="p">(</span>
@@ -1284,7 +1288,7 @@
             <span class="k">return</span> <span class="n">generation</span><span class="o">.</span><span class="n">message</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unexpected generation type"</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>  <span class="c1"># noqa: TRY004</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"invoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">call_as_llm</span><span class="p">(</span>
@@ -1302,7 +1306,7 @@
             <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">content</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Cannot use predict when output is not a string."</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>  <span class="c1"># noqa: TRY004</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"invoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">predict_messages</span><span class="p">(</span>
@@ -1327,7 +1331,7 @@
             <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">content</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Cannot use predict when output is not a string."</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>  <span class="c1"># noqa: TRY004</span>
 
     <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">"0.1.7"</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">"ainvoke"</span><span class="p">,</span> <span class="n">removal</span><span class="o">=</span><span class="s2">"1.0"</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">apredict_messages</span><span class="p">(</span>
