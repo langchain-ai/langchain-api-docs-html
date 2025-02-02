@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 01, 2025" name="docbuild:last-update"/>
+<meta content="Feb 02, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -706,71 +706,78 @@
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_wrap_query</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">graph_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Convert a cypher query to an Apache Age compatible</span>
-<span class="sd">        sql query by wrapping the cypher query in ag_catalog.cypher,</span>
-<span class="sd">        casting results to agtype and building a select statement</span>
+<span class="sd">        Convert a Cyper query to an Apache Age compatible Sql Query.</span>
+<span class="sd">        Handles combined queries with UNION/EXCEPT operators</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            query (str): a valid cypher query</span>
-<span class="sd">            graph_name (str): the name of the graph to query</span>
+<span class="sd">            query (str) : A valid cypher query, can include UNION/EXCEPT operators</span>
+<span class="sd">            graph_name (str) : The name of the graph to query</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">            str: an equivalent pgsql query</span>
+<span class="sd">        Returns :</span>
+<span class="sd">            str : An equivalent pgSql query wrapped with ag_catalog.cypher</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError : If query is empty, contain RETURN *, or has invalid field names</span>
 <span class="sd">        """</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">query</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Empty query provided"</span><span class="p">)</span>
 
         <span class="c1"># pgsql template</span>
         <span class="n">template</span> <span class="o">=</span> <span class="s2">"""SELECT </span><span class="si">{projection}</span><span class="s2"> FROM ag_catalog.cypher('</span><span class="si">{graph_name}</span><span class="s2">', $$</span>
 <span class="s2">            </span><span class="si">{query}</span>
 <span class="s2">        $$) AS (</span><span class="si">{fields}</span><span class="s2">);"""</span>
 
-        <span class="c1"># if there are any returned fields they must be added to the pgsql query</span>
-        <span class="n">return_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'\breturn\b(?![^"]*")'</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">return_match</span><span class="p">:</span>
-            <span class="c1"># Extract the part of the query after the RETURN keyword</span>
-            <span class="n">return_clause</span> <span class="o">=</span> <span class="n">query</span><span class="p">[</span><span class="n">return_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="p">:]</span>
+        <span class="c1"># split the query into parts based on UNION and EXCEPT</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\b(UNION\b|\bEXCEPT)\b"</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
 
-            <span class="c1"># parse return statement to identify returned fields</span>
-            <span class="n">fields</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">return_clause</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"distinct"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"order by"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"skip"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"limit"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
-            <span class="p">)</span>
+        <span class="n">all_fields</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="c1"># raise exception if RETURN * is found as we can't resolve the fields</span>
-            <span class="k">if</span> <span class="s2">"*"</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"AGE graph does not support 'RETURN *'"</span>
-                    <span class="o">+</span> <span class="s2">" statements in Cypher queries"</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"UNION"</span><span class="p">,</span> <span class="s2">"EXCEPT"</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># if there are any returned fields they must be added to the pgsql query</span>
+            <span class="n">return_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">'\breturn\b(?![^"]*")'</span><span class="p">,</span> <span class="n">part</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">return_match</span><span class="p">:</span>
+                <span class="c1"># Extract the part of the query after the RETURN keyword</span>
+                <span class="n">return_clause</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="n">return_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="p">:]</span>
+
+                <span class="c1"># parse return statement to identify returned fields</span>
+                <span class="n">fields</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">return_clause</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"distinct"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"order by"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"skip"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"limit"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="c1"># get pgsql formatted field names</span>
-            <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">AGEGraph</span><span class="o">.</span><span class="n">_get_col_name</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
-            <span class="p">]</span>
+                <span class="c1"># raise exception if RETURN * is found as we can't resolve the fields</span>
+                <span class="n">clean_fileds</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                <span class="k">if</span> <span class="s2">"*"</span> <span class="ow">in</span> <span class="n">clean_fileds</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">"Apache Age does not support RETURN * in Cypher queries"</span>
+                    <span class="p">)</span>
 
-            <span class="c1"># build resulting pgsql relation</span>
-            <span class="n">fields_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" agtype"</span>
-                    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span>
-                    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
+                <span class="c1"># Format fields and maintain order of appearance</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clean_fileds</span><span class="p">):</span>
+                    <span class="n">field_name</span> <span class="o">=</span> <span class="n">AGEGraph</span><span class="o">.</span><span class="n">_get_col_name</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">field_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_fields</span><span class="p">:</span>
+                        <span class="n">all_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
 
-        <span class="c1"># if no return statement we still need to return a single field of type agtype</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if no return statements found in any part</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_fields</span><span class="p">:</span>
             <span class="n">fields_str</span> <span class="o">=</span> <span class="s2">"a agtype"</span>
 
-        <span class="n">select_str</span> <span class="o">=</span> <span class="s2">"*"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fields_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> agtype"</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">all_fields</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">graph_name</span><span class="o">=</span><span class="n">graph_name</span><span class="p">,</span>
             <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
             <span class="n">fields</span><span class="o">=</span><span class="n">fields_str</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="n">select_str</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="s2">"*"</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
