@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 07, 2025" name="docbuild:last-update"/>
+<meta content="Feb 08, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -225,7 +225,16 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.import_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">IMPORT_ERROR</span><span class="p">,</span>
+    <span class="n">is_ipex_available</span><span class="p">,</span>
+    <span class="n">is_optimum_intel_available</span><span class="p">,</span>
+    <span class="n">is_optimum_intel_version</span><span class="p">,</span>
+<span class="p">)</span>
+
 <span class="n">DEFAULT_MODEL_NAME</span> <span class="o">=</span> <span class="s2">"sentence-transformers/all-mpnet-base-v2"</span>
+
+<span class="n">_MIN_OPTIMUM_VERSION</span> <span class="o">=</span> <span class="s2">"1.22"</span>
 
 
 <div class="viewcode-block" id="HuggingFaceEmbeddings">
@@ -285,7 +294,28 @@
                 <span class="s2">"Please install it with `pip install sentence-transformers`."</span>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">sentence_transformers</span><span class="o">.</span><span class="n">SentenceTransformer</span><span class="p">(</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"backend"</span><span class="p">,</span> <span class="s2">"torch"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"ipex"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_optimum_intel_available</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">is_ipex_available</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">'Backend: ipex </span><span class="si">{</span><span class="n">IMPORT_ERROR</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">"optimum[ipex]"</span><span class="p">)</span><span class="si">}</span><span class="s1">'</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">is_optimum_intel_version</span><span class="p">(</span><span class="s2">"&lt;"</span><span class="p">,</span> <span class="n">_MIN_OPTIMUM_VERSION</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Backend: ipex requires optimum-intel&gt;="</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_MIN_OPTIMUM_VERSION</span><span class="si">}</span><span class="s2">. You can install it with pip: "</span>
+                    <span class="s2">"`pip install --upgrade --upgrade-strategy eager "</span>
+                    <span class="s2">"`optimum[ipex]`."</span>
+                <span class="p">)</span>
+
+            <span class="kn">from</span><span class="w"> </span><span class="nn">optimum.intel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IPEXSentenceTransformer</span>  <span class="c1"># type: ignore[import]</span>
+
+            <span class="n">model_cls</span> <span class="o">=</span> <span class="n">IPEXSentenceTransformer</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_cls</span> <span class="o">=</span> <span class="n">sentence_transformers</span><span class="o">.</span><span class="n">SentenceTransformer</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">model_cls</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cache_folder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_folder</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span>
         <span class="p">)</span>
 

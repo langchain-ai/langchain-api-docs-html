@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 07, 2025" name="docbuild:last-update"/>
+<meta content="Feb 08, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -255,6 +255,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">_tools_in_params</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">anthropic_tokens_supported</span><span class="p">,</span>
     <span class="n">enforce_stop_tokens</span><span class="p">,</span>
     <span class="n">get_num_tokens_anthropic</span><span class="p">,</span>
     <span class="n">get_token_ids_anthropic</span><span class="p">,</span>
@@ -1551,19 +1552,27 @@
 <div class="viewcode-block" id="BedrockLLM.get_num_tokens">
 <a class="viewcode-back" href="../../../aws/llms/langchain_aws.llms.bedrock.BedrockLLM.html#langchain_aws.llms.bedrock.BedrockLLM.get_num_tokens">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">get_num_tokens_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_get_token_ids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">anthropic_tokens_supported</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">get_num_tokens_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="BedrockLLM.get_token_ids">
 <a class="viewcode-back" href="../../../aws/llms/langchain_aws.llms.bedrock.BedrockLLM.html#langchain_aws.llms.bedrock.BedrockLLM.get_token_ids">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_token_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">get_token_ids_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_token_ids</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_get_token_ids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">anthropic_tokens_supported</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">get_token_ids_anthropic</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Falling back to default token method due to missing or incompatible `anthropic` installation "</span>
+                    <span class="sa">f</span><span class="s2">"(needs &lt;=0.38.0).</span><span class="se">\n\n</span><span class="s2">For `anthropic&gt;0.38.0`, it is recommended to provide the model "</span>
+                    <span class="sa">f</span><span class="s2">"class with a custom_get_token_ids method implementing a more accurate tokenizer for Anthropic. "</span>
+                    <span class="sa">f</span><span class="s2">"For get_num_tokens, as another alternative, you can implement your own token counter method "</span>
+                    <span class="sa">f</span><span class="s2">"using the ChatAnthropic or AnthropicLLM classes."</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_token_ids</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 </div>
 
 </pre></div>

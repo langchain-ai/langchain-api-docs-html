@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 07, 2025" name="docbuild:last-update"/>
+<meta content="Feb 08, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -559,7 +559,57 @@
 <div class="viewcode-block" id="PyPDFium2Loader">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFium2Loader.html#langchain_community.document_loaders.pdf.PyPDFium2Loader">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PyPDFium2Loader</span><span class="p">(</span><span class="n">BasePDFLoader</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Load `PDF` using `pypdfium2` and chunks at character level."""</span>
+<span class="w">    </span><span class="sd">"""Load and parse a PDF file using the `pypdfium2` library.</span>
+
+<span class="sd">    This class provides methods to load and parse PDF documents, supporting various</span>
+<span class="sd">    configurations such as handling password-protected files, extracting images, and</span>
+<span class="sd">    defining extraction mode.</span>
+<span class="sd">    It integrates the `pypdfium2` library for PDF processing and offers both</span>
+<span class="sd">    synchronous and asynchronous document loading.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Setup:</span>
+
+<span class="sd">        .. code-block:: bash</span>
+
+<span class="sd">            pip install -U langchain-community pypdfium2</span>
+
+<span class="sd">        Instantiate the loader:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from langchain_community.document_loaders import PyPDFium2Loader</span>
+
+<span class="sd">            loader = PyPDFium2Loader(</span>
+<span class="sd">                file_path = "./example_data/layout-parser-paper.pdf",</span>
+<span class="sd">                # headers = None</span>
+<span class="sd">                # password = None,</span>
+<span class="sd">                mode = "single",</span>
+<span class="sd">                pages_delimiter = "\n\f",</span>
+<span class="sd">                # extract_images = True,</span>
+<span class="sd">                # images_to_text = convert_images_to_text_with_tesseract(),</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Lazy load documents:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            docs = []</span>
+<span class="sd">            docs_lazy = loader.lazy_load()</span>
+
+<span class="sd">            for doc in docs_lazy:</span>
+<span class="sd">                docs.append(doc)</span>
+<span class="sd">            print(docs[0].page_content[:100])</span>
+<span class="sd">            print(docs[0].metadata)</span>
+
+<span class="sd">        Load documents asynchronously:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            docs = await loader.aload()</span>
+<span class="sd">            print(docs[0].page_content[:100])</span>
+<span class="sd">            print(docs[0].metadata)</span>
+<span class="sd">    """</span>
 
 <div class="viewcode-block" id="PyPDFium2Loader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.pdf.PyPDFium2Loader.html#langchain_community.document_loaders.pdf.PyPDFium2Loader.__init__">[docs]</a>
@@ -567,12 +617,47 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">PurePath</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"single"</span><span class="p">,</span> <span class="s2">"page"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"page"</span><span class="p">,</span>
+        <span class="n">pages_delimiter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_DEFAULT_PAGES_DELIMITER</span><span class="p">,</span>
+        <span class="n">password</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extract_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">images_parser</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseImageBlobParser</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">images_inner_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"markdown-img"</span><span class="p">,</span> <span class="s2">"html-img"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"text"</span><span class="p">,</span>
+        <span class="n">headers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Initialize with a file path."""</span>
+<span class="w">        </span><span class="sd">"""Initialize with a file path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: The path to the PDF file to be loaded.</span>
+<span class="sd">            headers: Optional headers to use for GET request to download a file from a</span>
+<span class="sd">              web path.</span>
+<span class="sd">            password: Optional password for opening encrypted PDFs.</span>
+<span class="sd">            mode: The extraction mode, either "single" for the entire document or "page"</span>
+<span class="sd">                for page-wise extraction.</span>
+<span class="sd">            pages_delimiter: A string delimiter to separate pages in single-mode</span>
+<span class="sd">                extraction.</span>
+<span class="sd">            extract_images: Whether to extract images from the PDF.</span>
+<span class="sd">            images_parser: Optional image blob parser.</span>
+<span class="sd">            images_inner_format: The format for the parsed output.</span>
+<span class="sd">                - "text" = return the content as is</span>
+<span class="sd">                - "markdown-img" = wrap the content into an image markdown link, w/ link</span>
+<span class="sd">                pointing to (`![body)(#)`]</span>
+<span class="sd">                - "html-img" = wrap the content as the `alt` text of an tag and link to</span>
+<span class="sd">                (`&lt;img alt="{body}" src="#"/&gt;`)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            This class does not directly return data. Use the `load`, `lazy_load` or</span>
+<span class="sd">            `aload` methods to retrieve parsed documents with content and metadata.</span>
+<span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">PyPDFium2Parser</span><span class="p">(</span><span class="n">extract_images</span><span class="o">=</span><span class="n">extract_images</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">PyPDFium2Parser</span><span class="p">(</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+            <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+            <span class="n">extract_images</span><span class="o">=</span><span class="n">extract_images</span><span class="p">,</span>
+            <span class="n">images_parser</span><span class="o">=</span><span class="n">images_parser</span><span class="p">,</span>
+            <span class="n">images_inner_format</span><span class="o">=</span><span class="n">images_inner_format</span><span class="p">,</span>
+            <span class="n">pages_delimiter</span><span class="o">=</span><span class="n">pages_delimiter</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="PyPDFium2Loader.lazy_load">
@@ -580,9 +665,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Lazy load given path as pages."""</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Lazy load given path as pages.</span>
+<span class="sd">        Insert image, if possible, between two paragraphs.</span>
+<span class="sd">        In this way, a paragraph can be continued on the next page.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">web_path</span><span class="p">:</span>
-            <span class="n">blob</span> <span class="o">=</span> <span class="n">Blob</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">web_path</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="n">blob</span> <span class="o">=</span> <span class="n">Blob</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">web_path</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">blob</span> <span class="o">=</span> <span class="n">Blob</span><span class="o">.</span><span class="n">from_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
         <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">blob</span><span class="p">)</span></div>
