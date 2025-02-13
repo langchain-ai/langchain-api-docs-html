@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 12, 2025" name="docbuild:last-update"/>
+<meta content="Feb 13, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -245,8 +245,9 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">ElevenLabsModel</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Models available for Eleven Labs Text2Speech."""</span>
 
-    <span class="n">MULTI_LINGUAL</span> <span class="o">=</span> <span class="s2">"eleven_multilingual_v1"</span>
-    <span class="n">MONO_LINGUAL</span> <span class="o">=</span> <span class="s2">"eleven_monolingual_v1"</span></div>
+    <span class="n">MULTI_LINGUAL</span> <span class="o">=</span> <span class="s2">"eleven_multilingual_v2"</span>
+    <span class="n">MULTI_LINGUAL_FLASH</span> <span class="o">=</span> <span class="s2">"eleven_flash_v2_5"</span>
+    <span class="n">MONO_LINGUAL</span> <span class="o">=</span> <span class="s2">"eleven_flash_v2"</span></div>
 
 
 
@@ -256,16 +257,17 @@
 <span class="w">    </span><span class="sd">"""Tool that queries the Eleven Labs Text2Speech API.</span>
 
 <span class="sd">    In order to set this up, follow instructions at:</span>
-<span class="sd">    https://docs.elevenlabs.io/welcome/introduction</span>
+<span class="sd">    https://elevenlabs.io/docs</span>
 <span class="sd">    """</span>
 
     <span class="n">model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ElevenLabsModel</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">ElevenLabsModel</span><span class="o">.</span><span class="n">MULTI_LINGUAL</span>
+    <span class="n">voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"JBFqnCBsd6RMkjVDRZzb"</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"eleven_labs_text2speech"</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s2">"A wrapper around Eleven Labs Text2Speech. "</span>
         <span class="s2">"Useful for when you need to convert text to speech. "</span>
-        <span class="s2">"It supports multiple languages, including English, German, Polish, "</span>
+        <span class="s2">"It supports more than 30 languages, including English, German, Polish, "</span>
         <span class="s2">"Spanish, Italian, French, Portuguese, and Hindi. "</span>
     <span class="p">)</span>
 
@@ -273,7 +275,7 @@
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key exists in environment."""</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s2">"eleven_api_key"</span><span class="p">,</span> <span class="s2">"ELEVEN_API_KEY"</span><span class="p">)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="s2">"elevenlabs_api_key"</span><span class="p">,</span> <span class="s2">"ELEVENLABS_API_KEY"</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">values</span>
 
@@ -282,10 +284,16 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Use the tool."""</span>
         <span class="n">elevenlabs</span> <span class="o">=</span> <span class="n">_import_elevenlabs</span><span class="p">()</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">elevenlabs</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">ElevenLabs</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">speech</span> <span class="o">=</span> <span class="n">elevenlabs</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">text_to_speech</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+                <span class="n">model_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">voice_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">voice</span><span class="p">,</span>
+                <span class="n">output_format</span><span class="o">=</span><span class="s2">"mp3_44100_128"</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">"bx"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".wav"</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">"bx"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">".mp3"</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">speech</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -309,7 +317,10 @@
 <span class="w">        </span><span class="sd">"""Stream the text as speech as it is generated.</span>
 <span class="sd">        Play the text in your speakers."""</span>
         <span class="n">elevenlabs</span> <span class="o">=</span> <span class="n">_import_elevenlabs</span><span class="p">()</span>
-        <span class="n">speech_stream</span> <span class="o">=</span> <span class="n">elevenlabs</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">elevenlabs</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">ElevenLabs</span><span class="p">()</span>
+        <span class="n">speech_stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">text_to_speech</span><span class="o">.</span><span class="n">convert_as_stream</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">voice_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">voice</span>
+        <span class="p">)</span>
         <span class="n">elevenlabs</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">speech_stream</span><span class="p">)</span></div>
 </div>
 
