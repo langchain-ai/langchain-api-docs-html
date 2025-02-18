@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 17, 2025" name="docbuild:last-update"/>
+<meta content="Feb 18, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -322,9 +322,12 @@
 <span class="sd">    installed.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model: The name of the model, e.g. "gpt-4o", "claude-3-opus-20240229".</span>
-<span class="sd">        model_provider: The model provider. Supported model_provider values and the</span>
-<span class="sd">            corresponding integration package are:</span>
+<span class="sd">        model: The name of the model, e.g. "o3-mini", "claude-3-5-sonnet-latest". You can</span>
+<span class="sd">            also specify model and model provider in a single argument using</span>
+<span class="sd">            '{model_provider}:{model}' format, e.g. "openai:o1".</span>
+<span class="sd">        model_provider: The model provider if not specified as part of model arg (see</span>
+<span class="sd">            above). Supported model_provider values and the corresponding integration</span>
+<span class="sd">            package are:</span>
 
 <span class="sd">            - 'openai'              -&gt; langchain-openai</span>
 <span class="sd">            - 'anthropic'           -&gt; langchain-anthropic</span>
@@ -342,8 +345,9 @@
 <span class="sd">            - 'ollama'              -&gt; langchain-ollama</span>
 <span class="sd">            - 'google_anthropic_vertex'    -&gt; langchain-google-vertexai</span>
 <span class="sd">            - 'deepseek'            -&gt; langchain-deepseek</span>
-<span class="sd">            - 'ibm'            -&gt; langchain-ibm</span>
+<span class="sd">            - 'ibm'                 -&gt; langchain-ibm</span>
 <span class="sd">            - 'nvidia'              -&gt; langchain-nvidia-ai-endpoints</span>
+<span class="sd">            - 'xai'                 -&gt; langchain-xai</span>
 
 <span class="sd">            Will attempt to infer model_provider from model if not specified. The</span>
 <span class="sd">            following providers will be inferred based on these model prefixes:</span>
@@ -355,6 +359,8 @@
 <span class="sd">            - 'command...'                      -&gt; 'cohere'</span>
 <span class="sd">            - 'accounts/fireworks...'           -&gt; 'fireworks'</span>
 <span class="sd">            - 'mistral...'                      -&gt; 'mistralai'</span>
+<span class="sd">            - 'deepseek...'                     -&gt; 'deepseek'</span>
+<span class="sd">            - 'grok...'                         -&gt; 'xai'</span>
 <span class="sd">        configurable_fields: Which model parameters are</span>
 <span class="sd">            configurable:</span>
 
@@ -406,13 +412,13 @@
 <span class="sd">            # pip install langchain langchain-openai langchain-anthropic langchain-google-vertexai</span>
 <span class="sd">            from langchain.chat_models import init_chat_model</span>
 
-<span class="sd">            gpt_4o = init_chat_model("gpt-4o", model_provider="openai", temperature=0)</span>
-<span class="sd">            claude_opus = init_chat_model("claude-3-opus-20240229", model_provider="anthropic", temperature=0)</span>
-<span class="sd">            gemini_15 = init_chat_model("gemini-1.5-pro", model_provider="google_vertexai", temperature=0)</span>
+<span class="sd">            o3_mini = init_chat_model("openai:o3-mini", temperature=0)</span>
+<span class="sd">            claude_sonnet = init_chat_model("anthropic:claude-3-5-sonnet-latest", temperature=0)</span>
+<span class="sd">            gemini_2_flash = init_chat_model("google_vertexai:gemini-2.0-flash", temperature=0)</span>
 
-<span class="sd">            gpt_4o.invoke("what's your name")</span>
-<span class="sd">            claude_opus.invoke("what's your name")</span>
-<span class="sd">            gemini_15.invoke("what's your name")</span>
+<span class="sd">            o3_mini.invoke("what's your name")</span>
+<span class="sd">            claude_sonnet.invoke("what's your name")</span>
+<span class="sd">            gemini_2_flash.invoke("what's your name")</span>
 
 
 <span class="sd">    .. dropdown:: Partially configurable model with no default</span>
@@ -433,7 +439,7 @@
 
 <span class="sd">            configurable_model.invoke(</span>
 <span class="sd">                "what's your name",</span>
-<span class="sd">                config={"configurable": {"model": "claude-3-5-sonnet-20240620"}}</span>
+<span class="sd">                config={"configurable": {"model": "claude-3-5-sonnet-latest"}}</span>
 <span class="sd">            )</span>
 <span class="sd">            # claude-3.5 sonnet response</span>
 
@@ -445,8 +451,7 @@
 <span class="sd">            from langchain.chat_models import init_chat_model</span>
 
 <span class="sd">            configurable_model_with_default = init_chat_model(</span>
-<span class="sd">                "gpt-4o",</span>
-<span class="sd">                model_provider="openai",</span>
+<span class="sd">                "openai:gpt-4o",</span>
 <span class="sd">                configurable_fields="any",  # this allows us to configure other params like temperature, max_tokens, etc at runtime.</span>
 <span class="sd">                config_prefix="foo",</span>
 <span class="sd">                temperature=0</span>
@@ -459,8 +464,7 @@
 <span class="sd">                "what's your name",</span>
 <span class="sd">                config={</span>
 <span class="sd">                    "configurable": {</span>
-<span class="sd">                        "foo_model": "claude-3-5-sonnet-20240620",</span>
-<span class="sd">                        "foo_model_provider": "anthropic",</span>
+<span class="sd">                        "foo_model": "anthropic:claude-3-5-sonnet-20240620",</span>
 <span class="sd">                        "foo_temperature": 0.6</span>
 <span class="sd">                    }</span>
 <span class="sd">                }</span>
@@ -514,17 +518,21 @@
 
 <span class="sd">    .. versionchanged:: 0.2.12</span>
 
-<span class="sd">        Support for ChatOllama via langchain-ollama package added</span>
+<span class="sd">        Support for Ollama via langchain-ollama package added</span>
 <span class="sd">        (langchain_ollama.ChatOllama). Previously,</span>
 <span class="sd">        the now-deprecated langchain-community version of Ollama was imported</span>
 <span class="sd">        (langchain_community.chat_models.ChatOllama).</span>
 
-<span class="sd">        Support for langchain_aws.ChatBedrockConverse added</span>
+<span class="sd">        Support for AWS Bedrock models via the Converse API added</span>
 <span class="sd">        (model_provider="bedrock_converse").</span>
 
 <span class="sd">    .. versionchanged:: 0.3.5</span>
 
 <span class="sd">        Out of beta.</span>
+
+<span class="sd">    .. versionchanged:: 0.3.19</span>
+
+<span class="sd">        Support for Deepseek, IBM, Nvidia, and xAI models added.</span>
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">configurable_fields</span><span class="p">:</span>
@@ -659,6 +667,11 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_ibm</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatWatsonx</span>
 
         <span class="k">return</span> <span class="n">ChatWatsonx</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">model_provider</span> <span class="o">==</span> <span class="s2">"xai"</span><span class="p">:</span>
+        <span class="n">_check_pkg</span><span class="p">(</span><span class="s2">"langchain_xai"</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_xai</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatXAI</span>
+
+        <span class="k">return</span> <span class="n">ChatXAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">supported</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_SUPPORTED_PROVIDERS</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -685,6 +698,7 @@
     <span class="s2">"google_anthropic_vertex"</span><span class="p">,</span>
     <span class="s2">"deepseek"</span><span class="p">,</span>
     <span class="s2">"ibm"</span><span class="p">,</span>
+    <span class="s2">"xai"</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -703,6 +717,10 @@
         <span class="k">return</span> <span class="s2">"bedrock"</span>
     <span class="k">elif</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"mistral"</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">"mistralai"</span>
+    <span class="k">elif</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"deepseek"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"deepseek"</span>
+    <span class="k">elif</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"grok"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"xai"</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
