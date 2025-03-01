@@ -34,7 +34,7 @@
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,10 +222,12 @@
 <h1>Source code for langchain.evaluation.embedding_distance.base</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""A chain for comparing the output of two models using embeddings."""</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">util</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForChainRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForChainRun</span><span class="p">,</span>
@@ -238,6 +240,34 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chain</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.evaluation.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">PairwiseStringEvaluator</span><span class="p">,</span> <span class="n">StringEvaluator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">RUN_KEY</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_import_numpy</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+        <span class="k">return</span> <span class="n">np</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">"Could not import numpy, please install with `pip install numpy`."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_numpy</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">util</span><span class="o">.</span><span class="n">find_spec</span><span class="p">(</span><span class="s2">"numpy"</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s2">"NumPy not found in the current Python environment. "</span>
+        <span class="s2">"langchain will use a pure Python implementation for embedding distance "</span>
+        <span class="s2">"operations, which may significantly impact performance, especially for large "</span>
+        <span class="s2">"datasets. For optimal speed and efficiency, consider installing NumPy: "</span>
+        <span class="s2">"pip install numpy"</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">False</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_embedding_factory</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Embeddings</span><span class="p">:</span>
@@ -383,7 +413,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid metric: </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_cosine_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cosine_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the cosine distance between two vectors.</span>
 
 <span class="sd">        Args:</span>
@@ -404,7 +434,7 @@
         <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">cosine_similarity</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the Euclidean distance between two vectors.</span>
 
 <span class="sd">        Args:</span>
@@ -414,10 +444,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            np.floating: The Euclidean distance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_manhattan_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_manhattan_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the Manhattan distance between two vectors.</span>
 
 <span class="sd">        Args:</span>
@@ -427,10 +462,14 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            np.floating: The Manhattan distance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_chebyshev_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_chebyshev_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the Chebyshev distance between two vectors.</span>
 
 <span class="sd">        Args:</span>
@@ -440,10 +479,14 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            np.floating: The Chebyshev distance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_hamming_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_hamming_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the Hamming distance between two vectors.</span>
 
 <span class="sd">        Args:</span>
@@ -453,9 +496,13 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            np.floating: The Hamming distance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Compute the score based on the distance metric.</span>
 
 <span class="sd">        Args:</span>
@@ -465,8 +512,11 @@
 <span class="sd">            float: The computed score.</span>
 <span class="sd">        """</span>
         <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metric</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_metric</span><span class="p">)</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">vectors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">vectors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">score</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vectors</span><span class="p">,</span> <span class="n">_import_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">vectors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">vectors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">metric</span><span class="p">(</span><span class="n">vectors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vectors</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="EmbeddingDistanceEvalChain">
@@ -519,9 +569,12 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]: The computed score.</span>
 <span class="sd">        """</span>
-        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">([</span><span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="s2">"reference"</span><span class="p">]])</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="s2">"reference"</span><span class="p">]]</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_score</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"score"</span><span class="p">:</span> <span class="n">score</span><span class="p">}</span>
 
@@ -540,13 +593,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]: The computed score.</span>
 <span class="sd">        """</span>
-        <span class="n">embedded</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">aembed_documents</span><span class="p">(</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">aembed_documents</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span>
                 <span class="n">inputs</span><span class="p">[</span><span class="s2">"reference"</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">embedded</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_score</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"score"</span><span class="p">:</span> <span class="n">score</span><span class="p">}</span>
 
@@ -662,14 +717,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]: The computed score.</span>
 <span class="sd">        """</span>
-        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span>
-                    <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction_b"</span><span class="p">],</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span>
+                <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction_b"</span><span class="p">],</span>
+            <span class="p">]</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_score</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"score"</span><span class="p">:</span> <span class="n">score</span><span class="p">}</span>
 
@@ -688,13 +744,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]: The computed score.</span>
 <span class="sd">        """</span>
-        <span class="n">embedded</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">aembed_documents</span><span class="p">(</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">aembed_documents</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction"</span><span class="p">],</span>
                 <span class="n">inputs</span><span class="p">[</span><span class="s2">"prediction_b"</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">embedded</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_check_numpy</span><span class="p">():</span>
+            <span class="n">np</span> <span class="o">=</span> <span class="n">_import_numpy</span><span class="p">()</span>
+            <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_score</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">"score"</span><span class="p">:</span> <span class="n">score</span><span class="p">}</span>
 

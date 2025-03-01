@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -225,6 +225,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
@@ -245,6 +246,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">LanguageModelInput</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangSmithParams</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -644,20 +646,58 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">set_disable_streaming</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="n">model_id</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_id"</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">))</span>
         <span class="n">model_parts</span> <span class="o">=</span> <span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
-        <span class="n">values</span><span class="p">[</span><span class="s2">"provider"</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provider"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
-            <span class="n">model_parts</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">model_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="p">)</span>
+        
+        <span class="c1"># Extract provider from the model_id (e.g., "amazon", "anthropic", "ai21", "meta", "mistral")</span>
+        <span class="n">provider</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provider"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">model_parts</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">model_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">values</span><span class="p">[</span><span class="s2">"provider"</span><span class="p">]</span> <span class="o">=</span> <span class="n">provider</span>
 
-        <span class="c1"># As of 12/03/24:</span>
-        <span class="c1"># Anthropic, Cohere and Amazon Nova models support streamed tool calling</span>
+        <span class="n">model_id_lower</span> <span class="o">=</span> <span class="n">model_id</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="c1"># Determine if the model supports plain-text streaming (ConverseStream)</span>
+        <span class="c1"># Here we check based on the updated AWS documentation.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="c1"># AI21 Jamba 1.5 models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"ai21"</span> <span class="ow">and</span> <span class="s2">"jamba-1-5"</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># Some Amazon Nova models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"amazon"</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="n">model_id_lower</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"nova-lite"</span><span class="p">,</span> <span class="s2">"nova-micro"</span><span class="p">,</span> <span class="s2">"nova-pro"</span><span class="p">]))</span> <span class="ow">or</span>
+            <span class="c1"># Anthropic Claude 3 and newer models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span> <span class="ow">and</span> <span class="s2">"claude-3"</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># Cohere Command R models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"cohere"</span> <span class="ow">and</span> <span class="s2">"command-r"</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">streaming_support</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="c1"># AI21 Jamba-Instruct model</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"ai21"</span> <span class="ow">and</span> <span class="s2">"jamba-instruct"</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># Amazon Titan Text models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"amazon"</span> <span class="ow">and</span> <span class="s2">"titan-text"</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># Anthropic older Claude models (Claude 2, Claude 2.1, Claude Instant)</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="n">model_id_lower</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"claude-v2"</span><span class="p">,</span> <span class="s2">"claude-instant"</span><span class="p">]))</span> <span class="ow">or</span>
+            <span class="c1"># Cohere Command (non-R) models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"cohere"</span> <span class="ow">and</span> <span class="s2">"command"</span> <span class="ow">in</span> <span class="n">model_id_lower</span> <span class="ow">and</span> <span class="s2">"command-r"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_id_lower</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># All Meta Llama models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"meta"</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="c1"># All Mistral models</span>
+            <span class="p">(</span><span class="n">provider</span> <span class="o">==</span> <span class="s2">"mistral"</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">streaming_support</span> <span class="o">=</span> <span class="s2">"no_tools"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">streaming_support</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Set the disable_streaming flag accordingly:</span>
+        <span class="c1"># - If streaming is supported (plain streaming), we want streaming enabled (i.e. disable_streaming == False).</span>
+        <span class="c1"># - If the model supports streaming only in non-tool mode ("no_tools"), then we must force disable streaming when tools are used.</span>
+        <span class="c1"># - Otherwise, if streaming is not supported, we set disable_streaming to True.</span>
         <span class="k">if</span> <span class="s2">"disable_streaming"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
-            <span class="n">values</span><span class="p">[</span><span class="s2">"disable_streaming"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="kc">False</span>
-                <span class="k">if</span> <span class="n">values</span><span class="p">[</span><span class="s2">"provider"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"anthropic"</span><span class="p">,</span> <span class="s2">"cohere"</span><span class="p">]</span>
-                <span class="ow">or</span> <span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">"provider"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"amazon"</span> <span class="ow">and</span> <span class="s2">"nova"</span> <span class="ow">in</span> <span class="n">model_id</span><span class="p">)</span>
-                <span class="k">else</span> <span class="s2">"tool_calling"</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">streaming_support</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="s2">"disable_streaming"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">streaming_support</span> <span class="o">==</span> <span class="s2">"no_tools"</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="s2">"disable_streaming"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"tool_calling"</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="s2">"disable_streaming"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
         <span class="k">return</span> <span class="n">values</span>
+
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
@@ -668,7 +708,17 @@
         <span class="c1"># https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ToolChoice.html</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports_tool_choice_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"claude-3"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">supports_tool_choice_values</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"any"</span><span class="p">,</span> <span class="s2">"tool"</span><span class="p">)</span>
+                <span class="c1"># Tool choice not supported when thinking is enabled</span>
+                <span class="n">thinking_params</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">additional_model_request_fields</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">"thinking"</span><span class="p">,</span> <span class="p">{}</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="s2">"claude-3-7-sonnet"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
+                    <span class="ow">and</span> <span class="n">thinking_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"enabled"</span>
+                <span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">supports_tool_choice_values</span> <span class="o">=</span> <span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">supports_tool_choice_values</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"any"</span><span class="p">,</span> <span class="s2">"tool"</span><span class="p">)</span>
             <span class="k">elif</span> <span class="s2">"mistral-large"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">supports_tool_choice_values</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"any"</span><span class="p">)</span>
             <span class="k">elif</span> <span class="s2">"nova"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
@@ -774,6 +824,32 @@
                     <span class="p">)</span>
                 <span class="k">yield</span> <span class="n">generation_chunk</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_llm_for_structured_output_no_tool_choice</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="nb">type</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">BaseMessage</span><span class="p">]:</span>
+        <span class="n">admonition</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"ChatBedrockConverse structured output relies on forced tool calling, "</span>
+            <span class="s2">"which is not supported for this model. This method will raise "</span>
+            <span class="s2">"langchain_core.exceptions.OutputParserException if tool calls are not "</span>
+            <span class="s2">"generated. Consider adjusting your prompt to ensure the tool is called."</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"claude-3-7-sonnet"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
+            <span class="n">additional_context</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"For Claude 3.7 Sonnet models, you can also support forced tool use "</span>
+                <span class="s2">"by disabling `thinking`."</span>
+            <span class="p">)</span>
+            <span class="n">admonition</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">admonition</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">additional_context</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">admonition</span><span class="p">)</span>
+        <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">])</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_raise_if_no_tool_calls</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">OutputParserException</span><span class="p">(</span><span class="n">admonition</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">message</span>
+
+        <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">_raise_if_no_tool_calls</span>
+
     <span class="c1"># TODO: Add async support once there are async bedrock.converse methods.</span>
 
 <div class="viewcode-block" id="ChatBedrockConverse.bind_tools">
@@ -832,7 +908,13 @@
             <span class="n">tool_choice</span> <span class="o">=</span> <span class="s2">"any"</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tool_choice</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"claude-3-7-sonnet"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
+            <span class="c1"># TODO: remove restriction to Claude 3.7. If a model does not support</span>
+            <span class="c1"># forced tool calling, we we should raise an exception instead of</span>
+            <span class="c1"># returning None when no tool calls are generated.</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_llm_for_structured_output_no_tool_choice</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_basemodel_subclass</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_streaming</span><span class="p">:</span>
                 <span class="n">output_parser</span><span class="p">:</span> <span class="n">OutputParserLike</span> <span class="o">=</span> <span class="n">ToolsOutputParser</span><span class="p">(</span>
@@ -1171,6 +1253,29 @@
             <span class="n">bedrock_content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"json"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"json"</span><span class="p">]})</span>
         <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"guard_content"</span><span class="p">:</span>
             <span class="n">bedrock_content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"guardContent"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]}}})</span>
+        <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"thinking"</span><span class="p">:</span>
+            <span class="n">bedrock_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"reasoningContent"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">"reasoningText"</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">"text"</span><span class="p">:</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                            <span class="s2">"signature"</span><span class="p">:</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"reasoning_content"</span><span class="p">:</span>
+            <span class="n">reasoning_content</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoningContent"</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">bedrock_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"reasoningContent"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">"reasoningText"</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">"text"</span><span class="p">:</span> <span class="n">reasoning_content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                            <span class="s2">"signature"</span><span class="p">:</span> <span class="n">reasoning_content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported content block type:</span><span class="se">\n</span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="c1"># drop empty text blocks</span>
@@ -1246,11 +1351,50 @@
                     <span class="p">},</span>
                 <span class="p">}</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="s2">"reasoning_content"</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
+            <span class="n">reasoning_dict</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_content"</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="c1"># Invoke block format</span>
+            <span class="k">if</span> <span class="s2">"reasoning_text"</span> <span class="ow">in</span> <span class="n">reasoning_dict</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">reasoning_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_text"</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                <span class="n">signature</span> <span class="o">=</span> <span class="n">reasoning_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_text"</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                <span class="n">lc_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"reasoning_content"</span><span class="p">,</span>
+                        <span class="s2">"reasoning_content"</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
+                            <span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+                            <span class="s2">"signature"</span><span class="p">:</span> <span class="n">signature</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="c1"># Streaming block format</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">reasoning_dict</span><span class="p">:</span>
+                    <span class="n">lc_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"reasoning_content"</span><span class="p">,</span>
+                            <span class="s2">"reasoning_content"</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
+                                <span class="s2">"text"</span><span class="p">:</span> <span class="n">reasoning_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span>
+                            <span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="s2">"signature"</span> <span class="ow">in</span> <span class="n">reasoning_dict</span><span class="p">:</span>
+                    <span class="n">lc_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"reasoning_content"</span><span class="p">,</span>
+                            <span class="s2">"reasoning_content"</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"signature"</span><span class="p">,</span>
+                                <span class="s2">"signature"</span><span class="p">:</span> <span class="n">reasoning_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">)</span>
+                            <span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"Unexpected content block type in content. Expected to have one of "</span>
-                <span class="s2">"'text', 'tool_use', 'image', or 'tool_result' keys. Received:</span><span class="se">\n\n</span><span class="s2">"</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">"</span>
+                <span class="s2">"'text', 'tool_use', 'image', 'video, 'document', 'tool_result', 'json', 'guard_content', or "</span>
+                <span class="s2">"'reasoning_content' keys. Received:</span><span class="se">\n\n</span><span class="si">{block}</span><span class="s2">"</span>
             <span class="p">)</span>
     <span class="k">return</span> <span class="n">lc_content</span>
 

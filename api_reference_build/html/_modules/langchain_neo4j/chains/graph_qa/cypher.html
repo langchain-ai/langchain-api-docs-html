@@ -34,7 +34,7 @@
 <link href="../../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,7 +224,6 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain.chains.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chain</span>
@@ -244,6 +243,8 @@
     <span class="n">MessagesPlaceholder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.retrievers.text2cypher</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_cypher</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">format_schema</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.chains.graph_qa.cypher_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -265,45 +266,13 @@
 <span class="s2">"""</span>
 
 
-<div class="viewcode-block" id="extract_cypher">
-<a class="viewcode-back" href="../../../../neo4j/chains/langchain_neo4j.chains.graph_qa.cypher.extract_cypher.html#langchain_neo4j.chains.graph_qa.cypher.extract_cypher">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">extract_cypher</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Extract Cypher code from a text.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        text: Text to extract Cypher code from.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Cypher code extracted from the text.</span>
-<span class="sd">    """</span>
-    <span class="c1"># The pattern to find Cypher code enclosed in triple backticks</span>
-    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"```(.*?)```"</span>
-
-    <span class="c1"># Find all matches in the input text</span>
-    <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
-        <span class="n">cypher_query</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">text</span>
-
-    <span class="c1"># Remove backticks</span>
-    <span class="n">cypher_query</span> <span class="o">=</span> <span class="n">cypher_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"`"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-
-    <span class="c1"># Quote node labels if they contain spaces</span>
-    <span class="n">cypher_query</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
-        <span class="sa">r</span><span class="s2">":\s*(\s*)([a-zA-Z0-9_]+(?:\s+[a-zA-Z0-9_]+)+)(\s*)"</span><span class="p">,</span> <span class="sa">r</span><span class="s2">":'\2'"</span><span class="p">,</span> <span class="n">cypher_query</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">cypher_query</span></div>
-
-
-
 <div class="viewcode-block" id="construct_schema">
 <a class="viewcode-back" href="../../../../neo4j/chains/langchain_neo4j.chains.graph_qa.cypher.construct_schema.html#langchain_neo4j.chains.graph_qa.cypher.construct_schema">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">construct_schema</span><span class="p">(</span>
     <span class="n">structured_schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">include_types</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">exclude_types</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">is_enhanced</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Filter the schema based on included or excluded types"""</span>
 
@@ -327,39 +296,7 @@
             <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">filter_func</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"start"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">,</span> <span class="s2">"type"</span><span class="p">])</span>
         <span class="p">],</span>
     <span class="p">}</span>
-
-    <span class="c1"># Format node properties</span>
-    <span class="n">formatted_node_props</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">filtered_schema</span><span class="p">[</span><span class="s2">"node_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">props_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">formatted_node_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="si">{</span><span class="n">props_str</span><span class="si">}</span><span class="se">}}</span><span class="s2">"</span><span class="p">)</span>
-
-    <span class="c1"># Format relationship properties</span>
-    <span class="n">formatted_rel_props</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">rel_type</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">filtered_schema</span><span class="p">[</span><span class="s2">"rel_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">props_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">formatted_rel_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rel_type</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="si">{</span><span class="n">props_str</span><span class="si">}</span><span class="se">}}</span><span class="s2">"</span><span class="p">)</span>
-
-    <span class="c1"># Format relationships</span>
-    <span class="n">formatted_rels</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">"(:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'start'</span><span class="p">]</span><span class="si">}</span><span class="s2">)-[:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">]-&gt;(:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'end'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
-        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">filtered_schema</span><span class="p">[</span><span class="s2">"relationships"</span><span class="p">]</span>
-    <span class="p">]</span>
-
-    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="s2">"Node properties are the following:"</span><span class="p">,</span>
-            <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_node_props</span><span class="p">),</span>
-            <span class="s2">"Relationship properties are the following:"</span><span class="p">,</span>
-            <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_rel_props</span><span class="p">),</span>
-            <span class="s2">"The relationships are the following:"</span><span class="p">,</span>
-            <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_rels</span><span class="p">),</span>
-        <span class="p">]</span>
-    <span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">format_schema</span><span class="p">(</span><span class="n">filtered_schema</span><span class="p">,</span> <span class="n">is_enhanced</span><span class="p">)</span></div>
 
 
 
@@ -585,15 +522,19 @@
                 <span class="s2">"Either `exclude_types` or `include_types` "</span>
                 <span class="s2">"can be provided, but not both"</span>
             <span class="p">)</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"graph"</span><span class="p">]</span>
         <span class="n">graph_schema</span> <span class="o">=</span> <span class="n">construct_schema</span><span class="p">(</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"graph"</span><span class="p">]</span><span class="o">.</span><span class="n">get_structured_schema</span><span class="p">,</span> <span class="n">include_types</span><span class="p">,</span> <span class="n">exclude_types</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">get_structured_schema</span><span class="p">,</span>
+            <span class="n">include_types</span><span class="p">,</span>
+            <span class="n">exclude_types</span><span class="p">,</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">_enhanced_schema</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">cypher_query_corrector</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">validate_cypher</span><span class="p">:</span>
             <span class="n">corrector_schema</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">Schema</span><span class="p">(</span><span class="n">el</span><span class="p">[</span><span class="s2">"start"</span><span class="p">],</span> <span class="n">el</span><span class="p">[</span><span class="s2">"type"</span><span class="p">],</span> <span class="n">el</span><span class="p">[</span><span class="s2">"end"</span><span class="p">])</span>
-                <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"graph"</span><span class="p">]</span><span class="o">.</span><span class="n">get_structured_schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"relationships"</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_structured_schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"relationships"</span><span class="p">,</span> <span class="p">[])</span>
             <span class="p">]</span>
             <span class="n">cypher_query_corrector</span> <span class="o">=</span> <span class="n">CypherQueryCorrector</span><span class="p">(</span><span class="n">corrector_schema</span><span class="p">)</span>
 

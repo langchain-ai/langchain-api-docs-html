@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,7 +222,6 @@
 <h1>Source code for langchain_neo4j.vectorstores.neo4j_vector</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hashlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">md5</span>
@@ -230,127 +229,48 @@
     <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">Final</span><span class="p">,</span>
     <span class="n">Iterable</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
     <span class="n">Tuple</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.indexes</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">create_fulltext_index</span><span class="p">,</span>
+    <span class="n">create_vector_index</span><span class="p">,</span>
+    <span class="n">retrieve_fulltext_index_info</span><span class="p">,</span>
+    <span class="n">retrieve_vector_index_info</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.neo4j_queries</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_search_query</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">EntityType</span> <span class="k">as</span> <span class="n">IndexType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.utils.version_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_version</span><span class="p">,</span>
+    <span class="n">has_metadata_filtering_support</span><span class="p">,</span>
+    <span class="n">has_vector_index_support</span><span class="p">,</span>
+    <span class="n">is_version_5_23_or_above</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.graphs.neo4j_graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neo4jGraph</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistanceStrategy</span>
 
 <span class="n">DEFAULT_DISTANCE_STRATEGY</span> <span class="o">=</span> <span class="n">DistanceStrategy</span><span class="o">.</span><span class="n">COSINE</span>
-<span class="n">DISTANCE_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">DISTANCE_MAPPING</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="n">DistanceStrategy</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"euclidean"</span><span class="p">,</span> <span class="s2">"cosine"</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">DistanceStrategy</span><span class="o">.</span><span class="n">EUCLIDEAN_DISTANCE</span><span class="p">:</span> <span class="s2">"euclidean"</span><span class="p">,</span>
     <span class="n">DistanceStrategy</span><span class="o">.</span><span class="n">COSINE</span><span class="p">:</span> <span class="s2">"cosine"</span><span class="p">,</span>
 <span class="p">}</span>
-
-<span class="n">COMPARISONS_TO_NATIVE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"$eq"</span><span class="p">:</span> <span class="s2">"="</span><span class="p">,</span>
-    <span class="s2">"$ne"</span><span class="p">:</span> <span class="s2">"&lt;&gt;"</span><span class="p">,</span>
-    <span class="s2">"$lt"</span><span class="p">:</span> <span class="s2">"&lt;"</span><span class="p">,</span>
-    <span class="s2">"$lte"</span><span class="p">:</span> <span class="s2">"&lt;="</span><span class="p">,</span>
-    <span class="s2">"$gt"</span><span class="p">:</span> <span class="s2">"&gt;"</span><span class="p">,</span>
-    <span class="s2">"$gte"</span><span class="p">:</span> <span class="s2">"&gt;="</span><span class="p">,</span>
-<span class="p">}</span>
-
-<span class="n">SPECIAL_CASED_OPERATORS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"$in"</span><span class="p">,</span>
-    <span class="s2">"$nin"</span><span class="p">,</span>
-    <span class="s2">"$between"</span><span class="p">,</span>
-<span class="p">}</span>
-
-<span class="n">TEXT_OPERATORS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"$like"</span><span class="p">,</span>
-    <span class="s2">"$ilike"</span><span class="p">,</span>
-<span class="p">}</span>
-
-<span class="n">LOGICAL_OPERATORS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$and"</span><span class="p">,</span> <span class="s2">"$or"</span><span class="p">}</span>
-
-<span class="n">SUPPORTED_OPERATORS</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="nb">set</span><span class="p">(</span><span class="n">COMPARISONS_TO_NATIVE</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">TEXT_OPERATORS</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">LOGICAL_OPERATORS</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">SPECIAL_CASED_OPERATORS</span><span class="p">)</span>
-<span class="p">)</span>
-
-
-<div class="viewcode-block" id="SearchType">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.SearchType.html#langchain_neo4j.vectorstores.neo4j_vector.SearchType">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">SearchType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Enumerator of the Distance strategies."""</span>
-
-    <span class="n">VECTOR</span> <span class="o">=</span> <span class="s2">"vector"</span>
-    <span class="n">HYBRID</span> <span class="o">=</span> <span class="s2">"hybrid"</span></div>
-
-
-
 <span class="n">DEFAULT_SEARCH_TYPE</span> <span class="o">=</span> <span class="n">SearchType</span><span class="o">.</span><span class="n">VECTOR</span>
-
-
-<div class="viewcode-block" id="IndexType">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.IndexType.html#langchain_neo4j.vectorstores.neo4j_vector.IndexType">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">IndexType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Enumerator of the index types."""</span>
-
-    <span class="n">NODE</span> <span class="o">=</span> <span class="s2">"NODE"</span>
-    <span class="n">RELATIONSHIP</span> <span class="o">=</span> <span class="s2">"RELATIONSHIP"</span></div>
-
-
-
 <span class="n">DEFAULT_INDEX_TYPE</span> <span class="o">=</span> <span class="n">IndexType</span><span class="o">.</span><span class="n">NODE</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_search_index_query</span><span class="p">(</span>
-    <span class="n">search_type</span><span class="p">:</span> <span class="n">SearchType</span><span class="p">,</span>
-    <span class="n">index_type</span><span class="p">:</span> <span class="n">IndexType</span> <span class="o">=</span> <span class="n">DEFAULT_INDEX_TYPE</span><span class="p">,</span>
-    <span class="n">neo4j_version_is_5_23_or_above</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">index_type</span> <span class="o">==</span> <span class="n">IndexType</span><span class="o">.</span><span class="n">NODE</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="n">SearchType</span><span class="o">.</span><span class="n">VECTOR</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="s2">"CALL db.index.vector.queryNodes($index, $k * $ef, $embedding) "</span>
-                <span class="s2">"YIELD node, score "</span>
-                <span class="s2">"WITH node, score LIMIT $k "</span>
-            <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="n">SearchType</span><span class="o">.</span><span class="n">HYBRID</span><span class="p">:</span>
-            <span class="n">call_prefix</span> <span class="o">=</span> <span class="s2">"CALL () { "</span> <span class="k">if</span> <span class="n">neo4j_version_is_5_23_or_above</span> <span class="k">else</span> <span class="s2">"CALL { "</span>
-
-            <span class="n">query_body</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">"CALL db.index.vector.queryNodes($index, $k * $ef, $embedding) "</span>
-                <span class="s2">"YIELD node, score "</span>
-                <span class="s2">"WITH node, score LIMIT $k "</span>
-                <span class="s2">"WITH collect({node:node, score:score}) AS nodes, max(score) AS max "</span>
-                <span class="s2">"UNWIND nodes AS n "</span>
-                <span class="s2">"RETURN n.node AS node, (n.score / max) AS score UNION "</span>
-                <span class="s2">"CALL db.index.fulltext.queryNodes($keyword_index, $query, "</span>
-                <span class="s2">"{limit: $k}) YIELD node, score "</span>
-                <span class="s2">"WITH collect({node:node, score:score}) AS nodes, max(score) AS max "</span>
-                <span class="s2">"UNWIND nodes AS n "</span>
-                <span class="s2">"RETURN n.node AS node, (n.score / max) AS score "</span>
-            <span class="p">)</span>
-
-            <span class="n">call_suffix</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">"} WITH node, max(score) AS score ORDER BY score DESC LIMIT $k "</span>
-            <span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">call_prefix</span> <span class="o">+</span> <span class="n">query_body</span> <span class="o">+</span> <span class="n">call_suffix</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported SearchType: </span><span class="si">{</span><span class="n">search_type</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="s2">"CALL db.index.vector.queryRelationships($index, $k * $ef, $embedding) "</span>
-            <span class="s2">"YIELD relationship, score "</span>
-            <span class="s2">"WITH relationship, score LIMIT $k "</span>
-        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="check_if_not_null">
@@ -360,16 +280,6 @@
     <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">props</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Parameter `</span><span class="si">{</span><span class="n">prop</span><span class="si">}</span><span class="s2">` must not be None or empty string"</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="sort_by_index_name">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.sort_by_index_name.html#langchain_neo4j.vectorstores.neo4j_vector.sort_by_index_name">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">sort_by_index_name</span><span class="p">(</span>
-    <span class="n">lst</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">index_name</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Sort first element to match the index_name if exists"""</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">index_name</span><span class="p">)</span></div>
 
 
 
@@ -430,259 +340,6 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">yaml_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">padding</span><span class="si">}{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
     <span class="k">return</span> <span class="n">yaml_str</span></div>
-
-
-
-<div class="viewcode-block" id="combine_queries">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.combine_queries.html#langchain_neo4j.vectorstores.neo4j_vector.combine_queries">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">combine_queries</span><span class="p">(</span>
-    <span class="n">input_queries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Combine multiple queries with an operator."""</span>
-
-    <span class="c1"># Initialize variables to hold the combined query and parameters</span>
-    <span class="n">combined_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-    <span class="n">combined_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">param_counter</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">for</span> <span class="n">query</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">input_queries</span><span class="p">:</span>
-        <span class="c1"># Process each query fragment and its parameters</span>
-        <span class="n">new_query</span> <span class="o">=</span> <span class="n">query</span>
-        <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="c1"># Update the parameter name to ensure uniqueness</span>
-            <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">param_counter</span><span class="p">:</span>
-                <span class="n">param_counter</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">param_counter</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-            <span class="n">new_param_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">param_counter</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
-
-            <span class="c1"># Replace the parameter in the query fragment</span>
-            <span class="n">new_query</span> <span class="o">=</span> <span class="n">new_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">f</span><span class="s2">"$</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"$</span><span class="si">{</span><span class="n">new_param_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="c1"># Add the parameter to the combined parameters dictionary</span>
-            <span class="n">combined_params</span><span class="p">[</span><span class="n">new_param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-
-        <span class="c1"># Combine the query fragments with an AND operator</span>
-        <span class="k">if</span> <span class="n">combined_query</span><span class="p">:</span>
-            <span class="n">combined_query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="n">operator</span><span class="si">}</span><span class="s2"> "</span>
-        <span class="n">combined_query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">new_query</span><span class="si">}</span><span class="s2">)"</span>
-
-    <span class="k">return</span> <span class="n">combined_query</span><span class="p">,</span> <span class="n">combined_params</span></div>
-
-
-
-<div class="viewcode-block" id="collect_params">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.collect_params.html#langchain_neo4j.vectorstores.neo4j_vector.collect_params">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">collect_params</span><span class="p">(</span>
-    <span class="n">input_data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Transform the input data into the desired format.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">    - input_data (list of tuples): Input data to transform.</span>
-<span class="sd">      Each tuple contains a string and a dictionary.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">    - tuple: A tuple containing a list of strings and a dictionary.</span>
-<span class="sd">    """</span>
-    <span class="c1"># Initialize variables to hold the output parts</span>
-    <span class="n">query_parts</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="c1"># Loop through each item in the input data</span>
-    <span class="k">for</span> <span class="n">query_part</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">input_data</span><span class="p">:</span>
-        <span class="c1"># Append the query part to the list</span>
-        <span class="n">query_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">query_part</span><span class="p">)</span>
-        <span class="c1"># Update the params dictionary with the param dictionary</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
-
-    <span class="c1"># Return the transformed data</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">query_parts</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_handle_field_filter</span><span class="p">(</span>
-    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">param_number</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Create a filter for a specific field.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        field: name of field</span>
-<span class="sd">        value: value to filter</span>
-<span class="sd">            If provided as is then this will be an equality filter</span>
-<span class="sd">            If provided as a dictionary then this will be a filter, the key</span>
-<span class="sd">            will be the operator and the value will be the value to filter by</span>
-<span class="sd">        param_number: sequence number of parameters used to map between param</span>
-<span class="sd">           dict and Cypher snippet</span>
-
-<span class="sd">    Returns a tuple of</span>
-<span class="sd">        - Cypher filter snippet</span>
-<span class="sd">        - Dictionary with parameters used in filter snippet</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"field should be a string but got: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">field</span><span class="p">)</span><span class="si">}</span><span class="s2"> with value: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"$"</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Invalid filter condition. Expected a field but got an operator: "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Allow [a-zA-Z0-9_], disallow $ for now until we support escape characters</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">isidentifier</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid field name: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">. Expected a valid identifier."</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="c1"># This is a filter specification</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Invalid filter condition. Expected a value which "</span>
-                <span class="s2">"is a dictionary with a single key that corresponds to an operator "</span>
-                <span class="sa">f</span><span class="s2">"but got a dictionary with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> keys. The first few "</span>
-                <span class="sa">f</span><span class="s2">"keys are: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">keys</span><span class="p">())[:</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-        <span class="n">operator</span><span class="p">,</span> <span class="n">filter_value</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="c1"># Verify that that operator is an operator</span>
-        <span class="k">if</span> <span class="n">operator</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUPPORTED_OPERATORS</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Invalid operator: </span><span class="si">{</span><span class="n">operator</span><span class="si">}</span><span class="s2">. "</span>
-                <span class="sa">f</span><span class="s2">"Expected one of </span><span class="si">{</span><span class="n">SUPPORTED_OPERATORS</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Then we assume an equality operator</span>
-        <span class="n">operator</span> <span class="o">=</span> <span class="s2">"$eq"</span>
-        <span class="n">filter_value</span> <span class="o">=</span> <span class="n">value</span>
-
-    <span class="k">if</span> <span class="n">operator</span> <span class="ow">in</span> <span class="n">COMPARISONS_TO_NATIVE</span><span class="p">:</span>
-        <span class="c1"># Then we implement an equality filter</span>
-        <span class="c1"># native is trusted input</span>
-        <span class="n">native</span> <span class="o">=</span> <span class="n">COMPARISONS_TO_NATIVE</span><span class="p">[</span><span class="n">operator</span><span class="p">]</span>
-        <span class="n">query_snippet</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">` </span><span class="si">{</span><span class="n">native</span><span class="si">}</span><span class="s2"> $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">filter_value</span><span class="p">}</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="s2">"$between"</span><span class="p">:</span>
-        <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">filter_value</span>
-        <span class="n">query_snippet</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"$param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">_low &lt;= n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">` &lt;= $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">_high"</span>
-        <span class="p">)</span>
-        <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">_low"</span><span class="p">:</span> <span class="n">low</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">_high"</span><span class="p">:</span> <span class="n">high</span><span class="p">,</span>
-        <span class="p">}</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-
-    <span class="k">elif</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$in"</span><span class="p">,</span> <span class="s2">"$nin"</span><span class="p">,</span> <span class="s2">"$like"</span><span class="p">,</span> <span class="s2">"$ilike"</span><span class="p">}:</span>
-        <span class="c1"># We'll do force coercion to text</span>
-        <span class="k">if</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$in"</span><span class="p">,</span> <span class="s2">"$nin"</span><span class="p">}:</span>
-            <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">filter_value</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
-                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Unsupported type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2"> for value: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">"</span>
-                    <span class="p">)</span>
-        <span class="k">if</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$in"</span><span class="p">}:</span>
-            <span class="n">query_snippet</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">` IN $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span>
-            <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">filter_value</span><span class="p">}</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$nin"</span><span class="p">}:</span>
-            <span class="n">query_snippet</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">` NOT IN $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span>
-            <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">filter_value</span><span class="p">}</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$like"</span><span class="p">}:</span>
-            <span class="n">query_snippet</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">` CONTAINS $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span>
-            <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">filter_value</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"%"</span><span class="p">)}</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">operator</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"$ilike"</span><span class="p">}:</span>
-            <span class="n">query_snippet</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"toLower(n.`</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">`) CONTAINS $param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span>
-            <span class="n">query_param</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">"param_</span><span class="si">{</span><span class="n">param_number</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">filter_value</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"%"</span><span class="p">)}</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">query_snippet</span><span class="p">,</span> <span class="n">query_param</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
-
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Unhandled operator"</span><span class="p">)</span>
-
-
-<div class="viewcode-block" id="construct_metadata_filter">
-<a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.construct_metadata_filter.html#langchain_neo4j.vectorstores.neo4j_vector.construct_metadata_filter">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">construct_metadata_filter</span><span class="p">(</span><span class="nb">filter</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Construct a metadata filter.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        filter: A dictionary representing the filter condition.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Tuple[str, Dict]</span>
-<span class="sd">    """</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># The only operators allowed at the top level are $AND and $OR</span>
-            <span class="c1"># First check if an operator or a field</span>
-            <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"$"</span><span class="p">):</span>
-                <span class="c1"># Then it's an operator</span>
-                <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"$and"</span><span class="p">,</span> <span class="s2">"$or"</span><span class="p">]:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Invalid filter condition. Expected $and or $or "</span>
-                        <span class="sa">f</span><span class="s2">"but got: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
-                    <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Then it's a field</span>
-                <span class="k">return</span> <span class="n">_handle_field_filter</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">filter</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
-
-            <span class="c1"># Here we handle the $and and $or operators</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Expected a list, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2"> for value: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"$and"</span><span class="p">:</span>
-                <span class="n">and_</span> <span class="o">=</span> <span class="n">combine_queries</span><span class="p">(</span>
-                    <span class="p">[</span><span class="n">construct_metadata_filter</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">value</span><span class="p">],</span> <span class="s2">"AND"</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">and_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="n">and_</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">"Invalid filter condition. Expected a dictionary "</span>
-                        <span class="s2">"but got an empty dictionary"</span>
-                    <span class="p">)</span>
-            <span class="k">elif</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"$or"</span><span class="p">:</span>
-                <span class="n">or_</span> <span class="o">=</span> <span class="n">combine_queries</span><span class="p">(</span>
-                    <span class="p">[</span><span class="n">construct_metadata_filter</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">value</span><span class="p">],</span> <span class="s2">"OR"</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">or_</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="n">or_</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">"Invalid filter condition. Expected a dictionary "</span>
-                        <span class="s2">"but got an empty dictionary"</span>
-                    <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Invalid filter condition. Expected $and or $or "</span> <span class="sa">f</span><span class="s2">"but got: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># Then all keys have to be fields (they cannot be operators)</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">filter</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"$"</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Invalid filter condition. Expected a field but got: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
-                    <span class="p">)</span>
-            <span class="c1"># These should all be fields and combined using an $and operator</span>
-            <span class="n">and_multiple</span> <span class="o">=</span> <span class="n">collect_params</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">_handle_field_filter</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">filter</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">and_multiple</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">return</span> <span class="s2">" AND "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">and_multiple</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">and_multiple</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Invalid filter condition. Expected a dictionary "</span>
-                    <span class="s2">"but got an empty dictionary"</span>
-                <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Got an empty dictionary for filters."</span><span class="p">)</span></div>
 
 
 
@@ -767,14 +424,6 @@
         <span class="n">graph</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Neo4jGraph</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">embedding_dimension</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-                <span class="s2">"Could not import neo4j python package. "</span>
-                <span class="s2">"Please install it with `pip install neo4j`."</span>
-            <span class="p">)</span>
-
         <span class="c1"># Allow only cosine and euclidean distance strategies</span>
         <span class="k">if</span> <span class="n">distance_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
             <span class="n">DistanceStrategy</span><span class="o">.</span><span class="n">EUCLIDEAN_DISTANCE</span><span class="p">,</span>
@@ -871,18 +520,14 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_delete_query</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">neo4j_version_is_5_23_or_above</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"MATCH (n:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) "</span>
-                <span class="s2">"CALL (n) { DETACH DELETE n } "</span>
-                <span class="s2">"IN TRANSACTIONS OF 10000 ROWS;"</span>
-            <span class="p">)</span>
+            <span class="n">call_prefix</span> <span class="o">=</span> <span class="s2">"CALL (n) {"</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"MATCH (n:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) "</span>
-                <span class="s2">"CALL { WITH n DETACH DELETE n } "</span>
-                <span class="s2">"IN TRANSACTIONS OF 10000 ROWS;"</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">query</span>
+            <span class="n">call_prefix</span> <span class="o">=</span> <span class="s2">"CALL { WITH n"</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"MATCH (n:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">call_prefix</span><span class="si">}</span><span class="s2"> DETACH DELETE n "</span>
+            <span class="s2">"} IN TRANSACTIONS OF 10000 ROWS;"</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="Neo4jVector.query">
 <a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.Neo4jVector.html#langchain_neo4j.vectorstores.neo4j_vector.Neo4jVector.query">[docs]</a>
@@ -948,45 +593,23 @@
 <span class="sd">        indexing. Raises a ValueError if the connected Neo4j version is</span>
 <span class="sd">        not supported.</span>
 <span class="sd">        """</span>
-        <span class="n">db_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"CALL dbms.components()"</span><span class="p">)</span>
-        <span class="n">version</span> <span class="o">=</span> <span class="n">db_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"versions"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="s2">"aura"</span> <span class="ow">in</span> <span class="n">version</span><span class="p">:</span>
-            <span class="n">version_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"-"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)))</span> <span class="o">+</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">version_tuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)))</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">neo4j_version_is_5_23_or_above</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_if_version_5_23_or_above</span><span class="p">(</span>
-            <span class="n">version_tuple</span>
+        <span class="n">version_tuple</span><span class="p">,</span> <span class="n">is_aura</span><span class="p">,</span> <span class="n">is_enterprise</span> <span class="o">=</span> <span class="n">get_version</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_database</span>
         <span class="p">)</span>
-
-        <span class="n">target_version</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">version_tuple</span> <span class="o">&lt;</span> <span class="n">target_version</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_enterprise</span> <span class="o">=</span> <span class="n">is_enterprise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neo4j_version_is_5_23_or_above</span> <span class="o">=</span> <span class="n">is_version_5_23_or_above</span><span class="p">(</span><span class="n">version_tuple</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_vector_index_support</span><span class="p">(</span><span class="n">version_tuple</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Version index is only supported in Neo4j version 5.11 or greater"</span>
+                <span class="s2">"Vector index is only supported in Neo4j version 5.11 or greater"</span>
             <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">support_metadata_filter</span> <span class="o">=</span> <span class="n">has_metadata_filtering_support</span><span class="p">(</span>
+            <span class="n">version_tuple</span><span class="p">,</span> <span class="n">is_aura</span>
+        <span class="p">)</span></div>
 
-        <span class="c1"># Flag for metadata filtering</span>
-        <span class="n">metadata_target_version</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">version_tuple</span> <span class="o">&lt;</span> <span class="n">metadata_target_version</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">support_metadata_filter</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">support_metadata_filter</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="c1"># Flag for enterprise</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_is_enterprise</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">db_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"edition"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"enterprise"</span> <span class="k">else</span> <span class="kc">False</span></div>
-
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_if_version_5_23_or_above</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version_tuple</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Check if the connected Neo4j database version supports the required features.</span>
-
-<span class="sd">        Sets a flag if the connected Neo4j version is 5.23 or above.</span>
-<span class="sd">        """</span>
-        <span class="k">return</span> <span class="n">version_tuple</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Neo4jVector.retrieve_existing_index">
 <a class="viewcode-back" href="../../../neo4j/vectorstores/langchain_neo4j.vectorstores.neo4j_vector.Neo4jVector.html#langchain_neo4j.vectorstores.neo4j_vector.Neo4jVector.retrieve_existing_index">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">retrieve_existing_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retrieve_existing_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Check if the vector index exists in the Neo4j database</span>
 <span class="sd">        and returns its embedding dimension.</span>
@@ -999,34 +622,27 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            int or None: The embedding dimension of the existing index if found.</span>
 <span class="sd">        """</span>
-
-        <span class="n">index_information</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="s2">"SHOW INDEXES YIELD name, type, entityType, labelsOrTypes, "</span>
-            <span class="s2">"properties, options WHERE type = 'VECTOR' AND (name = $index_name "</span>
-            <span class="s2">"OR (labelsOrTypes[0] = $node_label AND "</span>
-            <span class="s2">"properties[0] = $embedding_node_property)) "</span>
-            <span class="s2">"RETURN name, entityType, labelsOrTypes, properties, options "</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"index_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
-                <span class="s2">"node_label"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
-                <span class="s2">"embedding_node_property"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="p">,</span>
-            <span class="p">},</span>
+        <span class="n">index_information</span> <span class="o">=</span> <span class="n">retrieve_vector_index_info</span><span class="p">(</span>
+            <span class="n">driver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span>
+            <span class="n">index_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
+            <span class="n">label_or_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
+            <span class="n">embedding_property</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># sort by index_name</span>
-        <span class="n">index_information</span> <span class="o">=</span> <span class="n">sort_by_index_name</span><span class="p">(</span><span class="n">index_information</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">node_label</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"labelsOrTypes"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"properties"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"entityType"</span><span class="p">]</span>
-            <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">index_config</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"options"</span><span class="p">][</span><span class="s2">"indexConfig"</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s2">"vector.dimensions"</span> <span class="ow">in</span> <span class="n">index_config</span><span class="p">:</span>
-                <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">index_config</span><span class="p">[</span><span class="s2">"vector.dimensions"</span><span class="p">]</span>
-
-            <span class="k">return</span> <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"entityType"</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+        <span class="k">if</span> <span class="n">index_information</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_label</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"labelsOrTypes"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"entityType"</span><span class="p">]</span>
+                <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">index_config</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"options"</span><span class="p">][</span><span class="s2">"indexConfig"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">"vector.dimensions"</span> <span class="ow">in</span> <span class="n">index_config</span><span class="p">:</span>
+                    <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">index_config</span><span class="p">[</span><span class="s2">"vector.dimensions"</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"entityType"</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="Neo4jVector.retrieve_existing_fts_index">
@@ -1043,27 +659,24 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            (Tuple): keyword index information</span>
 <span class="sd">        """</span>
-
-        <span class="n">index_information</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="s2">"SHOW INDEXES YIELD name, type, labelsOrTypes, properties, options "</span>
-            <span class="s2">"WHERE type = 'FULLTEXT' AND (name = $keyword_index_name "</span>
-            <span class="s2">"OR (labelsOrTypes = [$node_label] AND "</span>
-            <span class="s2">"properties = $text_node_property)) "</span>
-            <span class="s2">"RETURN name, labelsOrTypes, properties, options "</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"keyword_index_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">,</span>
-                <span class="s2">"node_label"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
-                <span class="s2">"text_node_property"</span><span class="p">:</span> <span class="n">text_node_properties</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="p">],</span>
-            <span class="p">},</span>
-        <span class="p">)</span>
-        <span class="c1"># sort by index_name</span>
-        <span class="n">index_information</span> <span class="o">=</span> <span class="n">sort_by_index_name</span><span class="p">(</span><span class="n">index_information</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"properties"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">node_label</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"labelsOrTypes"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">node_label</span>
-        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">:</span>
+            <span class="n">index_information</span> <span class="o">=</span> <span class="n">retrieve_fulltext_index_info</span><span class="p">(</span>
+                <span class="n">driver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span>
+                <span class="n">index_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">,</span>
+                <span class="n">label_or_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
+                <span class="n">text_properties</span><span class="o">=</span><span class="n">text_node_properties</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"keyword_index_name is not set."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index_information</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">node_label</span> <span class="o">=</span> <span class="n">index_information</span><span class="p">[</span><span class="s2">"labelsOrTypes"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">node_label</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span></div>
 
 
@@ -1074,19 +687,17 @@
 <span class="sd">        This method constructs a Cypher query and executes it</span>
 <span class="sd">        to create a new vector index in Neo4j.</span>
 <span class="sd">        """</span>
-        <span class="n">index_query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"CREATE VECTOR INDEX </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="si">}</span><span class="s2"> IF NOT EXISTS "</span>
-            <span class="sa">f</span><span class="s2">"FOR (m:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) ON m.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">` "</span>
-            <span class="s2">"OPTIONS { indexConfig: { "</span>
-            <span class="s2">"`vector.dimensions`: toInteger($embedding_dimension), "</span>
-            <span class="s2">"`vector.similarity_function`: $similarity_metric }}"</span>
-        <span class="p">)</span>
-
-        <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"embedding_dimension"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span><span class="p">,</span>
-            <span class="s2">"similarity_metric"</span><span class="p">:</span> <span class="n">DISTANCE_MAPPING</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_distance_strategy</span><span class="p">],</span>
-        <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">index_query</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span></div>
+        <span class="n">similarity_fn</span> <span class="o">=</span> <span class="n">DISTANCE_MAPPING</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_distance_strategy</span><span class="p">]</span>
+        <span class="n">create_vector_index</span><span class="p">(</span>
+            <span class="n">driver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
+            <span class="n">embedding_property</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="p">,</span>
+            <span class="n">dimensions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span><span class="p">,</span>
+            <span class="n">similarity_fn</span><span class="o">=</span><span class="n">similarity_fn</span><span class="p">,</span>
+            <span class="n">fail_if_exists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">neo4j_database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Neo4jVector.create_new_keyword_index">
@@ -1096,13 +707,17 @@
 <span class="sd">        This method constructs a Cypher query and executes it</span>
 <span class="sd">        to create a new full text index in Neo4j.</span>
 <span class="sd">        """</span>
-        <span class="n">node_props</span> <span class="o">=</span> <span class="n">text_node_properties</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="p">]</span>
-        <span class="n">fts_index_query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"CREATE FULLTEXT INDEX </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="si">}</span><span class="s2"> "</span>
-            <span class="sa">f</span><span class="s2">"FOR (n:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) ON EACH "</span>
-            <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">'n.`'</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">el</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">'`'</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">el</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">node_props</span><span class="p">])</span><span class="si">}</span><span class="s2">]"</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">fts_index_query</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">:</span>
+            <span class="n">create_fulltext_index</span><span class="p">(</span>
+                <span class="n">driver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
+                <span class="n">node_properties</span><span class="o">=</span><span class="n">text_node_properties</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="p">],</span>
+                <span class="n">fail_if_exists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">neo4j_database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"keyword_index_name is not set."</span><span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
@@ -1132,8 +747,14 @@
             <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
+
         <span class="c1"># Check if the vector index already exists</span>
-        <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="n">existing_index_info</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">existing_index_info</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">existing_index_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">index_type</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Raise error if relationship index type</span>
         <span class="k">if</span> <span class="n">index_type</span> <span class="o">==</span> <span class="s2">"RELATIONSHIP"</span><span class="p">:</span>
@@ -1388,87 +1009,48 @@
 <span class="sd">            List[Tuple[Document, float]]: A list of tuples, each containing</span>
 <span class="sd">                                a Document object and its similarity score.</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
-            <span class="c1"># Verify that 5.18 or later is used</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">support_metadata_filter</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Metadata filtering is only supported in "</span>
-                    <span class="s2">"Neo4j version 5.18 or greater"</span>
-                <span class="p">)</span>
-            <span class="c1"># Metadata filtering and hybrid doesn't work</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="n">SearchType</span><span class="o">.</span><span class="n">HYBRID</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Metadata filtering can't be use in combination with "</span>
-                    <span class="s2">"a hybrid search approach"</span>
-                <span class="p">)</span>
-            <span class="n">parallel_query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">"CYPHER runtime = parallel parallelRuntimeSupport=all "</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_enterprise</span>
-                <span class="k">else</span> <span class="s2">""</span>
+        <span class="k">if</span> <span class="nb">filter</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">support_metadata_filter</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Metadata filtering is only supported in "</span>
+                <span class="s2">"Neo4j version 5.18 or greater"</span>
             <span class="p">)</span>
-            <span class="n">base_index_query</span> <span class="o">=</span> <span class="n">parallel_query</span> <span class="o">+</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"MATCH (n:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="si">}</span><span class="s2">`) WHERE "</span>
-                <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">` IS NOT NULL AND "</span>
-                <span class="sa">f</span><span class="s2">"size(n.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`) = "</span>
-                <span class="sa">f</span><span class="s2">"toInteger(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span><span class="si">}</span><span class="s2">) AND "</span>
+        <span class="n">entity_prefix</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"relationship"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span> <span class="o">==</span> <span class="n">IndexType</span><span class="o">.</span><span class="n">RELATIONSHIP</span> <span class="k">else</span> <span class="s2">"node"</span>
+        <span class="p">)</span>
+        <span class="n">default_retrieval</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"RETURN </span><span class="si">{</span><span class="n">entity_prefix</span><span class="si">}</span><span class="s2">.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">` AS text, score, "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entity_prefix</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="s2">"{.*, "</span>
+            <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">`: Null, "</span>
+            <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`: Null, id: Null "</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"return_embeddings"</span><span class="p">):</span>
+            <span class="n">default_retrieval</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">", _embedding_: </span><span class="si">{</span><span class="n">entity_prefix</span><span class="si">}</span><span class="s2">.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">` "</span>
             <span class="p">)</span>
-            <span class="n">base_cosine_query</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">" WITH n as node, vector.similarity.cosine("</span>
-                <span class="sa">f</span><span class="s2">"n.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`, "</span>
-                <span class="s2">"$embedding) AS score ORDER BY score DESC LIMIT toInteger($k) "</span>
-            <span class="p">)</span>
-            <span class="n">filter_snippets</span><span class="p">,</span> <span class="n">filter_params</span> <span class="o">=</span> <span class="n">construct_metadata_filter</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-            <span class="n">index_query</span> <span class="o">=</span> <span class="n">base_index_query</span> <span class="o">+</span> <span class="n">filter_snippets</span> <span class="o">+</span> <span class="n">base_cosine_query</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">index_query</span> <span class="o">=</span> <span class="n">_get_search_index_query</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">neo4j_version_is_5_23_or_above</span>
-            <span class="p">)</span>
-            <span class="n">filter_params</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span> <span class="o">==</span> <span class="n">IndexType</span><span class="o">.</span><span class="n">RELATIONSHIP</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"return_embeddings"</span><span class="p">):</span>
-                <span class="n">default_retrieval</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"RETURN relationship.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">` AS text, score, "</span>
-                    <span class="sa">f</span><span class="s2">"relationship </span><span class="se">{{</span><span class="s2">.*, `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">`: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`: Null, id: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"_embedding_: relationship.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`</span><span class="se">}}</span><span class="s2"> "</span>
-                    <span class="s2">"AS metadata"</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">default_retrieval</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"RETURN relationship.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">` AS text, score, "</span>
-                    <span class="sa">f</span><span class="s2">"relationship </span><span class="se">{{</span><span class="s2">.*, `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">`: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`: Null, id: Null </span><span class="se">}}</span><span class="s2"> AS metadata"</span>
-                <span class="p">)</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"return_embeddings"</span><span class="p">):</span>
-                <span class="n">default_retrieval</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"RETURN node.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">` AS text, score, "</span>
-                    <span class="sa">f</span><span class="s2">"node </span><span class="se">{{</span><span class="s2">.*, `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">`: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`: Null, id: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"_embedding_: node.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`</span><span class="se">}}</span><span class="s2"> AS metadata"</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">default_retrieval</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"RETURN node.`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">` AS text, score, "</span>
-                    <span class="sa">f</span><span class="s2">"node </span><span class="se">{{</span><span class="s2">.*, `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text_node_property</span><span class="si">}</span><span class="s2">`: Null, "</span>
-                    <span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="si">}</span><span class="s2">`: Null, id: Null </span><span class="se">}}</span><span class="s2"> AS metadata"</span>
-                <span class="p">)</span>
-
+        <span class="n">default_retrieval</span> <span class="o">+=</span> <span class="s2">"} AS metadata"</span>
         <span class="n">retrieval_query</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_query</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_query</span> <span class="k">else</span> <span class="n">default_retrieval</span>
         <span class="p">)</span>
 
-        <span class="n">read_query</span> <span class="o">=</span> <span class="n">index_query</span> <span class="o">+</span> <span class="n">retrieval_query</span>
+        <span class="n">read_query</span><span class="p">,</span> <span class="n">filter_params</span> <span class="o">=</span> <span class="n">get_search_query</span><span class="p">(</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">entity_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_index_type</span><span class="p">,</span>
+            <span class="n">retrieval_query</span><span class="o">=</span><span class="n">retrieval_query</span><span class="p">,</span>
+            <span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">node_label</span><span class="p">,</span>
+            <span class="n">embedding_node_property</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_node_property</span><span class="p">,</span>
+            <span class="n">embedding_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span><span class="p">,</span>
+            <span class="n">filters</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">neo4j_version_is_5_23_or_above</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">neo4j_version_is_5_23_or_above</span><span class="p">,</span>
+            <span class="n">use_parallel_runtime</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_enterprise</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"index"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
-            <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
-            <span class="s2">"embedding"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">,</span>
-            <span class="s2">"keyword_index"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">,</span>
-            <span class="s2">"query"</span><span class="p">:</span> <span class="n">remove_lucene_chars</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">"query"</span><span class="p">]),</span>
-            <span class="s2">"ef"</span><span class="p">:</span> <span class="n">effective_search_ratio</span><span class="p">,</span>
+            <span class="s2">"vector_index_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
+            <span class="s2">"top_k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
+            <span class="s2">"query_vector"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">,</span>
+            <span class="s2">"fulltext_index_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">keyword_index_name</span><span class="p">,</span>
+            <span class="s2">"query_text"</span><span class="p">:</span> <span class="n">remove_lucene_chars</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">"query"</span><span class="p">]),</span>
+            <span class="s2">"effective_search_ratio"</span><span class="p">:</span> <span class="n">effective_search_ratio</span><span class="p">,</span>
             <span class="o">**</span><span class="n">params</span><span class="p">,</span>
             <span class="o">**</span><span class="n">filter_params</span><span class="p">,</span>
         <span class="p">}</span>
@@ -1668,11 +1250,15 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="c1"># Check if the vector index already exists</span>
+        <span class="n">existing_index_info</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">existing_index_info</span><span class="p">:</span>
+            <span class="n">embedding_dimension_from_existing</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">existing_index_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension_from_existing</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">index_type</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="k">if</span> <span class="n">embedding_dimension</span><span class="p">:</span>
-            <span class="p">(</span>
-                <span class="n">embedding_dimension_from_existing</span><span class="p">,</span>
-                <span class="n">index_type</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">embedding_dimension_from_existing</span> <span class="o">!=</span> <span class="n">embedding_dimension</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"The provided embedding function and vector index "</span>
@@ -1681,7 +1267,7 @@
                     <span class="sa">f</span><span class="s2">"Vector index dimension: </span><span class="si">{</span><span class="n">embedding_dimension_from_existing</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+            <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">embedding_dimension_from_existing</span>
 
         <span class="c1"># Raise error if relationship index type</span>
         <span class="k">if</span> <span class="n">index_type</span> <span class="o">==</span> <span class="s2">"RELATIONSHIP"</span><span class="p">:</span>
@@ -1756,11 +1342,15 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="c1"># Check if the vector index already exists</span>
+        <span class="n">existing_index_info</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">existing_index_info</span><span class="p">:</span>
+            <span class="n">embedding_dimension_from_existing</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">existing_index_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension_from_existing</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">index_type</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="k">if</span> <span class="n">embedding_dimension</span><span class="p">:</span>
-            <span class="p">(</span>
-                <span class="n">embedding_dimension_from_existing</span><span class="p">,</span>
-                <span class="n">index_type</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">embedding_dimension_from_existing</span> <span class="o">!=</span> <span class="n">embedding_dimension</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"The provided embedding function and vector index "</span>
@@ -1769,7 +1359,7 @@
                     <span class="sa">f</span><span class="s2">"Vector index dimension: </span><span class="si">{</span><span class="n">embedding_dimension_from_existing</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+            <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">embedding_dimension_from_existing</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">index_type</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1893,7 +1483,12 @@
         <span class="p">)</span>
 
         <span class="c1"># Check if the vector index already exists</span>
-        <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="n">existing_index_info</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">retrieve_existing_index</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">existing_index_info</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span><span class="p">,</span> <span class="n">index_type</span> <span class="o">=</span> <span class="n">existing_index_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_dimension</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">index_type</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Raise error if relationship index type</span>
         <span class="k">if</span> <span class="n">index_type</span> <span class="o">==</span> <span class="s2">"RELATIONSHIP"</span><span class="p">:</span>

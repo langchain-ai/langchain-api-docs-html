@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -311,14 +311,17 @@
 <span class="sd">    from completely different sources.</span>
 <span class="sd">    - "Jane Smith works with John Doe."</span>
 <span class="sd">    - "Jane Smith works at MongoDB."</span>
-
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="MongoDBGraphStore.__init__">
 <a class="viewcode-back" href="../../../mongodb/graphrag/langchain_mongodb.graphrag.graph.MongoDBGraphStore.html#langchain_mongodb.graphrag.graph.MongoDBGraphStore.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">collection</span><span class="p">:</span> <span class="n">Collection</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">connection_string</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">database_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">entity_extraction_model</span><span class="p">:</span> <span class="n">BaseChatModel</span><span class="p">,</span>
         <span class="n">entity_prompt</span><span class="p">:</span> <span class="n">ChatPromptTemplate</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">query_prompt</span><span class="p">:</span> <span class="n">ChatPromptTemplate</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -332,7 +335,11 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Args:</span>
-<span class="sd">            collection: Collection representing an Entity Graph.</span>
+<span class="sd">            connection_string: A valid MongoDB connection URI.</span>
+<span class="sd">            database_name: The name of the database to connect to.</span>
+<span class="sd">            collection_name: The name of the collection to connect to.</span>
+<span class="sd">            collection: A Collection that will represent a Knowledge Graph.</span>
+<span class="sd">                ** One may pass a Collection in lieu of connection_string, database_name, and collection_name.</span>
 <span class="sd">            entity_extraction_model: LLM for converting documents into Graph of Entities and Relationships.</span>
 <span class="sd">            entity_prompt: Prompt to fill graph store with entities following schema.</span>
 <span class="sd">                Defaults to .prompts.ENTITY_EXTRACTION_INSTRUCTIONS</span>
@@ -348,6 +355,62 @@
 <span class="sd">              - If "warn", the default, documents will be inserted but errors logged.</span>
 <span class="sd">              - If "error", an exception will be raised if any document does not match the schema.</span>
 <span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">entity_schema</span><span class="p">)</span>
+        <span class="n">collection_existed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">connection_string</span> <span class="ow">and</span> <span class="n">collection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Pass one of: connection_string, database_name, and collection_name"</span>
+                <span class="s2">"OR a MongoDB Collection."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">collection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># collection is specified by uri and names</span>
+            <span class="n">client</span><span class="p">:</span> <span class="n">MongoClient</span> <span class="o">=</span> <span class="n">MongoClient</span><span class="p">(</span>
+                <span class="n">connection_string</span><span class="p">,</span>
+                <span class="n">driver</span><span class="o">=</span><span class="n">DriverInfo</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">"Langchain"</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">(</span><span class="s2">"langchain-mongodb"</span><span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">db</span> <span class="o">=</span> <span class="n">client</span><span class="p">[</span><span class="n">database_name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">collection_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">list_collection_names</span><span class="p">():</span>
+                <span class="n">validator</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$jsonSchema"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">}</span> <span class="k">if</span> <span class="n">validate</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">collection</span> <span class="o">=</span> <span class="n">client</span><span class="p">[</span><span class="n">database_name</span><span class="p">]</span><span class="o">.</span><span class="n">create_collection</span><span class="p">(</span>
+                    <span class="n">collection_name</span><span class="p">,</span>
+                    <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">,</span>
+                    <span class="n">validationAction</span><span class="o">=</span><span class="n">validation_action</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">collection_existed</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">collection</span> <span class="o">=</span> <span class="n">db</span><span class="p">[</span><span class="n">collection_name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collection</span><span class="p">,</span> <span class="n">Collection</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"collection must be a MongoDB Collection. "</span>
+                    <span class="s2">"Consider using connection_string, database_name, and collection_name."</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">validate</span> <span class="ow">and</span> <span class="n">collection_existed</span><span class="p">:</span>
+            <span class="c1"># first check for existing validator</span>
+            <span class="n">collection_info</span> <span class="o">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">command</span><span class="p">(</span>
+                <span class="s2">"listCollections"</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">collection</span><span class="o">.</span><span class="n">name</span><span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">collection_options</span> <span class="o">=</span> <span class="n">collection_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cursor"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"firstBatch"</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">validator</span> <span class="o">=</span> <span class="n">collection_options</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"validator"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">validator</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">collection</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">command</span><span class="p">(</span>
+                        <span class="s2">"collMod"</span><span class="p">,</span>
+                        <span class="n">collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">validator</span><span class="o">=</span><span class="p">{</span><span class="s2">"$jsonSchema"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">},</span>
+                        <span class="n">validationAction</span><span class="o">=</span><span class="n">validation_action</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">OperationFailure</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">"Validation will NOT be performed. "</span>
+                        <span class="s2">"User must be DB Admin to add validation **after** a Collection is created. </span><span class="se">\n</span><span class="s2">"</span>
+                        <span class="s2">"Please add validator when you create collection: "</span>
+                        <span class="s2">"db.create_collection.(coll_name, validator={'$jsonSchema': schema.entity_schema})"</span>
+                    <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection</span> <span class="o">=</span> <span class="n">collection</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">entity_extraction_model</span> <span class="o">=</span> <span class="n">entity_extraction_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">entity_prompt</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">prompts</span><span class="o">.</span><span class="n">entity_prompt</span> <span class="k">if</span> <span class="n">entity_prompt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">entity_prompt</span>
@@ -371,20 +434,6 @@
             <span class="p">]</span> <span class="o">=</span> <span class="n">allowed_relationship_types</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">allowed_relationship_types</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">collection</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">command</span><span class="p">(</span>
-                    <span class="s2">"collMod"</span><span class="p">,</span>
-                    <span class="n">collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                    <span class="n">validator</span><span class="o">=</span><span class="p">{</span><span class="s2">"$jsonSchema"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">},</span>
-                    <span class="n">validationAction</span><span class="o">=</span><span class="n">validation_action</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="k">except</span> <span class="n">OperationFailure</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="s2">"Validation will NOT be performed. User must be DB Admin to add validation **after** a Collection is created. </span><span class="se">\n</span><span class="s2">"</span>
-                    <span class="s2">"Please add validator when you create collection: db.create_collection.(coll_name, validator={'$jsonSchema': self._schema})"</span>
-                <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">collection</span> <span class="o">=</span> <span class="n">collection</span>
 
         <span class="c1"># Include examples</span>
         <span class="k">if</span> <span class="n">entity_examples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

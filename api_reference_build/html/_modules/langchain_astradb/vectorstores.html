@@ -34,7 +34,7 @@
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -233,12 +233,17 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
     <span class="n">Any</span><span class="p">,</span>
+    <span class="n">AsyncIterable</span><span class="p">,</span>
     <span class="n">Awaitable</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
     <span class="n">Iterable</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
+    <span class="n">NamedTuple</span><span class="p">,</span>
     <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">cast</span><span class="p">,</span>
+    <span class="n">overload</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -246,6 +251,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">InsertManyException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionVectorServiceOptions</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gather_with_concurrency</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
@@ -264,6 +270,7 @@
     <span class="n">_detect_document_codec</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.utils.vector_store_codecs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">VECTORIZE_FIELD_NAME</span><span class="p">,</span>
     <span class="n">_AstraDBVectorStoreDocumentCodec</span><span class="p">,</span>
     <span class="n">_DefaultVectorizeVSDocumentCodec</span><span class="p">,</span>
     <span class="n">_DefaultVSDocumentCodec</span><span class="p">,</span>
@@ -278,12 +285,28 @@
         <span class="n">AsyncAstraDB</span> <span class="k">as</span> <span class="n">AsyncAstraDBClient</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.results</span><span class="w"> </span><span class="kn">import</span> <span class="n">UpdateResult</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"T"</span><span class="p">)</span>
 <span class="n">U</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"U"</span><span class="p">)</span>
 <span class="n">DocDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>  <span class="c1"># dicts expressing entries to insert</span>
+
+
+<div class="viewcode-block" id="AstraDBQueryResult">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBQueryResult.html#langchain_astradb.vectorstores.AstraDBQueryResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AstraDBQueryResult</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The complete information contained in a vector store entry.</span>
+
+<span class="sd">    This class represents all that can be returned from the collection when running</span>
+<span class="sd">    a query, which goes beyond just the corresponding Document.</span>
+<span class="sd">    """</span>
+
+    <span class="n">document</span><span class="p">:</span> <span class="n">Document</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">similarity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span></div>
+
+
 
 <span class="c1"># error code to check for during bulk insertions</span>
 <span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span> <span class="o">=</span> <span class="s2">"DOCUMENT_ALREADY_EXISTS"</span>
@@ -314,7 +337,7 @@
         <span class="k">if</span> <span class="n">content_field</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"content_field is not configurable for vectorize collections."</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s2">"$vectorize"</span>
+        <span class="k">return</span> <span class="n">VECTORIZE_FIELD_NAME</span>
 
     <span class="k">if</span> <span class="n">content_field</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"*"</span> <span class="k">if</span> <span class="n">is_autodetect</span> <span class="k">else</span> <span class="s2">"content"</span>
@@ -1447,7 +1470,7 @@
             <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
 
                 <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
-                    <span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+                    <span class="n">document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">UpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
                     <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
                     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">replace_one</span><span class="p">(</span>
@@ -1581,7 +1604,7 @@
             <span class="n">_async_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span>
 
             <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
-                <span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+                <span class="n">document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
             <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">UpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
                 <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
                     <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
@@ -1720,6 +1743,556 @@
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_res</span><span class="o">.</span><span class="n">update_info</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="k">for</span> <span class="n">u_res</span> <span class="ow">in</span> <span class="n">update_results</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="AstraDBVectorStore.full_decode_astra_db_document">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.full_decode_astra_db_document">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_decode_astra_db_document</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">astra_db_document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AstraDBQueryResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Decode an Astra DB document in full, i.e. into Document+embedding/similarity.</span>
+
+<span class="sd">        This operation returns a representation that is independent of the codec</span>
+<span class="sd">        being used in the collection (whereas the input, a 'raw' Astra DB document,</span>
+<span class="sd">        is codec-dependent).</span>
+
+<span class="sd">        The input raw document can carry information on embedding and similarity,</span>
+<span class="sd">        depending on details of the query used to retrieve it. These can be set</span>
+<span class="sd">        to None in the resulf if not found.</span>
+
+<span class="sd">        The whole method can return a None, to signal that the codec has refused</span>
+<span class="sd">        the conversion (e.g. because the input document is deemed faulty).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            astra_db_document: a dictionary obtained through `run_query_raw` from</span>
+<span class="sd">                the collection.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            a AstraDBQueryResult named tuple with Document, id, embedding</span>
+<span class="sd">                (where applicable) and similarity (where applicable),</span>
+<span class="sd">                or an overall None if the decoding is refused by the codec.</span>
+<span class="sd">        """</span>
+        <span class="n">decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">decoded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="n">doc_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode_vector</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="n">doc_similarity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_similarity</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">AstraDBQueryResult</span><span class="p">(</span>
+                <span class="n">document</span><span class="o">=</span><span class="n">decoded</span><span class="p">,</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">doc_id</span><span class="p">,</span>
+                <span class="n">embedding</span><span class="o">=</span><span class="n">doc_embedding</span><span class="p">,</span>
+                <span class="n">similarity</span><span class="o">=</span><span class="n">doc_similarity</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]]:</span> <span class="o">...</span>
+
+<div class="viewcode-block" id="AstraDBVectorStore.run_query_raw">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.run_query_raw">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]]</span> <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Execute a generic query on stored documents, returning Astra DB documents.</span>
+
+<span class="sd">        The return value has a variable format, depending on whether the 'sort vector'</span>
+<span class="sd">        is requested back from the server.</span>
+
+<span class="sd">        Only the `n` parameter is required. Omitting all other parameters results</span>
+<span class="sd">        in a query that matches each and every document found on the collection.</span>
+
+<span class="sd">        The method does not expose a projection directly, which is instead</span>
+<span class="sd">        automatically determined based on the invocation options.</span>
+
+<span class="sd">        The returned documents are exactly as they come back from Astra DB (taking</span>
+<span class="sd">        into account the projection as well). A further step, namely subsequent</span>
+<span class="sd">        invocation of the `convert_astra_db_document` method, is required to reconstruct</span>
+<span class="sd">        codec-independent Document objects.</span>
+<span class="sd">        The reason for keeping the retrieval and the decoding steps separate is that</span>
+<span class="sd">        a caller may want to first deduplicate/discard items, in order to convert only</span>
+<span class="sd">        the items actually needed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n: amount of items to return. Fewer items than `n` may be returned  if</span>
+<span class="sd">                the collection has not enough matches.</span>
+<span class="sd">            ids: a list of document IDs to restrict the query to. If this is supplied,</span>
+<span class="sd">                only document with an ID among the provided one will match. If further</span>
+<span class="sd">                query filters are provided (i.e. metadata), matches must satisfy both</span>
+<span class="sd">                requirements.</span>
+<span class="sd">            filter: a metadata filtering part. If provided, it must refer to</span>
+<span class="sd">                metadata keys by their bare name (such as `{"key": 123}`).</span>
+<span class="sd">                This filter can combine nested conditions with "$or"/"$and" connectors,</span>
+<span class="sd">                for example:</span>
+<span class="sd">                - `{"tag": "a"}`</span>
+<span class="sd">                - `{"$or": [{"tag": "a"}, "label": "b"]}`</span>
+<span class="sd">                - `{"$and": [{"tag": {"$in": ["a", "z"]}}, "label": "b"]}`</span>
+<span class="sd">            sort: a 'sort' clause for the query, such as `{"$vector": [...]}`,</span>
+<span class="sd">                `{"$vectorize": "..."}` or `{"mdkey": 1}`. Metadata sort conditions</span>
+<span class="sd">                must be expressed by their 'bare' name.</span>
+<span class="sd">            include_similarity: whether to return similarity scores with each match.</span>
+<span class="sd">                Requires vector sort.</span>
+<span class="sd">            include_sort_vector: whether to return the very query vector used for the</span>
+<span class="sd">                ANN search alongside the iterable of results. Requires vector sort.</span>
+<span class="sd">                Note that the shape of the return value depends on this parameter.</span>
+<span class="sd">            include_embeddings: whether to retrieve the matches' own embedding vectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the return value depends on the value of `include_sort_vector`:</span>
+<span class="sd">            * if `include_sort_vector = False`, the return value is an iterable over</span>
+<span class="sd">                Astra DB documents (dictionaries);</span>
+<span class="sd">            * if `include_sort_vector = True`, the return value is a 2-item tuple</span>
+<span class="sd">                `(sort_v, astra_db_ite)` tuple, where:</span>
+<span class="sd">                - `sort_v` is the sort vector, if requested, or None if not available.</span>
+<span class="sd">                - `astra_db_ite` is an iterable over Astra DB documents (dictionaries).</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
+
+        <span class="n">find_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">find_sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_filter</span><span class="p">(</span><span class="n">sort</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">find_projection</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span>
+            <span class="k">if</span> <span class="n">include_embeddings</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span>
+        <span class="p">)</span>
+
+        <span class="n">find_raw_iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">find_query</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="n">find_projection</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="n">include_sort_vector</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">find_sort</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># stripping down the Astra DB cursor details into a plain iterator:</span>
+        <span class="n">final_doc_iterator</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">find_raw_iterator</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
+            <span class="n">sort_vector</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span> <span class="k">if</span> <span class="n">include_sort_vector</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">sort_vector</span><span class="p">,</span> <span class="n">final_doc_iterator</span>
+        <span class="k">return</span> <span class="n">final_doc_iterator</span></div>
+
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]]:</span> <span class="o">...</span>
+
+<div class="viewcode-block" id="AstraDBVectorStore.run_query">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.run_query">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]]</span>
+        <span class="o">|</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Execute a generic query on stored documents, returning Documents+other info.</span>
+
+<span class="sd">        The return value has a variable format, depending on whether the 'sort vector'</span>
+<span class="sd">        is requested back from the server.</span>
+
+<span class="sd">        Only the `n` parameter is required. Omitting all other parameters results</span>
+<span class="sd">        in a query that matches each and every document found on the collection.</span>
+
+<span class="sd">        The method does not expose a projection directly, which is instead</span>
+<span class="sd">        automatically determined based on the invocation options.</span>
+
+<span class="sd">        The returned Document objects are codec-independent.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n: amount of items to return. Fewer items than `n` may be returned in the</span>
+<span class="sd">                following cases: (a) the decoding skips some raw entries from</span>
+<span class="sd">                the server; (b) the collection has not enough matches.</span>
+<span class="sd">            ids: a list of document IDs to restrict the query to. If this is supplied,</span>
+<span class="sd">                only document with an ID among the provided one will match. If further</span>
+<span class="sd">                query filters are provided (i.e. metadata), matches must satisfy both</span>
+<span class="sd">                requirements.</span>
+<span class="sd">            filter: a metadata filtering part. If provided, it must refer to</span>
+<span class="sd">                metadata keys by their bare name (such as `{"key": 123}`).</span>
+<span class="sd">                This filter can combine nested conditions with "$or"/"$and" connectors,</span>
+<span class="sd">                for example:</span>
+<span class="sd">                - `{"tag": "a"}`</span>
+<span class="sd">                - `{"$or": [{"tag": "a"}, "label": "b"]}`</span>
+<span class="sd">                - `{"$and": [{"tag": {"$in": ["a", "z"]}}, "label": "b"]}`</span>
+<span class="sd">            sort: a 'sort' clause for the query, such as `{"$vector": [...]}`,</span>
+<span class="sd">                `{"$vectorize": "..."}` or `{"mdkey": 1}`. Metadata sort conditions</span>
+<span class="sd">                must be expressed by their 'bare' name.</span>
+<span class="sd">            include_similarity: whether to return similarity scores with each match.</span>
+<span class="sd">                Requires vector sort.</span>
+<span class="sd">            include_sort_vector: whether to return the very query vector used for the</span>
+<span class="sd">                ANN search alongside the iterable of results. Requires vector sort.</span>
+<span class="sd">                Note that the shape of the return value depends on this parameter.</span>
+<span class="sd">            include_embeddings: whether to retrieve the matches' own embedding vectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the return value depends on the value of `include_sort_vector`:</span>
+<span class="sd">            * if `include_sort_vector = False`, the return value is an iterable over</span>
+<span class="sd">                the AstraDBQueryResult items returned by the query. Entries that fail</span>
+<span class="sd">                the decoding step, if any, are discarded after the query, which may</span>
+<span class="sd">                lead to fewer items being returned than the required `n`.</span>
+<span class="sd">            * if `include_sort_vector = True`, the return value is a 2-item tuple</span>
+<span class="sd">                `(sort_v, results_ite)` tuple, where:</span>
+<span class="sd">                - `sort_v` is the sort vector, if requested, or None if not available.</span>
+<span class="sd">                - `results_ite` is an iterable over AstraDBQueryResult items as above.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
+            <span class="n">query_v</span><span class="p">,</span> <span class="n">astra_docs_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query_raw</span><span class="p">(</span>
+                <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+                <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+                <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+                <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">include_embeddings</span><span class="o">=</span><span class="n">include_embeddings</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">query_v</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">decoded_tuple</span>
+                    <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span>
+                            <span class="n">astra_db_doc</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">astra_docs_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query_raw</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="n">include_embeddings</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">decoded_tuple</span>
+            <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span><span class="n">astra_db_doc</span><span class="p">))</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@overload</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]]:</span> <span class="o">...</span>
+
+<div class="viewcode-block" id="AstraDBVectorStore.arun_query_raw">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.arun_query_raw">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query_raw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]]</span> <span class="o">|</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">DocDict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Execute a generic query on stored documents, returning Astra DB documents.</span>
+
+<span class="sd">        The return value has a variable format, depending on whether the 'sort vector'</span>
+<span class="sd">        is requested back from the server.</span>
+
+<span class="sd">        Only the `n` parameter is required. Omitting all other parameters results</span>
+<span class="sd">        in a query that matches each and every document found on the collection.</span>
+
+<span class="sd">        The method does not expose a projection directly, which is instead</span>
+<span class="sd">        automatically determined based on the invocation options.</span>
+
+<span class="sd">        The returned documents are exactly as they come back from Astra DB (taking</span>
+<span class="sd">        into account the projection as well). A further step, namely subsequent</span>
+<span class="sd">        invocation of the `convert_astra_db_document` method, is required to reconstruct</span>
+<span class="sd">        codec-independent Document objects.</span>
+<span class="sd">        The reason for keeping the retrieval and the decoding steps separate is that</span>
+<span class="sd">        a caller may want to first deduplicate/discard items, in order to convert only</span>
+<span class="sd">        the items actually needed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n: amount of items to return. Fewer items than `n` may be returned in the</span>
+<span class="sd">                following cases: (a) the decoding skips some raw entries from</span>
+<span class="sd">                the server; (b) the collection has not enough matches.</span>
+<span class="sd">            ids: a list of document IDs to restrict the query to. If this is supplied,</span>
+<span class="sd">                only document with an ID among the provided one will match. If further</span>
+<span class="sd">                query filters are provided (i.e. metadata), matches must satisfy both</span>
+<span class="sd">                requirements.</span>
+<span class="sd">            filter: a metadata filtering part. If provided, it must refer to</span>
+<span class="sd">                metadata keys by their bare name (such as `{"key": 123}`).</span>
+<span class="sd">                This filter can combine nested conditions with "$or"/"$and" connectors,</span>
+<span class="sd">                for example:</span>
+<span class="sd">                - `{"tag": "a"}`</span>
+<span class="sd">                - `{"$or": [{"tag": "a"}, "label": "b"]}`</span>
+<span class="sd">                - `{"$and": [{"tag": {"$in": ["a", "z"]}}, "label": "b"]}`</span>
+<span class="sd">            sort: a 'sort' clause for the query, such as `{"$vector": [...]}`,</span>
+<span class="sd">                `{"$vectorize": "..."}` or `{"mdkey": 1}`. Metadata sort conditions</span>
+<span class="sd">                must be expressed by their 'bare' name.</span>
+<span class="sd">            include_similarity: whether to return similarity scores with each match.</span>
+<span class="sd">                Requires vector sort.</span>
+<span class="sd">            include_sort_vector: whether to return the very query vector used for the</span>
+<span class="sd">                ANN search alongside the iterable of results. Requires vector sort.</span>
+<span class="sd">                Note that the shape of the return value depends on this parameter.</span>
+<span class="sd">            include_embeddings: whether to retrieve the matches' own embedding vectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the return value depends on the value of `include_sort_vector`:</span>
+<span class="sd">            * if `include_sort_vector = False`, the return value is an iterable over</span>
+<span class="sd">                Astra DB documents (dictionaries);</span>
+<span class="sd">            * if `include_sort_vector = True`, the return value is a 2-item tuple</span>
+<span class="sd">                `(sort_v, astra_db_ite)` tuple, where:</span>
+<span class="sd">                - `sort_v` is the sort vector, if requested, or None if not available.</span>
+<span class="sd">                - `astra_db_ite` is an iterable over Astra DB documents (dictionaries).</span>
+<span class="sd">        """</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
+
+        <span class="n">find_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">find_sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_filter</span><span class="p">(</span><span class="n">sort</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">find_projection</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span>
+            <span class="k">if</span> <span class="n">include_embeddings</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span>
+        <span class="p">)</span>
+
+        <span class="n">find_raw_iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">find_query</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="n">find_projection</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="n">include_sort_vector</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">find_sort</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># stripping down the Astra DB cursor details into a plain iterator:</span>
+        <span class="n">final_doc_iterator</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span> <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">find_raw_iterator</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
+            <span class="n">sort_vector</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="k">await</span> <span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">include_sort_vector</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">sort_vector</span><span class="p">,</span> <span class="n">final_doc_iterator</span>
+        <span class="k">return</span> <span class="n">final_doc_iterator</span></div>
+
+
+    <span class="nd">@overload</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]:</span> <span class="o">...</span>
+
+    <span class="nd">@overload</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">],</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]]:</span> <span class="o">...</span>
+
+<div class="viewcode-block" id="AstraDBVectorStore.arun_query">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.arun_query">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">arun_query</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_similarity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">include_sort_vector</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">include_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+        <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]]</span>
+        <span class="o">|</span> <span class="n">AsyncIterable</span><span class="p">[</span><span class="n">AstraDBQueryResult</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Execute a generic query on stored documents, returning Documents+other info.</span>
+
+<span class="sd">        The return value has a variable format, depending on whether the 'sort vector'</span>
+<span class="sd">        is requested back from the server.</span>
+
+<span class="sd">        Only the `n` parameter is required. Omitting all other parameters results</span>
+<span class="sd">        in a query that matches each and every document found on the collection.</span>
+
+<span class="sd">        The method does not expose a projection directly, which is instead</span>
+<span class="sd">        automatically determined based on the invocation options.</span>
+
+<span class="sd">        The returned Document objects are codec-independent.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n: amount of items to return. Fewer items than `n` may be returned  if</span>
+<span class="sd">                the collection has not enough matches.</span>
+<span class="sd">            ids: a list of document IDs to restrict the query to. If this is supplied,</span>
+<span class="sd">                only document with an ID among the provided one will match. If further</span>
+<span class="sd">                query filters are provided (i.e. metadata), matches must satisfy both</span>
+<span class="sd">                requirements.</span>
+<span class="sd">            filter: a metadata filtering part. If provided, it must refer to</span>
+<span class="sd">                metadata keys by their bare name (such as `{"key": 123}`).</span>
+<span class="sd">                This filter can combine nested conditions with "$or"/"$and" connectors,</span>
+<span class="sd">                for example:</span>
+<span class="sd">                - `{"tag": "a"}`</span>
+<span class="sd">                - `{"$or": [{"tag": "a"}, "label": "b"]}`</span>
+<span class="sd">                - `{"$and": [{"tag": {"$in": ["a", "z"]}}, "label": "b"]}`</span>
+<span class="sd">            sort: a 'sort' clause for the query, such as `{"$vector": [...]}`,</span>
+<span class="sd">                `{"$vectorize": "..."}` or `{"mdkey": 1}`. Metadata sort conditions</span>
+<span class="sd">                must be expressed by their 'bare' name.</span>
+<span class="sd">            include_similarity: whether to return similarity scores with each match.</span>
+<span class="sd">                Requires vector sort.</span>
+<span class="sd">            include_sort_vector: whether to return the very query vector used for the</span>
+<span class="sd">                ANN search alongside the iterable of results. Requires vector sort.</span>
+<span class="sd">                Note that the shape of the return value depends on this parameter.</span>
+<span class="sd">            include_embeddings: whether to retrieve the matches' own embedding vectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The shape of the return value depends on the value of `include_sort_vector`:</span>
+<span class="sd">            * if `include_sort_vector = False`, the return value is an iterable over</span>
+<span class="sd">                the AstraDBQueryResult items returned by the query. Entries that fail</span>
+<span class="sd">                the decoding step, if any, are discarded after the query, which may</span>
+<span class="sd">                lead to fewer items being returned than the required `n`.</span>
+<span class="sd">            * if `include_sort_vector = True`, the return value is a 2-item tuple</span>
+<span class="sd">                `(sort_v, results_ite)` tuple, where:</span>
+<span class="sd">                - `sort_v` is the sort vector, if requested, or None if not available.</span>
+<span class="sd">                - `results_ite` is an iterable over AstraDBQueryResult items as above.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
+            <span class="n">query_v</span><span class="p">,</span> <span class="n">astra_docs_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query_raw</span><span class="p">(</span>
+                <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+                <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+                <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+                <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">include_embeddings</span><span class="o">=</span><span class="n">include_embeddings</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">query_v</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">decoded_tuple</span>
+                    <span class="k">async</span> <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span>
+                            <span class="n">astra_db_doc</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">astra_docs_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query_raw</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="n">include_similarity</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="n">include_embeddings</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">decoded_tuple</span>
+            <span class="k">async</span> <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span><span class="n">astra_db_doc</span><span class="p">))</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="AstraDBVectorStore.metadata_search">
 <a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.metadata_search">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">metadata_search</span><span class="p">(</span>
@@ -1733,15 +2306,8 @@
 <span class="sd">            filter: the metadata to query for.</span>
 <span class="sd">            n: the maximum number of documents to return.</span>
 <span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-        <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits_ite</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">docs</span> <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span></div>
+        <span class="n">docs_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_ite</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="AstraDBVectorStore.ametadata_search">
@@ -1757,20 +2323,8 @@
 <span class="sd">            filter: the metadata to query for.</span>
 <span class="sd">            n: the maximum number of documents to return.</span>
 <span class="sd">        """</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="n">doc</span>
-            <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span>
-                <span class="k">async</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-                    <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-                    <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
-                    <span class="n">limit</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="p">]</span></div>
+        <span class="n">docs_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_ite</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="AstraDBVectorStore.get_by_document_id">
@@ -1784,15 +2338,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The the document if it exists. Otherwise None.</span>
 <span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
-        <span class="c1"># self.collection is not None (by _ensure_astra_db_client)</span>
-        <span class="n">hit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="n">document_id</span><span class="p">]),</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
+        <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="n">document_id</span><span class="p">],</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">hit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span></div>
+        <span class="n">hits</span> <span class="o">=</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">hits</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">hits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="AstraDBVectorStore.aget_by_document_id">
@@ -1806,15 +2360,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The the document if it exists. Otherwise None.</span>
 <span class="sd">        """</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
-        <span class="c1"># self.collection is not None (by _ensure_astra_db_client)</span>
-        <span class="n">hit</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="n">document_id</span><span class="p">]),</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
+        <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="n">document_id</span><span class="p">],</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">hit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span></div>
+        <span class="n">hits</span> <span class="o">=</span> <span class="p">[</span><span class="n">doc</span> <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">hits</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">hits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="AstraDBVectorStore.similarity_search">
@@ -1896,7 +2450,7 @@
 <span class="sd">            The list of (Document, score, id), the most similar to the query.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">}</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_score_id_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
@@ -1994,7 +2548,7 @@
                 <span class="s2">"embeddings is not allowed."</span>
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vector"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">}</span>
+        <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_score_id_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
@@ -2009,26 +2563,16 @@
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause."""</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-        <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="c1"># doc is a Document and sim is a float:</span>
         <span class="k">return</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">)</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_similarity</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits_ite</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">did</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sim</span> <span class="ow">in</span> <span class="n">hits_ite</span>
         <span class="p">]</span>
 
 <div class="viewcode-block" id="AstraDBVectorStore.asimilarity_search">
@@ -2110,7 +2654,7 @@
 <span class="sd">            The list of (Document, score, id), the most similar to the query.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">}</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_score_id_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
@@ -2208,7 +2752,7 @@
                 <span class="s2">"embeddings is not allowed."</span>
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vector"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">}</span>
+        <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span>
         <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_score_id_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
@@ -2290,7 +2834,7 @@
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">}</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
             <span class="c1"># shortcut return if query isn't needed.</span>
@@ -2325,7 +2869,7 @@
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">}</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">)</span>
             <span class="c1"># shortcut return if query isn't needed.</span>
@@ -2349,32 +2893,22 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            (query_embedding, List of (Document, embedding) most similar to the query).</span>
 <span class="sd">        """</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
-        <span class="n">async_cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">),</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">sort_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="n">async_cursor</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">sort_vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
             <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">query_embedding</span> <span class="o">=</span> <span class="n">sort_vector</span>
-
+        <span class="c1"># doc is a Document and emb is a list[float]:</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">query_embedding</span><span class="p">,</span>
+            <span class="n">sort_vec</span><span class="p">,</span>
             <span class="p">[</span>
-                <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
-                <span class="k">async</span> <span class="k">for</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
-                    <span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode_vector</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="p">)</span>
-                    <span class="k">async</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">async_cursor</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">emb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">))</span>
+                <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span>
             <span class="p">],</span>
         <span class="p">)</span>
 
@@ -2389,32 +2923,22 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            (query_embedding, List of (Document, embedding) most similar to the query).</span>
 <span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
-        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">),</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">sort_vector</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">sort_vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
             <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">query_embedding</span> <span class="o">=</span> <span class="n">sort_vector</span>
-
+        <span class="c1"># doc is a Document and emb is a list[float]:</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">query_embedding</span><span class="p">,</span>
+            <span class="n">sort_vec</span><span class="p">,</span>
             <span class="p">[</span>
-                <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span>
-                <span class="k">for</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
-                    <span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode_vector</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">cursor</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">emb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span>
             <span class="p">],</span>
         <span class="p">)</span>
 
@@ -2425,25 +2949,16 @@
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause."""</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+        <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># doc is a Document and sim is a float:</span>
         <span class="k">return</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">)</span>
-            <span class="k">async</span> <span class="k">for</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_similarity</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">hit</span><span class="p">),</span>
-                <span class="p">)</span>
-                <span class="k">async</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-                    <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-                    <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
-                    <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-                    <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">))</span>
+            <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">did</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sim</span> <span class="ow">in</span> <span class="n">hits_ite</span>
         <span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_run_mmr_query_by_sort</span><span class="p">(</span>
@@ -2452,23 +2967,28 @@
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">fetch_k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">metadata_parameter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
-        <span class="n">prefetch_cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
-            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">prefetch_hits</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">prefetch_cursor</span><span class="p">)</span>
-        <span class="n">query_vector</span> <span class="o">=</span> <span class="n">prefetch_cursor</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
+        <span class="c1"># this is list[tuple[Document, list[float]]]:</span>
+        <span class="n">prefetch_hit_pairs</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
+            <span class="p">[(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
+            <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_mmr_hits</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">query_vector</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">embedding</span><span class="o">=</span><span class="n">sort_vec</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-            <span class="n">prefetch_hits</span><span class="o">=</span><span class="n">prefetch_hits</span><span class="p">,</span>
+            <span class="n">prefetch_hit_pairs</span><span class="o">=</span><span class="n">prefetch_hit_pairs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun_mmr_query_by_sort</span><span class="p">(</span>
@@ -2477,23 +2997,28 @@
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">fetch_k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">metadata_parameter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
-        <span class="n">prefetch_cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find</span><span class="p">(</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">full_projection</span><span class="p">,</span>
-            <span class="n">limit</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
-            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">prefetch_hits</span> <span class="o">=</span> <span class="p">[</span><span class="n">hit</span> <span class="k">async</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">prefetch_cursor</span><span class="p">]</span>
-        <span class="n">query_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="n">prefetch_cursor</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
+        <span class="c1"># this is list[tuple[Document, list[float]]]:</span>
+        <span class="n">prefetch_hit_pairs</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
+            <span class="p">[(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">)</span> <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
+            <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_mmr_hits</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">query_vector</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">embedding</span><span class="o">=</span><span class="n">sort_vec</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-            <span class="n">prefetch_hits</span><span class="o">=</span><span class="n">prefetch_hits</span><span class="p">,</span>
+            <span class="n">prefetch_hit_pairs</span><span class="o">=</span><span class="n">prefetch_hit_pairs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_mmr_hits</span><span class="p">(</span>
@@ -2501,23 +3026,18 @@
         <span class="n">embedding</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">prefetch_hits</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DocDict</span><span class="p">],</span>
+        <span class="n">prefetch_hit_pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
         <span class="n">mmr_chosen_indices</span> <span class="o">=</span> <span class="n">maximal_marginal_relevance</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="p">[</span><span class="n">prefetch_hit</span><span class="p">[</span><span class="s2">"$vector"</span><span class="p">]</span> <span class="k">for</span> <span class="n">prefetch_hit</span> <span class="ow">in</span> <span class="n">prefetch_hits</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">hit_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit_pair</span> <span class="ow">in</span> <span class="n">prefetch_hit_pairs</span><span class="p">],</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">mmr_hits</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">prefetch_hit</span>
-            <span class="k">for</span> <span class="n">prefetch_index</span><span class="p">,</span> <span class="n">prefetch_hit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">prefetch_hits</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">prefetch_index</span> <span class="ow">in</span> <span class="n">mmr_chosen_indices</span>
-        <span class="p">]</span>
         <span class="k">return</span> <span class="p">[</span>
-            <span class="n">doc</span>
-            <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">mmr_hits</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">hit_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">pf_hit_index</span><span class="p">,</span> <span class="n">hit_pair</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">prefetch_hit_pairs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pf_hit_index</span> <span class="ow">in</span> <span class="n">mmr_chosen_indices</span>
         <span class="p">]</span>
 
 <div class="viewcode-block" id="AstraDBVectorStore.max_marginal_relevance_search_by_vector">
@@ -2550,15 +3070,12 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_query_by_sort</span><span class="p">(</span>
-            <span class="n">sort</span><span class="o">=</span><span class="p">{</span><span class="s2">"$vector"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">},</span>
+            <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">),</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-            <span class="n">metadata_parameter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -2592,15 +3109,12 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
-        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
-        <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_query_by_sort</span><span class="p">(</span>
-            <span class="n">sort</span><span class="o">=</span><span class="p">{</span><span class="s2">"$vector"</span><span class="p">:</span> <span class="n">embedding</span><span class="p">},</span>
+            <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">),</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-            <span class="n">metadata_parameter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -2638,13 +3152,12 @@
             <span class="c1"># this case goes directly to the "_by_sort" method</span>
             <span class="c1"># (and does its own filter normalization, as it cannot</span>
             <span class="c1">#  use the path for the with-embedding mmr querying)</span>
-            <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_query_by_sort</span><span class="p">(</span>
-                <span class="n">sort</span><span class="o">=</span><span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">},</span>
+                <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">),</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
                 <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-                <span class="n">metadata_parameter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="n">embedding_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -2692,13 +3205,12 @@
             <span class="c1"># this case goes directly to the "_by_sort" method</span>
             <span class="c1"># (and does its own filter normalization, as it cannot</span>
             <span class="c1">#  use the path for the with-embedding mmr querying)</span>
-            <span class="n">metadata_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
             <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_query_by_sort</span><span class="p">(</span>
-                <span class="n">sort</span><span class="o">=</span><span class="p">{</span><span class="s2">"$vectorize"</span><span class="p">:</span> <span class="n">query</span><span class="p">},</span>
+                <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">),</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
                 <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
-                <span class="n">metadata_parameter</span><span class="o">=</span><span class="n">metadata_parameter</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="n">embedding_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>

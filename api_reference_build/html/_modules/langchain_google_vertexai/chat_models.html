@@ -34,7 +34,7 @@
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -227,6 +227,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
@@ -369,8 +370,9 @@
     <span class="s2">"seed"</span><span class="p">,</span>
     <span class="s2">"response_logprobs"</span><span class="p">,</span>
     <span class="s2">"logprobs"</span><span class="p">,</span>
+    <span class="s2">"labels"</span><span class="p">,</span>
 <span class="p">]</span>
-<span class="n">_allowed_params_prediction_service</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"request"</span><span class="p">,</span> <span class="s2">"timeout"</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">]</span>
+<span class="n">_allowed_params_prediction_service</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"request"</span><span class="p">,</span> <span class="s2">"timeout"</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">,</span> <span class="s2">"labels"</span><span class="p">]</span>
 
 
 <span class="nd">@dataclass</span>
@@ -519,7 +521,7 @@
                 <span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="n">system_instruction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">system_instruction</span><span class="o">.</span><span class="n">parts</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">system_parts</span><span class="p">)</span>  <span class="c1"># type: ignore[unreachable]</span>
+                <span class="n">system_instruction</span><span class="o">.</span><span class="n">parts</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">system_parts</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">system_instruction</span> <span class="o">=</span> <span class="n">Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">"system"</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">system_parts</span><span class="p">)</span>
             <span class="n">system_parts</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1311,6 +1313,9 @@
 <span class="sd">    </span>
 <span class="sd">    .. versionadded: 2.0.6</span>
 <span class="sd">    """</span>
+    <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">""" Optional tag llm calls with metadata to help in tracebility and biling.</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Needed for mypy typing to recognize model_name as a valid arg."""</span>
@@ -1331,6 +1336,16 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Get the namespace of the langchain object."""</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"langchain"</span><span class="p">,</span> <span class="s2">"chat_models"</span><span class="p">,</span> <span class="s2">"vertexai"</span><span class="p">]</span>
+
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[a-z][a-z0-9-_]{0,62}$"</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid label key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">63</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Label value too long: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_image_bytes_loader_client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1404,26 +1419,32 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_is_gemini_advanced</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_family</span> <span class="o">==</span> <span class="n">GoogleModelFamily</span><span class="o">.</span><span class="n">GEMINI_ADVANCED</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_default_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">updated_params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_default_params</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_params</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">updated_params</span><span class="p">[</span><span class="s2">"response_mime_type"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span>
+        <span class="n">response_mime_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response_mime_type"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response_mime_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">"response_mime_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">response_mime_type</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">response_schema</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"response_schema"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">allowed_mime_types</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"application/json"</span><span class="p">,</span> <span class="s2">"text/x.enum"</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_mime_types</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">response_mime_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_mime_types</span><span class="p">:</span>
                 <span class="n">error_message</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"`response_schema` is only supported when "</span>
                     <span class="sa">f</span><span class="s2">"`response_mime_type` is set to one of </span><span class="si">{</span><span class="n">allowed_mime_types</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span>
 
-            <span class="n">gapic_response_schema</span> <span class="o">=</span> <span class="n">_convert_schema_dict_to_gapic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span><span class="p">)</span>
-            <span class="n">updated_params</span><span class="p">[</span><span class="s2">"response_schema"</span><span class="p">]</span> <span class="o">=</span> <span class="n">gapic_response_schema</span>
+            <span class="n">gapic_response_schema</span> <span class="o">=</span> <span class="n">_convert_schema_dict_to_gapic</span><span class="p">(</span><span class="n">response_schema</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="s2">"response_schema"</span><span class="p">]</span> <span class="o">=</span> <span class="n">gapic_response_schema</span>
 
-        <span class="k">return</span> <span class="n">updated_params</span>
+        <span class="k">return</span> <span class="n">params</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
@@ -1597,6 +1618,7 @@
             <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span><span class="p">,</span>
             <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_request_from_cached_content</span><span class="p">(</span>
@@ -1690,7 +1712,7 @@
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">total_tokens</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span></div>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_preview</span><span class="o">.</span><span class="n">start_chat</span><span class="p">()</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_tools_gemini</span><span class="p">(</span>
@@ -2062,13 +2084,13 @@
                 <span class="c1"># that takes care of this if necessary.</span>
                 <span class="n">schema_json</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span>
                 <span class="n">schema_json</span> <span class="o">=</span> <span class="n">replace_defs_in_schema</span><span class="p">(</span><span class="n">schema_json</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span> <span class="o">=</span> <span class="n">schema_json</span>
                 <span class="n">parser</span> <span class="o">=</span> <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">schema_json</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span> <span class="o">=</span> <span class="n">schema</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span> <span class="o">=</span> <span class="s2">"application/json"</span>
-            <span class="n">llm</span><span class="p">:</span> <span class="n">Runnable</span> <span class="o">=</span> <span class="bp">self</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">response_mime_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">,</span> <span class="n">response_schema</span><span class="o">=</span><span class="n">schema</span>
+            <span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tool_name</span> <span class="o">=</span> <span class="n">_get_tool_name</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
@@ -2207,6 +2229,7 @@
             <span class="n">generation_info</span> <span class="o">=</span> <span class="n">get_generation_info</span><span class="p">(</span>
                 <span class="n">top_candidate</span><span class="p">,</span>
                 <span class="n">is_gemini</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">usage_metadata</span><span class="o">=</span><span class="p">{},</span>
             <span class="p">)</span>
             <span class="c1"># is_blocked is part of "safety_ratings" list</span>
             <span class="c1"># but if it's True/False then chunks can't be marged</span>

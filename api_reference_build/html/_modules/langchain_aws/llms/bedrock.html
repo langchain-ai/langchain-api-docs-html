@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -259,6 +259,7 @@
     <span class="n">enforce_stop_tokens</span><span class="p">,</span>
     <span class="n">get_num_tokens_anthropic</span><span class="p">,</span>
     <span class="n">get_token_ids_anthropic</span><span class="p">,</span>
+    <span class="n">thinking_in_params</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -368,6 +369,16 @@
                     <span class="n">content</span><span class="o">=</span><span class="p">[</span><span class="n">content_block</span><span class="p">],</span>
                     <span class="n">tool_call_chunks</span><span class="o">=</span><span class="p">[</span><span class="n">tc_chunk</span><span class="p">],</span>  <span class="c1"># type: ignore</span>
                 <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"delta"</span><span class="p">][</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"thinking_delta"</span><span class="p">:</span>
+                <span class="n">content_block</span> <span class="o">=</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"delta"</span><span class="p">]</span>
+                <span class="n">content_block</span><span class="p">[</span><span class="s2">"index"</span><span class="p">]</span> <span class="o">=</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"index"</span><span class="p">]</span>
+                <span class="n">content_block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"thinking"</span>
+                <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="p">[</span><span class="n">content_block</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"delta"</span><span class="p">][</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"signature_delta"</span><span class="p">:</span>
+                <span class="n">content_block</span> <span class="o">=</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"delta"</span><span class="p">]</span>
+                <span class="n">content_block</span><span class="p">[</span><span class="s2">"index"</span><span class="p">]</span> <span class="o">=</span> <span class="n">stream_response</span><span class="p">[</span><span class="s2">"index"</span><span class="p">]</span>
+                <span class="n">content_block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"thinking"</span>
+                <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="p">[</span><span class="n">content_block</span><span class="p">])</span>
         <span class="k">elif</span> <span class="n">msg_type</span> <span class="o">==</span> <span class="s2">"message_delta"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
                 <span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
@@ -505,9 +516,60 @@
         <span class="n">input_body</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">model_kwargs</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">messages</span><span class="p">:</span>
+                <span class="c1"># Check if we're using extended thinking</span>
+                <span class="n">thinking_enabled</span> <span class="o">=</span> <span class="n">thinking_in_params</span><span class="p">(</span><span class="n">model_kwargs</span><span class="p">)</span>
+
                 <span class="k">if</span> <span class="n">tools</span><span class="p">:</span>
                     <span class="n">input_body</span><span class="p">[</span><span class="s2">"tools"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tools</span>
                 <span class="n">input_body</span><span class="p">[</span><span class="s2">"anthropic_version"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"bedrock-2023-05-31"</span>
+
+                <span class="c1"># Special handling for tool results with thinking</span>
+                <span class="k">if</span> <span class="n">thinking_enabled</span><span class="p">:</span>
+                    <span class="c1"># Check if we have a tool_result in the last user message</span>
+                    <span class="c1"># and need to ensure the previous assistant message starts with thinking</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+                        <span class="ow">and</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"role"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"user"</span>
+                        <span class="ow">and</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s2">"role"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"assistant"</span>
+                    <span class="p">):</span>
+                        <span class="c1"># Check if the last user message contains tool_result</span>
+                        <span class="n">last_user_msg</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="p">[])</span>
+                        <span class="n">tool_result</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">last_user_msg</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                            <span class="n">tool_result</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+                                <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"tool_result"</span>
+                                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">last_user_msg</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">tool_result</span><span class="p">:</span>
+                            <span class="c1"># Make sure the assistant message has thinking first</span>
+                            <span class="n">asst_content</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="p">[])</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asst_content</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">asst_content</span><span class="p">:</span>
+                                <span class="c1"># Find thinking blocks and move them to the front if needed</span>
+                                <span class="n">thinking_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="n">block</span>
+                                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">asst_content</span>
+                                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                                    <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+                                    <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                                <span class="p">]</span>
+                                <span class="k">if</span> <span class="n">thinking_blocks</span> <span class="ow">and</span> <span class="n">asst_content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                    <span class="s2">"type"</span>
+                                <span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]:</span>
+                                    <span class="c1"># Reorder to put thinking blocks first</span>
+                                    <span class="n">new_content</span> <span class="o">=</span> <span class="n">thinking_blocks</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                                    <span class="n">new_content</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                                        <span class="p">[</span>
+                                            <span class="n">block</span>
+                                            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">asst_content</span>
+                                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                                            <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+                                            <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                                        <span class="p">]</span>
+                                    <span class="p">)</span>
+                                    <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_content</span>
+
                 <span class="n">input_body</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">]</span> <span class="o">=</span> <span class="n">messages</span>
                 <span class="k">if</span> <span class="n">system</span><span class="p">:</span>
                     <span class="n">input_body</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span> <span class="o">=</span> <span class="n">system</span>
@@ -526,7 +588,7 @@
             <span class="k">if</span> <span class="n">temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">input_body</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="n">temperature</span>
 
-        <span class="k">elif</span> <span class="n">provider</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ai21"</span><span class="p">,</span> <span class="s2">"cohere"</span><span class="p">,</span> <span class="s2">"meta"</span><span class="p">,</span> <span class="s2">"mistral"</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">provider</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"ai21"</span><span class="p">,</span> <span class="s2">"cohere"</span><span class="p">,</span> <span class="s2">"meta"</span><span class="p">,</span> <span class="s2">"mistral"</span><span class="p">,</span> <span class="s2">"deepseek"</span><span class="p">):</span>
             <span class="n">input_body</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">prompt</span>
             <span class="k">if</span> <span class="n">max_tokens</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"cohere"</span><span class="p">:</span>
@@ -535,6 +597,8 @@
                     <span class="n">input_body</span><span class="p">[</span><span class="s2">"max_gen_len"</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_tokens</span>
                 <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"mistral"</span><span class="p">:</span>
                     <span class="n">input_body</span><span class="p">[</span><span class="s2">"max_tokens"</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_tokens</span>
+                <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"deepseek"</span><span class="p">:</span>
+                    <span class="n">input_body</span><span class="p">[</span><span class="s2">"max_new_tokens"</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_tokens</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># TODO: Add AI21 support, param depends on specific model.</span>
                     <span class="k">pass</span>
@@ -561,16 +625,35 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">prepare_output</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">provider</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">thinking</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">response_body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
 
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"completion"</span> <span class="ow">in</span> <span class="n">response_body</span><span class="p">:</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"completion"</span><span class="p">)</span>
             <span class="k">elif</span> <span class="s2">"content"</span> <span class="ow">in</span> <span class="n">response_body</span><span class="p">:</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
-                    <span class="n">text</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"text"</span><span class="p">]</span>
-                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"tool_use"</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="c1"># Extract text content</span>
+                <span class="n">text_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content</span> <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"text"</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">text_blocks</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text_blocks</span><span class="p">)</span>
+
+                <span class="c1"># Extract thinking content</span>
+                <span class="n">thinking_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">block</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content</span> <span class="k">if</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"thinking"</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">thinking_blocks</span><span class="p">:</span>
+                    <span class="c1"># Get the first thinking block (there's typically just one)</span>
+                    <span class="n">thinking_block</span> <span class="o">=</span> <span class="n">thinking_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">thinking</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">"text"</span><span class="p">:</span> <span class="n">thinking_block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                        <span class="s2">"signature"</span><span class="p">:</span> <span class="n">thinking_block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"signature"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                    <span class="p">}</span>
+
+                <span class="c1"># Extract tool calls if present</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"tool_use"</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content</span><span class="p">):</span>
                     <span class="n">tool_calls</span> <span class="o">=</span> <span class="n">extract_tool_calls</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
@@ -582,6 +665,8 @@
                 <span class="n">text</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"generation"</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"mistral"</span><span class="p">:</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"outputs"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"deepseek"</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"choices"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"results"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"outputText"</span><span class="p">)</span>
 
@@ -590,6 +675,7 @@
         <span class="n">completion_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-amzn-bedrock-output-token-count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+            <span class="s2">"thinking"</span><span class="p">:</span> <span class="n">thinking</span><span class="p">,</span>
             <span class="s2">"tool_calls"</span><span class="p">:</span> <span class="n">tool_calls</span><span class="p">,</span>
             <span class="s2">"body"</span><span class="p">:</span> <span class="n">response_body</span><span class="p">,</span>
             <span class="s2">"usage"</span><span class="p">:</span> <span class="p">{</span>
@@ -1030,6 +1116,36 @@
 
         <span class="n">provider</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_provider</span><span class="p">()</span>
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_model_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+
+        <span class="c1"># Pre-process for thinking with tool use</span>
+        <span class="k">if</span> <span class="n">messages</span> <span class="ow">and</span> <span class="s2">"claude-3"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_model</span><span class="p">()</span> <span class="ow">and</span> <span class="n">thinking_in_params</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="c1"># We need to ensure thinking blocks are first in assistant messages</span>
+            <span class="c1"># Process each message in the sequence</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"assistant"</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="p">[])</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">content</span><span class="p">:</span>
+                        <span class="c1"># Find any thinking blocks</span>
+                        <span class="n">thinking_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="n">j</span>
+                            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                        <span class="p">]</span>
+
+                        <span class="c1"># If thinking blocks exist but aren't first, reorder</span>
+                        <span class="k">if</span> <span class="n">thinking_blocks</span> <span class="ow">and</span> <span class="n">thinking_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="c1"># Extract thinking blocks</span>
+                            <span class="n">thinking_content</span> <span class="o">=</span> <span class="p">[</span><span class="n">content</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">thinking_blocks</span><span class="p">]</span>
+                            <span class="c1"># Extract non-thinking blocks</span>
+                            <span class="n">other_content</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">item</span>
+                                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">thinking_blocks</span>
+                            <span class="p">]</span>
+                            <span class="c1"># Reorder with thinking first</span>
+                            <span class="n">message</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">thinking_content</span> <span class="o">+</span> <span class="n">other_content</span>
+
         <span class="k">if</span> <span class="s2">"claude-3"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_model</span><span class="p">()</span> <span class="ow">and</span> <span class="n">_tools_in_params</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
             <span class="n">input_body</span> <span class="o">=</span> <span class="n">LLMInputOutputAdapter</span><span class="o">.</span><span class="n">prepare_input</span><span class="p">(</span>
                 <span class="n">provider</span><span class="o">=</span><span class="n">provider</span><span class="p">,</span>
@@ -1079,6 +1195,7 @@
 
             <span class="p">(</span>
                 <span class="n">text</span><span class="p">,</span>
+                <span class="n">thinking</span><span class="p">,</span>
                 <span class="n">tool_calls</span><span class="p">,</span>
                 <span class="n">body</span><span class="p">,</span>
                 <span class="n">usage_info</span><span class="p">,</span>
@@ -1093,8 +1210,11 @@
 
         <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">enforce_stop_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
-
-        <span class="n">llm_output</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"usage"</span><span class="p">:</span> <span class="n">usage_info</span><span class="p">,</span> <span class="s2">"stop_reason"</span><span class="p">:</span> <span class="n">stop_reason</span><span class="p">}</span>
+        <span class="n">llm_output</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"usage"</span><span class="p">:</span> <span class="n">usage_info</span><span class="p">,</span>
+            <span class="s2">"stop_reason"</span><span class="p">:</span> <span class="n">stop_reason</span><span class="p">,</span>
+            <span class="s2">"thinking"</span><span class="p">:</span> <span class="n">thinking</span><span class="p">,</span>
+        <span class="p">}</span>
 
         <span class="c1"># Verify and raise a callback error if any intervention occurs or a signal is</span>
         <span class="c1"># sent from a Bedrock service,</span>
@@ -1190,6 +1310,9 @@
                     <span class="n">max_tokens</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span><span class="p">,</span>
                     <span class="n">temperature</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
                 <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">thinking_in_params</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+                <span class="n">coerce_content_to_string</span> <span class="o">=</span> <span class="kc">False</span>
+
         <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">input_body</span><span class="p">)</span>
 
         <span class="n">request_options</span> <span class="o">=</span> <span class="p">{</span>

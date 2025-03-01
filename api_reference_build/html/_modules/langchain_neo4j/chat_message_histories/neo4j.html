@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,9 +222,17 @@
 <h1>Source code for langchain_neo4j.chat_message_histories.neo4j</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.chat_history</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatMessageHistory</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">messages_from_dict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.message_history</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ADD_MESSAGE_QUERY</span><span class="p">,</span>
+    <span class="n">CREATE_SESSION_NODE_QUERY</span><span class="p">,</span>
+    <span class="n">DELETE_MESSAGES_QUERY</span><span class="p">,</span>
+    <span class="n">DELETE_SESSION_AND_MESSAGES_QUERY</span><span class="p">,</span>
+    <span class="n">GET_MESSAGES_QUERY</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.graphs.neo4j_graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">Neo4jGraph</span>
 
@@ -248,14 +256,6 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">graph</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Neo4jGraph</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-                <span class="s2">"Could not import neo4j python package. "</span>
-                <span class="s2">"Please install it with `pip install neo4j`."</span>
-            <span class="p">)</span>
-
         <span class="c1"># Make sure session id is not null</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Please ensure that the session_id parameter is provided"</span><span class="p">)</span>
@@ -297,27 +297,28 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">window</span>
         <span class="c1"># Create session node</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"MERGE (s:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="si">}</span><span class="s2">` </span><span class="se">{{</span><span class="s2">id:$session_id</span><span class="se">}}</span><span class="s2">)"</span><span class="p">,</span>
+            <span class="n">CREATE_SESSION_NODE_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="p">),</span>
             <span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">},</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">summary</span></div>
+        <span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">messages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Retrieve the messages from Neo4j"""</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"MATCH (s:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="si">}</span><span class="s2">`)-[:LAST_MESSAGE]-&gt;(last_message) "</span>
-            <span class="s2">"WHERE s.id = $session_id MATCH p=(last_message)&lt;-[:NEXT*0.."</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span><span class="o">*</span><span class="mi">2</span><span class="si">}</span><span class="s2">]-() WITH p, length(p) AS length "</span>
-            <span class="s2">"ORDER BY length DESC LIMIT 1 UNWIND reverse(nodes(p)) AS node "</span>
-            <span class="s2">"RETURN {data:{content: node.content}, type:node.type} AS result"</span>
-        <span class="p">)</span>
         <span class="n">records</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
-            <span class="n">query</span><span class="p">,</span> <span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">}</span>
+            <span class="n">GET_MESSAGES_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">*</span> <span class="mi">2</span>
+            <span class="p">),</span>
+            <span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">},</span>
         <span class="p">)</span>
-
-        <span class="n">messages</span> <span class="o">=</span> <span class="n">messages_from_dict</span><span class="p">([</span><span class="n">el</span><span class="p">[</span><span class="s2">"result"</span><span class="p">]</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">records</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">messages</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">"data"</span><span class="p">:</span> <span class="n">el</span><span class="p">[</span><span class="s2">"result"</span><span class="p">][</span><span class="s2">"data"</span><span class="p">],</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="n">el</span><span class="p">[</span><span class="s2">"result"</span><span class="p">][</span><span class="s2">"role"</span><span class="p">],</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">records</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">messages_from_dict</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
 
     <span class="nd">@messages</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -330,36 +331,37 @@
 <a class="viewcode-back" href="../../../neo4j/chat_message_histories/langchain_neo4j.chat_message_histories.neo4j.Neo4jChatMessageHistory.html#langchain_neo4j.chat_message_histories.neo4j.Neo4jChatMessageHistory.add_message">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">add_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Append the message to the record in Neo4j"""</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"MATCH (s:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="si">}</span><span class="s2">`) WHERE s.id = $session_id "</span>
-            <span class="s2">"OPTIONAL MATCH (s)-[lm:LAST_MESSAGE]-&gt;(last_message) "</span>
-            <span class="s2">"CREATE (s)-[:LAST_MESSAGE]-&gt;(new:Message) "</span>
-            <span class="s2">"SET new += {type:$type, content:$content} "</span>
-            <span class="s2">"WITH new, lm, last_message WHERE last_message IS NOT NULL "</span>
-            <span class="s2">"CREATE (last_message)-[:NEXT]-&gt;(new) "</span>
-            <span class="s2">"DELETE lm"</span>
-        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
-            <span class="n">query</span><span class="p">,</span>
+            <span class="n">ADD_MESSAGE_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="p">),</span>
             <span class="p">{</span>
-                <span class="s2">"type"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                <span class="s2">"role"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
                 <span class="s2">"content"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
                 <span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">,</span>
             <span class="p">},</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">summary</span></div>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Neo4jChatMessageHistory.clear">
 <a class="viewcode-back" href="../../../neo4j/chat_message_histories/langchain_neo4j.chat_message_histories.neo4j.Neo4jChatMessageHistory.html#langchain_neo4j.chat_message_histories.neo4j.Neo4jChatMessageHistory.clear">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Clear session memory from Neo4j"""</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"MATCH (s:`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="si">}</span><span class="s2">`)-[:LAST_MESSAGE]-&gt;(last_message) "</span>
-            <span class="s2">"WHERE s.id = $session_id MATCH p=(last_message)&lt;-[:NEXT]-() "</span>
-            <span class="s2">"WITH p, length(p) AS length ORDER BY length DESC LIMIT 1 "</span>
-            <span class="s2">"UNWIND nodes(p) as node DETACH DELETE node;"</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">})</span><span class="o">.</span><span class="n">summary</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delete_session_node</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Clear session memory from Neo4j</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            delete_session_node (bool): Whether to delete the session node.</span>
+<span class="sd">                Defaults to False.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">delete_session_node</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+                <span class="n">query_</span><span class="o">=</span><span class="n">DELETE_SESSION_AND_MESSAGES_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span>
+                <span class="p">),</span>
+                <span class="n">parameters_</span><span class="o">=</span><span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">},</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="o">.</span><span class="n">execute_query</span><span class="p">(</span>
+                <span class="n">query_</span><span class="o">=</span><span class="n">DELETE_MESSAGES_QUERY</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_node_label</span><span class="p">),</span>
+                <span class="n">parameters_</span><span class="o">=</span><span class="p">{</span><span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_id</span><span class="p">},</span>
+            <span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

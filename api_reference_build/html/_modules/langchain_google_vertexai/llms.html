@@ -34,7 +34,7 @@
 <link href="../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,109 +222,20 @@
 <h1>Source code for langchain_google_vertexai.llms</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform</span><span class="w"> </span><span class="kn">import</span> <span class="n">telemetry</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">LangSmithParams</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generation</span><span class="p">,</span> <span class="n">GenerationChunk</span><span class="p">,</span> <span class="n">LLMResult</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.generative_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
-    <span class="n">Candidate</span><span class="p">,</span>
-    <span class="n">GenerativeModel</span><span class="p">,</span>
-    <span class="n">Image</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
-    <span class="n">CodeGenerationModel</span><span class="p">,</span>
-    <span class="n">TextGenerationModel</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.language_models._language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
-    <span class="n">TextGenerationResponse</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.preview.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
-    <span class="n">CodeGenerationModel</span> <span class="k">as</span> <span class="n">PreviewCodeGenerationModel</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.preview.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">TextGenerationModel</span> <span class="k">as</span> <span class="n">PreviewTextGenerationModel</span><span class="p">,</span>
-<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">GoogleModelFamily</span><span class="p">,</span> <span class="n">_VertexAICommon</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">create_retry_decorator</span><span class="p">,</span>
-    <span class="n">get_generation_info</span><span class="p">,</span>
-    <span class="n">is_gemini_model</span><span class="p">,</span>
-<span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_completion_with_retry</span><span class="p">(</span>
-    <span class="n">llm</span><span class="p">:</span> <span class="n">VertexAI</span><span class="p">,</span>
-    <span class="n">prompt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Image</span><span class="p">]],</span>
-    <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">is_gemini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Use tenacity to retry the completion call."""</span>
-    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">create_retry_decorator</span><span class="p">(</span>
-        <span class="n">max_retries</span><span class="o">=</span><span class="n">llm</span><span class="o">.</span><span class="n">max_retries</span><span class="p">,</span> <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span>
-    <span class="p">)</span>
-
-    <span class="nd">@retry_decorator</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_completion_with_retry_inner</span><span class="p">(</span>
-        <span class="n">prompt</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Image</span><span class="p">]],</span> <span class="n">is_gemini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">is_gemini</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">generate_content</span><span class="p">(</span>
-                <span class="n">prompt</span><span class="p">,</span>
-                <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
-                <span class="n">safety_settings</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"safety_settings"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                <span class="n">generation_config</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">predict_streaming</span><span class="p">(</span><span class="n">prompt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">llm</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">prompt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="n">telemetry</span><span class="o">.</span><span class="n">tool_context_manager</span><span class="p">(</span><span class="n">llm</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_completion_with_retry_inner</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">is_gemini</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acompletion_with_retry</span><span class="p">(</span>
-    <span class="n">llm</span><span class="p">:</span> <span class="n">VertexAI</span><span class="p">,</span>
-    <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">is_gemini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Use tenacity to retry the completion call."""</span>
-    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">create_retry_decorator</span><span class="p">(</span>
-        <span class="n">max_retries</span><span class="o">=</span><span class="n">llm</span><span class="o">.</span><span class="n">max_retries</span><span class="p">,</span> <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span>
-    <span class="p">)</span>
-
-    <span class="nd">@retry_decorator</span>
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acompletion_with_retry_inner</span><span class="p">(</span>
-        <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">is_gemini</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">is_gemini</span><span class="p">:</span>
-            <span class="k">return</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">generate_content_async</span><span class="p">(</span>
-                <span class="n">prompt</span><span class="p">,</span>
-                <span class="n">generation_config</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
-                <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
-                <span class="n">safety_settings</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"safety_settings"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Async streaming is supported only for Gemini family!"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">predict_async</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="n">telemetry</span><span class="o">.</span><span class="n">tool_context_manager</span><span class="p">(</span><span class="n">llm</span><span class="o">.</span><span class="n">_user_agent</span><span class="p">):</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="n">_acompletion_with_retry_inner</span><span class="p">(</span>
-            <span class="n">prompt</span><span class="p">,</span> <span class="n">is_gemini</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatVertexAI</span>
 
 
 <div class="viewcode-block" id="VertexAI">
@@ -332,11 +243,24 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">VertexAI</span><span class="p">(</span><span class="n">_VertexAICommon</span><span class="p">,</span> <span class="n">BaseLLM</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Google Vertex AI large language models."""</span>
 
-    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">"text-bison"</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"model"</span><span class="p">)</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">"gemini-2.0-flash-001"</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"model"</span><span class="p">)</span>
     <span class="s2">"The name of the Vertex AI large language model."</span>
     <span class="n">tuned_model_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""The name of a tuned model. If tuned_model_name is passed</span>
 <span class="sd">    model_name will be used to determine the model family</span>
+<span class="sd">    """</span>
+    <span class="n">response_mime_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Optional. Output response mimetype of the generated candidate text. Only</span>
+<span class="sd">        supported in Gemini 1.5 and later models. Supported mimetype:</span>
+<span class="sd">            * "text/plain": (default) Text output.</span>
+<span class="sd">            * "application/json": JSON response in the candidates.</span>
+<span class="sd">            * "text/x.enum": Enum in plain text.</span>
+<span class="sd">       The model also needs to be prompted to output the appropriate response</span>
+<span class="sd">       type, otherwise the behavior is undefined. This is a preview feature.</span>
+<span class="sd">    """</span>
+    <span class="n">response_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">""" Optional. Enforce an schema to the output.</span>
+<span class="sd">        The format of the dictionary should follow Open API schema.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -361,58 +285,31 @@
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that the python package exists in environment."""</span>
-        <span class="n">tuned_model_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tuned_model_name</span> <span class="ow">or</span> <span class="kc">None</span>
-        <span class="n">safety_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">safety_settings</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model_family</span> <span class="o">=</span> <span class="n">GoogleModelFamily</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">)</span>
-        <span class="n">is_gemini</span> <span class="o">=</span> <span class="n">is_gemini_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_family</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"project"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
-            <span class="s2">"location"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-            <span class="s2">"credentials"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">,</span>
-            <span class="s2">"api_transport"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_transport</span><span class="p">,</span>
-            <span class="s2">"api_endpoint"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span><span class="p">,</span>
-            <span class="s2">"default_metadata"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_metadata</span><span class="p">,</span>
-        <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_init_vertexai</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">safety_settings</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">is_gemini</span> <span class="ow">or</span> <span class="n">tuned_model_name</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Safety settings are only supported for Gemini models"</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_family</span> <span class="o">==</span> <span class="n">GoogleModelFamily</span><span class="o">.</span><span class="n">CODEY</span><span class="p">:</span>
-            <span class="n">model_cls</span> <span class="o">=</span> <span class="n">CodeGenerationModel</span>
-            <span class="n">preview_model_cls</span> <span class="o">=</span> <span class="n">PreviewCodeGenerationModel</span>
-        <span class="k">elif</span> <span class="n">is_gemini</span><span class="p">:</span>
-            <span class="n">model_cls</span> <span class="o">=</span> <span class="n">GenerativeModel</span>
-            <span class="n">preview_model_cls</span> <span class="o">=</span> <span class="n">GenerativeModel</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">model_cls</span> <span class="o">=</span> <span class="n">TextGenerationModel</span>
-            <span class="n">preview_model_cls</span> <span class="o">=</span> <span class="n">PreviewTextGenerationModel</span>
-
-        <span class="k">if</span> <span class="n">tuned_model_name</span><span class="p">:</span>
-            <span class="n">generative_model_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tuned_model_name</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">generative_model_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span>
-
-        <span class="k">if</span> <span class="n">is_gemini</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">model_cls</span><span class="p">(</span>
-                <span class="n">model_name</span><span class="o">=</span><span class="n">generative_model_name</span><span class="p">,</span> <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span>
+        <span class="k">if</span> <span class="s2">"medlm"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_family</span> <span class="o">==</span> <span class="n">GoogleModelFamily</span><span class="o">.</span><span class="n">PALM</span><span class="p">:</span>
+            <span class="n">err</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"MedLM on Palm is not supported any more! Please, use Gemini or "</span>
+                <span class="s2">"switch to langchain-google-vertexai==2.0.13"</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">client_preview</span> <span class="o">=</span> <span class="n">preview_model_cls</span><span class="p">(</span>
-                <span class="n">model_name</span><span class="o">=</span><span class="n">generative_model_name</span><span class="p">,</span> <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">tuned_model_name</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">model_cls</span><span class="o">.</span><span class="n">get_tuned_model</span><span class="p">(</span><span class="n">generative_model_name</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">client_preview</span> <span class="o">=</span> <span class="n">preview_model_cls</span><span class="o">.</span><span class="n">get_tuned_model</span><span class="p">(</span>
-                    <span class="n">generative_model_name</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">model_cls</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">generative_model_name</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">client_preview</span> <span class="o">=</span> <span class="n">preview_model_cls</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-                    <span class="n">generative_model_name</span>
-                <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">streaming</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Only one candidate can be generated with streaming!"</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">ChatVertexAI</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">tuned_model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tuned_model_name</span><span class="p">,</span>
+            <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
+            <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
+            <span class="n">credentials</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials</span><span class="p">,</span>
+            <span class="n">api_transport</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_transport</span><span class="p">,</span>
+            <span class="n">api_endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span><span class="p">,</span>
+            <span class="n">default_metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_metadata</span><span class="p">,</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+            <span class="n">max_output_tokens</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_output_tokens</span><span class="p">,</span>
+            <span class="n">top_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top_p</span><span class="p">,</span>
+            <span class="n">top_k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
+            <span class="n">safety_settings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">safety_settings</span><span class="p">,</span>
+            <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+            <span class="n">response_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">response_schema</span><span class="p">,</span>
+            <span class="n">response_mime_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">response_mime_type</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_ls_params</span><span class="p">(</span>
@@ -428,31 +325,6 @@
             <span class="n">ls_params</span><span class="p">[</span><span class="s2">"ls_stop"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls_stop</span>
         <span class="k">return</span> <span class="n">ls_params</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_candidate_to_generation</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">response</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Candidate</span><span class="p">,</span> <span class="n">TextGenerationResponse</span><span class="p">],</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">stream</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">usage_metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationChunk</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Converts a stream response to a generation chunk."""</span>
-        <span class="n">generation_info</span> <span class="o">=</span> <span class="n">get_generation_info</span><span class="p">(</span>
-            <span class="n">response</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">,</span>
-            <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
-            <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">text</span>
-        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
-        <span class="k">return</span> <span class="n">GenerationChunk</span><span class="p">(</span>
-            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-            <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
-        <span class="p">)</span>
-
     <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">prompts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -461,36 +333,25 @@
         <span class="n">stream</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMResult</span><span class="p">:</span>
-        <span class="n">should_stream</span> <span class="o">=</span> <span class="n">stream</span> <span class="k">if</span> <span class="n">stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">streaming</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">should_stream</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">generations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Generation</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">should_stream</span><span class="p">:</span>
-                <span class="n">generation</span> <span class="o">=</span> <span class="n">GenerationChunk</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="p">(</span>
-                    <span class="n">prompt</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-                <span class="p">):</span>
-                    <span class="n">generation</span> <span class="o">+=</span> <span class="n">chunk</span>
-                <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">generation</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">res</span> <span class="o">=</span> <span class="n">_completion_with_retry</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">prompt</span><span class="p">],</span>
-                    <span class="n">stream</span><span class="o">=</span><span class="n">should_stream</span><span class="p">,</span>
-                    <span class="n">is_gemini</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">,</span>
-                    <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">params</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">:</span>
-                    <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage_metadata"</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">raw_prediction_response</span><span class="o">.</span><span class="n">metadata</span>
-                <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_to_generation</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">)</span>
-                        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">candidates</span>
-                    <span class="p">]</span>
-                <span class="p">)</span>
+            <span class="n">chat_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">_generate</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">)],</span>
+                <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
+                <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
+                <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">Generation</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">g</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                        <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">g</span><span class="o">.</span><span class="n">generation_info</span><span class="p">},</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">chat_result</span><span class="o">.</span><span class="n">generations</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
@@ -500,27 +361,35 @@
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LLMResult</span><span class="p">:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">generations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Generation</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts</span><span class="p">:</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_acompletion_with_retry</span><span class="p">(</span>
-                <span class="bp">self</span><span class="p">,</span>
-                <span class="n">prompt</span><span class="p">,</span>
-                <span class="n">is_gemini</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">,</span>
+            <span class="n">chat_result</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">_agenerate</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">)],</span>
+                <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
                 <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">params</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">:</span>
-                <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage_metadata"</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">raw_prediction_response</span><span class="o">.</span><span class="n">metadata</span>
             <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_to_generation</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">candidates</span>
+                    <span class="n">Generation</span><span class="p">(</span>
+                        <span class="n">text</span><span class="o">=</span><span class="n">g</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                        <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span>
+                            <span class="o">**</span><span class="n">g</span><span class="o">.</span><span class="n">generation_info</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">chat_result</span><span class="o">.</span><span class="n">generations</span>
                 <span class="p">]</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">LLMResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">generations</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lc_usage_to_metadata</span><span class="p">(</span><span class="n">lc_usage</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"input_tokens"</span><span class="p">:</span> <span class="s2">"prompt_token_count"</span><span class="p">,</span>
+            <span class="s2">"output_tokens"</span><span class="p">:</span> <span class="s2">"candidates_token_count"</span><span class="p">,</span>
+            <span class="s2">"total_tokens"</span><span class="p">:</span> <span class="s2">"total_token_count"</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">mapping</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lc_usage</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -529,21 +398,26 @@
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">GenerationChunk</span><span class="p">]:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">stream_resp</span> <span class="ow">in</span> <span class="n">_completion_with_retry</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="p">[</span><span class="n">prompt</span><span class="p">],</span>
-            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">is_gemini</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">,</span>
+        <span class="k">for</span> <span class="n">stream_chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">_stream</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">)],</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
             <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">params</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">):</span>
-            <span class="n">usage_metadata</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">:</span>
-                <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage_metadata"</span><span class="p">)</span>
-                <span class="n">stream_resp</span> <span class="o">=</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_to_generation</span><span class="p">(</span>
-                <span class="n">stream_resp</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span>
+            <span class="k">if</span> <span class="n">stream_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">:</span>
+                <span class="n">lc_usage</span> <span class="o">=</span> <span class="n">stream_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span>
+                <span class="n">usage_metadata</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="o">**</span><span class="n">lc_usage</span><span class="p">,</span>
+                    <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_lc_usage_to_metadata</span><span class="p">(</span><span class="n">lc_usage</span><span class="o">=</span><span class="n">lc_usage</span><span class="p">),</span>
+                <span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">usage_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">GenerationChunk</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">stream_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                <span class="n">generation_info</span><span class="o">=</span><span class="p">{</span>
+                    <span class="o">**</span><span class="n">stream_chunk</span><span class="o">.</span><span class="n">generation_info</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span><span class="s2">"usage_metadata"</span><span class="p">:</span> <span class="n">usage_metadata</span><span class="p">},</span>
+                <span class="p">},</span>
             <span class="p">)</span>
             <span class="k">yield</span> <span class="n">chunk</span>
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
@@ -560,26 +434,34 @@
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">GenerationChunk</span><span class="p">]:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Async streaming is supported only for Gemini family!"</span><span class="p">)</span>
-        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">_acompletion_with_retry</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">prompt</span><span class="p">,</span>
-            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">is_gemini</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_model</span><span class="p">,</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">stream_chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">_astream</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">)],</span>
+            <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
             <span class="n">run_manager</span><span class="o">=</span><span class="n">run_manager</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">params</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">):</span>
-            <span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage_metadata"</span><span class="p">)</span>
-            <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_to_generation</span><span class="p">(</span>
-                <span class="n">chunk</span><span class="o">.</span><span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span>
-            <span class="p">)</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">GenerationChunk</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">stream_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">chunk</span>
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
                 <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
                     <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span>
-                <span class="p">)</span></div>
+                <span class="p">)</span>
+
+<div class="viewcode-block" id="VertexAI.get_num_tokens">
+<a class="viewcode-back" href="../../google_vertexai/llms/langchain_google_vertexai.llms.VertexAI.html#langchain_google_vertexai.llms.VertexAI.get_num_tokens">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Get the number of tokens present in the text.</span>
+
+<span class="sd">        Useful for checking if an input will fit in a model's context window.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text: The string input to tokenize.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The integer number of tokens in the text.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">get_num_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+</div>
 
 </pre></div>
 </article>

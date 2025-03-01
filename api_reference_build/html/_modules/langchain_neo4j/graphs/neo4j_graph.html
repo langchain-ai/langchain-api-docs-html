@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,47 +223,17 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hashlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">md5</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">neo4j_graphrag.schema</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BASE_ENTITY_LABEL</span><span class="p">,</span>
+    <span class="n">_value_sanitize</span><span class="p">,</span>
+    <span class="n">format_schema</span><span class="p">,</span>
+    <span class="n">get_structured_schema</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.graphs.graph_document</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphDocument</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_neo4j.graphs.graph_store</span><span class="w"> </span><span class="kn">import</span> <span class="n">GraphStore</span>
-
-<span class="n">BASE_ENTITY_LABEL</span> <span class="o">=</span> <span class="s2">"__Entity__"</span>
-<span class="n">EXCLUDED_LABELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"_Bloom_Perspective_"</span><span class="p">,</span> <span class="s2">"_Bloom_Scene_"</span><span class="p">]</span>
-<span class="n">EXCLUDED_RELS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"_Bloom_HAS_SCENE_"</span><span class="p">]</span>
-<span class="n">EXHAUSTIVE_SEARCH_LIMIT</span> <span class="o">=</span> <span class="mi">10000</span>
-<span class="n">LIST_LIMIT</span> <span class="o">=</span> <span class="mi">128</span>
-<span class="c1"># Threshold for returning all available prop values in graph schema</span>
-<span class="n">DISTINCT_VALUE_LIMIT</span> <span class="o">=</span> <span class="mi">10</span>
-
-<span class="n">node_properties_query</span> <span class="o">=</span> <span class="s2">"""</span>
-<span class="s2">CALL apoc.meta.data()</span>
-<span class="s2">YIELD label, other, elementType, type, property</span>
-<span class="s2">WHERE NOT type = "RELATIONSHIP" AND elementType = "node" </span>
-<span class="s2">  AND NOT label IN $EXCLUDED_LABELS</span>
-<span class="s2">WITH label AS nodeLabels, collect({property:property, type:type}) AS properties</span>
-<span class="s2">RETURN {labels: nodeLabels, properties: properties} AS output</span>
-
-<span class="s2">"""</span>
-
-<span class="n">rel_properties_query</span> <span class="o">=</span> <span class="s2">"""</span>
-<span class="s2">CALL apoc.meta.data()</span>
-<span class="s2">YIELD label, other, elementType, type, property</span>
-<span class="s2">WHERE NOT type = "RELATIONSHIP" AND elementType = "relationship"</span>
-<span class="s2">      AND NOT label in $EXCLUDED_LABELS</span>
-<span class="s2">WITH label AS nodeLabels, collect({property:property, type:type}) AS properties</span>
-<span class="s2">RETURN {type: nodeLabels, properties: properties} AS output</span>
-<span class="s2">"""</span>
-
-<span class="n">rel_query</span> <span class="o">=</span> <span class="s2">"""</span>
-<span class="s2">CALL apoc.meta.data()</span>
-<span class="s2">YIELD label, other, elementType, type, property</span>
-<span class="s2">WHERE type = "RELATIONSHIP" AND elementType = "node"</span>
-<span class="s2">UNWIND other AS other_node</span>
-<span class="s2">WITH * WHERE NOT label IN $EXCLUDED_LABELS</span>
-<span class="s2">    AND NOT other_node IN $EXCLUDED_LABELS</span>
-<span class="s2">RETURN {start: label, type: property, end: toString(other_node)} AS output</span>
-<span class="s2">"""</span>
 
 <span class="n">include_docs_query</span> <span class="o">=</span> <span class="p">(</span>
     <span class="s2">"MERGE (d:Document {id:$document.metadata.id}) "</span>
@@ -271,72 +241,6 @@
     <span class="s2">"SET d += $document.metadata "</span>
     <span class="s2">"WITH d "</span>
 <span class="p">)</span>
-
-
-<div class="viewcode-block" id="clean_string_values">
-<a class="viewcode-back" href="../../../neo4j/graphs/langchain_neo4j.graphs.neo4j_graph.clean_string_values.html#langchain_neo4j.graphs.neo4j_graph.clean_string_values">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">clean_string_values</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Clean string values for schema.</span>
-
-<span class="sd">    Cleans the input text by replacing newline and carriage return characters.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        text (str): The input text to clean.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        str: The cleaned text.</span>
-<span class="sd">    """</span>
-    <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\r</span><span class="s2">"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="value_sanitize">
-<a class="viewcode-back" href="../../../neo4j/graphs/langchain_neo4j.graphs.neo4j_graph.value_sanitize.html#langchain_neo4j.graphs.neo4j_graph.value_sanitize">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">value_sanitize</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Sanitize the input dictionary or list.</span>
-
-<span class="sd">    Sanitizes the input by removing embedding-like values,</span>
-<span class="sd">    lists with more than 128 elements, that are mostly irrelevant for</span>
-<span class="sd">    generating answers in a LLM context. These properties, if left in</span>
-<span class="sd">    results, can occupy significant context space and detract from</span>
-<span class="sd">    the LLM's performance by introducing unnecessary noise and cost.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        d (Any): The input dictionary or list to sanitize.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Any: The sanitized dictionary or list.</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="n">new_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                <span class="n">sanitized_value</span> <span class="o">=</span> <span class="n">value_sanitize</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="n">sanitized_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="p">):</span>  <span class="c1"># Check if the sanitized value is not None</span>
-                    <span class="n">new_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">sanitized_value</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">LIST_LIMIT</span><span class="p">:</span>
-                    <span class="n">sanitized_value</span> <span class="o">=</span> <span class="n">value_sanitize</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">sanitized_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                    <span class="p">):</span>  <span class="c1"># Check if the sanitized value is not None</span>
-                        <span class="n">new_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">sanitized_value</span>
-                <span class="c1"># Do not include the key if the list is oversized</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">new_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="k">return</span> <span class="n">new_dict</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">LIST_LIMIT</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span>
-                <span class="n">value_sanitize</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">if</span> <span class="n">value_sanitize</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">d</span></div>
-
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_import_query</span><span class="p">(</span><span class="n">baseEntityLabel</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">include_source</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -384,135 +288,6 @@
             <span class="s2">"</span><span class="si">{}</span><span class="s2">, row.properties, target) YIELD rel "</span>
             <span class="s2">"RETURN distinct 'done'"</span>
         <span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_format_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">is_enhanced</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="n">formatted_node_props</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">formatted_rel_props</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">is_enhanced</span><span class="p">:</span>
-        <span class="c1"># Enhanced formatting for nodes</span>
-        <span class="k">for</span> <span class="n">node_type</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"node_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">formatted_node_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- **</span><span class="si">{</span><span class="n">node_type</span><span class="si">}</span><span class="s2">**"</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
-                <span class="n">example</span> <span class="o">=</span> <span class="s2">""</span>
-                <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"STRING"</span> <span class="ow">and</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"values"</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"distinct_count"</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">DISTINCT_VALUE_LIMIT</span><span class="p">:</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="sa">f</span><span class="s1">'Example: "</span><span class="si">{</span><span class="n">clean_string_values</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s1">"'</span>
-                            <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># If less than 10 possible values return all</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="s2">"Available options: "</span>
-                                <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="p">[</span><span class="n">clean_string_values</span><span class="p">(</span><span class="n">el</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">el</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]]</span><span class="si">}</span><span class="s1">'</span>
-                            <span class="p">)</span>
-                            <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-
-                <span class="k">elif</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
-                    <span class="s2">"INTEGER"</span><span class="p">,</span>
-                    <span class="s2">"FLOAT"</span><span class="p">,</span>
-                    <span class="s2">"DATE"</span><span class="p">,</span>
-                    <span class="s2">"DATE_TIME"</span><span class="p">,</span>
-                    <span class="s2">"LOCAL_DATE_TIME"</span><span class="p">,</span>
-                <span class="p">]:</span>
-                    <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"min"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max"</span><span class="p">):</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'Min: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"min"</span><span class="p">]</span><span class="si">}</span><span class="s1">, Max: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"max"</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="sa">f</span><span class="s1">'Example: "</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">"'</span>
-                            <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"values"</span><span class="p">)</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"LIST"</span><span class="p">:</span>
-                    <span class="c1"># Skip embeddings</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"min_size"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"min_size"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">LIST_LIMIT</span><span class="p">:</span>
-                        <span class="k">continue</span>
-                    <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="sa">f</span><span class="s1">'Min Size: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"min_size"</span><span class="p">]</span><span class="si">}</span><span class="s1">, Max Size: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"max_size"</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span>
-                    <span class="p">)</span>
-                <span class="n">formatted_node_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"  - `</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">`: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">example</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
-
-        <span class="c1"># Enhanced formatting for relationships</span>
-        <span class="k">for</span> <span class="n">rel_type</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"rel_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">formatted_rel_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"- **</span><span class="si">{</span><span class="n">rel_type</span><span class="si">}</span><span class="s2">**"</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
-                <span class="n">example</span> <span class="o">=</span> <span class="s2">""</span>
-                <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"STRING"</span> <span class="ow">and</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"values"</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"distinct_count"</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">DISTINCT_VALUE_LIMIT</span><span class="p">:</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="sa">f</span><span class="s1">'Example: "</span><span class="si">{</span><span class="n">clean_string_values</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s1">"'</span>
-                            <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># If less than 10 possible values return all</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="s2">"Available options: "</span>
-                                <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="p">[</span><span class="n">clean_string_values</span><span class="p">(</span><span class="n">el</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">el</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]]</span><span class="si">}</span><span class="s1">'</span>
-                            <span class="p">)</span>
-                            <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
-                    <span class="s2">"INTEGER"</span><span class="p">,</span>
-                    <span class="s2">"FLOAT"</span><span class="p">,</span>
-                    <span class="s2">"DATE"</span><span class="p">,</span>
-                    <span class="s2">"DATE_TIME"</span><span class="p">,</span>
-                    <span class="s2">"LOCAL_DATE_TIME"</span><span class="p">,</span>
-                <span class="p">]:</span>
-                    <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"min"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max"</span><span class="p">):</span>  <span class="c1"># If we have min/max</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'Min: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"min"</span><span class="p">]</span><span class="si">}</span><span class="s1">, Max: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"max"</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span>
-                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># return a single value</span>
-                        <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="sa">f</span><span class="s1">'Example: "</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">"'</span> <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"LIST"</span><span class="p">:</span>
-                    <span class="c1"># Skip embeddings</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">prop</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"min_size"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"min_size"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">LIST_LIMIT</span><span class="p">:</span>
-                        <span class="k">continue</span>
-                    <span class="n">example</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="sa">f</span><span class="s1">'Min Size: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"min_size"</span><span class="p">]</span><span class="si">}</span><span class="s1">, Max Size: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s2">"max_size"</span><span class="p">]</span><span class="si">}</span><span class="s1">'</span>
-                    <span class="p">)</span>
-                <span class="n">formatted_rel_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"  - `</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">`: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">example</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Format node properties</span>
-        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">props</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"node_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">props_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props</span><span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">formatted_node_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="si">{</span><span class="n">props_str</span><span class="si">}</span><span class="se">}}</span><span class="s2">"</span><span class="p">)</span>
-
-        <span class="c1"># Format relationship properties using structured_schema</span>
-        <span class="k">for</span> <span class="nb">type</span><span class="p">,</span> <span class="n">props</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"rel_props"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">props_str</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'property'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">prop</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">props</span><span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">formatted_rel_props</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="si">}</span><span class="s2"> </span><span class="se">{{</span><span class="si">{</span><span class="n">props_str</span><span class="si">}</span><span class="se">}}</span><span class="s2">"</span><span class="p">)</span>
-
-    <span class="c1"># Format relationships</span>
-    <span class="n">formatted_rels</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">"(:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'start'</span><span class="p">]</span><span class="si">}</span><span class="s2">)-[:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">]-&gt;(:</span><span class="si">{</span><span class="n">el</span><span class="p">[</span><span class="s1">'end'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
-        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">[</span><span class="s2">"relationships"</span><span class="p">]</span>
-    <span class="p">]</span>
-
-    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="s2">"Node properties:"</span><span class="p">,</span>
-            <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_node_props</span><span class="p">),</span>
-            <span class="s2">"Relationship properties:"</span><span class="p">,</span>
-            <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_rel_props</span><span class="p">),</span>
-            <span class="s2">"The relationships:"</span><span class="p">,</span>
-            <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formatted_rels</span><span class="p">),</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_remove_backticks</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -569,13 +344,6 @@
         <span class="n">enhanced_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a new Neo4j graph wrapper instance."""</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">neo4j</span>
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-                <span class="s2">"Could not import neo4j python package. "</span>
-                <span class="s2">"Please install it with `pip install neo4j`."</span>
-            <span class="p">)</span>
 
         <span class="n">url</span> <span class="o">=</span> <span class="n">get_from_dict_or_env</span><span class="p">({</span><span class="s2">"url"</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span> <span class="s2">"url"</span><span class="p">,</span> <span class="s2">"NEO4J_URI"</span><span class="p">)</span>
         <span class="c1"># if username and password are "", assume Neo4j auth is disabled</span>
@@ -695,7 +463,7 @@
                 <span class="p">)</span>
                 <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">:</span>
-                    <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
+                    <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">_value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
                 <span class="k">return</span> <span class="n">json_data</span>
             <span class="k">except</span> <span class="n">Neo4jError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
@@ -725,7 +493,7 @@
             <span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">Query</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">),</span> <span class="n">params</span><span class="p">)</span>
             <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">result</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">:</span>
-                <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
+                <span class="n">json_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">_value_sanitize</span><span class="p">(</span><span class="n">el</span><span class="p">)</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">json_data</span><span class="p">]</span>
             <span class="k">return</span> <span class="n">json_data</span></div>
 
 
@@ -739,111 +507,16 @@
 <span class="sd">            RuntimeError: If the connection has been closed.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_driver_state</span><span class="p">()</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">neo4j.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientError</span><span class="p">,</span> <span class="n">CypherTypeError</span>
-
-        <span class="n">node_properties</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">el</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="n">node_properties_query</span><span class="p">,</span>
-                <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"EXCLUDED_LABELS"</span><span class="p">:</span> <span class="n">EXCLUDED_LABELS</span> <span class="o">+</span> <span class="p">[</span><span class="n">BASE_ENTITY_LABEL</span><span class="p">]},</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-        <span class="n">rel_properties</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">el</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="n">rel_properties_query</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"EXCLUDED_LABELS"</span><span class="p">:</span> <span class="n">EXCLUDED_RELS</span><span class="p">}</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-        <span class="n">relationships</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">el</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="n">rel_query</span><span class="p">,</span>
-                <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"EXCLUDED_LABELS"</span><span class="p">:</span> <span class="n">EXCLUDED_LABELS</span> <span class="o">+</span> <span class="p">[</span><span class="n">BASE_ENTITY_LABEL</span><span class="p">]},</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-
-        <span class="c1"># Get constraints &amp; indexes</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"SHOW CONSTRAINTS"</span><span class="p">)</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="s2">"CALL apoc.schema.nodes() YIELD label, properties, type, size, "</span>
-                <span class="s2">"valuesSelectivity WHERE type = 'RANGE' RETURN *, "</span>
-                <span class="s2">"size * valuesSelectivity as distinctValues"</span>
-            <span class="p">)</span>
-        <span class="k">except</span> <span class="p">(</span>
-            <span class="n">ClientError</span>
-        <span class="p">):</span>  <span class="c1"># Read-only user might not have access to schema information</span>
-            <span class="n">constraint</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">index</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"node_props"</span><span class="p">:</span> <span class="p">{</span><span class="n">el</span><span class="p">[</span><span class="s2">"labels"</span><span class="p">]:</span> <span class="n">el</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">]</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">node_properties</span><span class="p">},</span>
-            <span class="s2">"rel_props"</span><span class="p">:</span> <span class="p">{</span><span class="n">el</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]:</span> <span class="n">el</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">]</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">rel_properties</span><span class="p">},</span>
-            <span class="s2">"relationships"</span><span class="p">:</span> <span class="n">relationships</span><span class="p">,</span>
-            <span class="s2">"metadata"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"constraint"</span><span class="p">:</span> <span class="n">constraint</span><span class="p">,</span> <span class="s2">"index"</span><span class="p">:</span> <span class="n">index</span><span class="p">},</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema</span><span class="p">:</span>
-            <span class="n">schema_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                <span class="s2">"CALL apoc.meta.graph({sample: 1000, maxRels: 100}) "</span>
-                <span class="s2">"YIELD nodes, relationships "</span>
-                <span class="s2">"RETURN nodes, [rel in relationships | {name:apoc.any.property"</span>
-                <span class="s2">"(rel, 'type'), count: apoc.any.property(rel, 'count')}]"</span>
-                <span class="s2">" AS relationships"</span>
-            <span class="p">)</span>
-            <span class="c1"># Update node info</span>
-            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">schema_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"nodes"</span><span class="p">]:</span>
-                <span class="c1"># Skip bloom labels</span>
-                <span class="k">if</span> <span class="n">node</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">EXCLUDED_LABELS</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">node_props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span><span class="p">[</span><span class="s2">"node_props"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">node_props</span><span class="p">:</span>  <span class="c1"># The node has no properties</span>
-                    <span class="k">continue</span>
-                <span class="n">enhanced_cypher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema_cypher</span><span class="p">(</span>
-                    <span class="n">node</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="n">node_props</span><span class="p">,</span> <span class="n">node</span><span class="p">[</span><span class="s2">"count"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">EXHAUSTIVE_SEARCH_LIMIT</span>
-                <span class="p">)</span>
-                <span class="c1"># Due to schema-flexible nature of neo4j errors can happen</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">enhanced_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                        <span class="n">enhanced_cypher</span><span class="p">,</span>
-                        <span class="c1"># Disable the</span>
-                        <span class="c1"># Neo.ClientNotification.Statement.AggregationSkippedNull</span>
-                        <span class="c1"># notifications raised by the use of collect in the enhanced</span>
-                        <span class="c1"># schema query</span>
-                        <span class="n">session_params</span><span class="o">=</span><span class="p">{</span>
-                            <span class="s2">"notifications_disabled_categories"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"UNRECOGNIZED"</span><span class="p">]</span>
-                        <span class="p">},</span>
-                    <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"output"</span><span class="p">]</span>
-                    <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">node_props</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">enhanced_info</span><span class="p">:</span>
-                            <span class="n">prop</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">enhanced_info</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]])</span>
-                <span class="k">except</span> <span class="n">CypherTypeError</span><span class="p">:</span>
-                    <span class="k">continue</span>
-            <span class="c1"># Update rel info</span>
-            <span class="k">for</span> <span class="n">rel</span> <span class="ow">in</span> <span class="n">schema_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"relationships"</span><span class="p">]:</span>
-                <span class="c1"># Skip bloom labels</span>
-                <span class="k">if</span> <span class="n">rel</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">EXCLUDED_RELS</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">rel_props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span><span class="p">[</span><span class="s2">"rel_props"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rel</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">rel_props</span><span class="p">:</span>  <span class="c1"># The rel has no properties</span>
-                    <span class="k">continue</span>
-                <span class="n">enhanced_cypher</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema_cypher</span><span class="p">(</span>
-                    <span class="n">rel</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
-                    <span class="n">rel_props</span><span class="p">,</span>
-                    <span class="n">rel</span><span class="p">[</span><span class="s2">"count"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">EXHAUSTIVE_SEARCH_LIMIT</span><span class="p">,</span>
-                    <span class="n">is_relationship</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">enhanced_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">enhanced_cypher</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"output"</span><span class="p">]</span>
-                    <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">rel_props</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">enhanced_info</span><span class="p">:</span>
-                            <span class="n">prop</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">enhanced_info</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]])</span>
-                <span class="c1"># Due to schema-flexible nature of neo4j errors can happen</span>
-                <span class="k">except</span> <span class="n">CypherTypeError</span><span class="p">:</span>
-                    <span class="k">continue</span>
-
-        <span class="n">schema</span> <span class="o">=</span> <span class="n">_format_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span> <span class="o">=</span> <span class="n">get_structured_schema</span><span class="p">(</span>
+            <span class="n">driver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_driver</span><span class="p">,</span>
+            <span class="n">is_enhanced</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema</span><span class="p">,</span>
+            <span class="n">database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_database</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="n">sanitize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sanitize</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">format_schema</span><span class="p">(</span>
+            <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span><span class="p">,</span> <span class="n">is_enhanced</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_enhanced_schema</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Neo4jGraph.add_graph_documents">
@@ -943,170 +616,6 @@
                 <span class="p">},</span>
             <span class="p">)</span></div>
 
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_enhanced_schema_cypher</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">label_or_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">properties</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-        <span class="n">exhaustive</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">is_relationship</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">is_relationship</span><span class="p">:</span>
-            <span class="n">match_clause</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"MATCH ()-[n:`</span><span class="si">{</span><span class="n">label_or_type</span><span class="si">}</span><span class="s2">`]-&gt;()"</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">match_clause</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"MATCH (n:`</span><span class="si">{</span><span class="n">label_or_type</span><span class="si">}</span><span class="s2">`)"</span>
-
-        <span class="n">with_clauses</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">return_clauses</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">exhaustive</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
-                <span class="n">prop_name</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span>
-                <span class="n">prop_type</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">prop_type</span> <span class="o">==</span> <span class="s2">"STRING"</span><span class="p">:</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"collect(distinct substring(toString(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)"</span>
-                            <span class="sa">f</span><span class="s2">", 0, 50)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                    <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"values:`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`[..</span><span class="si">{</span><span class="n">DISTINCT_VALUE_LIMIT</span><span class="si">}</span><span class="s2">],"</span>
-                            <span class="sa">f</span><span class="s2">" distinct_count: size(`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`)"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="ow">in</span> <span class="p">[</span>
-                    <span class="s2">"INTEGER"</span><span class="p">,</span>
-                    <span class="s2">"FLOAT"</span><span class="p">,</span>
-                    <span class="s2">"DATE"</span><span class="p">,</span>
-                    <span class="s2">"DATE_TIME"</span><span class="p">,</span>
-                    <span class="s2">"LOCAL_DATE_TIME"</span><span class="p">,</span>
-                <span class="p">]:</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"min(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_min`"</span><span class="p">)</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"max(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_max`"</span><span class="p">)</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"count(distinct n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_distinct`"</span>
-                    <span class="p">)</span>
-                    <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"min: toString(`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_min`), "</span>
-                            <span class="sa">f</span><span class="s2">"max: toString(`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_max`), "</span>
-                            <span class="sa">f</span><span class="s2">"distinct_count: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_distinct`"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="o">==</span> <span class="s2">"LIST"</span><span class="p">:</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"min(size(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_min`, "</span>
-                            <span class="sa">f</span><span class="s2">"max(size(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_max`"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                    <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"min_size: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_min`, "</span>
-                        <span class="sa">f</span><span class="s2">"max_size: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_max`"</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"BOOLEAN"</span><span class="p">,</span> <span class="s2">"POINT"</span><span class="p">,</span> <span class="s2">"DURATION"</span><span class="p">]:</span>
-                    <span class="k">continue</span>
-                <span class="n">output_dict</span><span class="p">[</span><span class="n">prop_name</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"{"</span> <span class="o">+</span> <span class="n">return_clauses</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">+</span> <span class="s2">"}"</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Just sample 5 random nodes</span>
-            <span class="n">match_clause</span> <span class="o">+=</span> <span class="s2">" WITH n LIMIT 5"</span>
-            <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
-                <span class="n">prop_name</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"property"</span><span class="p">]</span>
-                <span class="n">prop_type</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span>
-
-                <span class="c1"># Check if indexed property, we can still do exhaustive</span>
-                <span class="n">prop_index</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">el</span>
-                    <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structured_schema</span><span class="p">[</span><span class="s2">"metadata"</span><span class="p">][</span><span class="s2">"index"</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">el</span><span class="p">[</span><span class="s2">"label"</span><span class="p">]</span> <span class="o">==</span> <span class="n">label_or_type</span>
-                    <span class="ow">and</span> <span class="n">el</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="n">prop_name</span><span class="p">]</span>
-                    <span class="ow">and</span> <span class="n">el</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"RANGE"</span>
-                <span class="p">]</span>
-                <span class="k">if</span> <span class="n">prop_type</span> <span class="o">==</span> <span class="s2">"STRING"</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">prop_index</span>
-                        <span class="ow">and</span> <span class="n">prop_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"size"</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
-                        <span class="ow">and</span> <span class="n">prop_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"distinctValues"</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">DISTINCT_VALUE_LIMIT</span>
-                    <span class="p">):</span>
-                        <span class="n">distinct_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"CALL apoc.schema.properties.distinct("</span>
-                            <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">label_or_type</span><span class="si">}</span><span class="s2">', '</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">') YIELD value"</span>
-                        <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"value"</span><span class="p">]</span>
-                        <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="sa">f</span><span class="s2">"values: </span><span class="si">{</span><span class="n">distinct_values</span><span class="si">}</span><span class="s2">,"</span>
-                                <span class="sa">f</span><span class="s2">" distinct_count: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">distinct_values</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="sa">f</span><span class="s2">"collect(distinct substring(toString(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)"</span>
-                                <span class="sa">f</span><span class="s2">", 0, 50)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`"</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                        <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"values: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`"</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="ow">in</span> <span class="p">[</span>
-                    <span class="s2">"INTEGER"</span><span class="p">,</span>
-                    <span class="s2">"FLOAT"</span><span class="p">,</span>
-                    <span class="s2">"DATE"</span><span class="p">,</span>
-                    <span class="s2">"DATE_TIME"</span><span class="p">,</span>
-                    <span class="s2">"LOCAL_DATE_TIME"</span><span class="p">,</span>
-                <span class="p">]:</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">prop_index</span><span class="p">:</span>
-                        <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"collect(distinct toString(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)) "</span>
-                            <span class="sa">f</span><span class="s2">"AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`"</span>
-                        <span class="p">)</span>
-                        <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"values: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_values`"</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"min(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_min`"</span>
-                        <span class="p">)</span>
-                        <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"max(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_max`"</span>
-                        <span class="p">)</span>
-                        <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"count(distinct n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_distinct`"</span>
-                        <span class="p">)</span>
-                        <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="sa">f</span><span class="s2">"min: toString(`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_min`), "</span>
-                                <span class="sa">f</span><span class="s2">"max: toString(`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_max`), "</span>
-                                <span class="sa">f</span><span class="s2">"distinct_count: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_distinct`"</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="o">==</span> <span class="s2">"LIST"</span><span class="p">:</span>
-                    <span class="n">with_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"min(size(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_min`, "</span>
-                            <span class="sa">f</span><span class="s2">"max(size(n.`</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">`)) AS `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_max`"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                    <span class="n">return_clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"min_size: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_min`, "</span>
-                            <span class="sa">f</span><span class="s2">"max_size: `</span><span class="si">{</span><span class="n">prop_name</span><span class="si">}</span><span class="s2">_size_max`"</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">prop_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"BOOLEAN"</span><span class="p">,</span> <span class="s2">"POINT"</span><span class="p">,</span> <span class="s2">"DURATION"</span><span class="p">]:</span>
-                    <span class="k">continue</span>
-
-                <span class="n">output_dict</span><span class="p">[</span><span class="n">prop_name</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"{"</span> <span class="o">+</span> <span class="n">return_clauses</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span> <span class="o">+</span> <span class="s2">"}"</span>
-
-        <span class="n">with_clause</span> <span class="o">=</span> <span class="s2">"WITH "</span> <span class="o">+</span> <span class="s2">",</span><span class="se">\n</span><span class="s2">     "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">with_clauses</span><span class="p">)</span>
-        <span class="n">return_clause</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s2">"RETURN {"</span>
-            <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"`</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">`: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-            <span class="o">+</span> <span class="s2">"} AS output"</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Combine all parts of the Cypher query</span>
-        <span class="n">cypher_query</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">match_clause</span><span class="p">,</span> <span class="n">with_clause</span><span class="p">,</span> <span class="n">return_clause</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">cypher_query</span>
 
 <div class="viewcode-block" id="Neo4jGraph.close">
 <a class="viewcode-back" href="../../../neo4j/graphs/langchain_neo4j.graphs.neo4j_graph.Neo4jGraph.html#langchain_neo4j.graphs.neo4j_graph.Neo4jGraph.close">[docs]</a>

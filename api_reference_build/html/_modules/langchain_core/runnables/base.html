@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -282,7 +282,6 @@
     <span class="n">run_in_executor</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">Graph</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamEvent</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AddableDict</span><span class="p">,</span>
     <span class="n">AnyConfigurableField</span><span class="p">,</span>
@@ -316,6 +315,7 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.fallbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">RunnableWithFallbacks</span> <span class="k">as</span> <span class="n">RunnableWithFallbacksT</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamEvent</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.log_stream</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">RunLog</span><span class="p">,</span>
@@ -1951,8 +1951,13 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            from langchain_core.runnables import RunnableLambda</span>
+<span class="sd">            from langchain_core.runnables import RunnableLambda, Runnable</span>
+<span class="sd">            from datetime import datetime, timezone</span>
 <span class="sd">            import time</span>
+<span class="sd">            import asyncio</span>
+
+<span class="sd">            def format_t(timestamp: float) -&gt; str:</span>
+<span class="sd">                return datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat()</span>
 
 <span class="sd">            async def test_runnable(time_to_sleep : int):</span>
 <span class="sd">                print(f"Runnable[{time_to_sleep}s]: starts at {format_t(time.time())}")</span>
@@ -1960,12 +1965,12 @@
 <span class="sd">                print(f"Runnable[{time_to_sleep}s]: ends at {format_t(time.time())}")</span>
 
 <span class="sd">            async def fn_start(run_obj : Runnable):</span>
-<span class="sd">                print(f"on start callback starts at {format_t(time.time())}</span>
+<span class="sd">                print(f"on start callback starts at {format_t(time.time())}")</span>
 <span class="sd">                await asyncio.sleep(3)</span>
 <span class="sd">                print(f"on start callback ends at {format_t(time.time())}")</span>
 
 <span class="sd">            async def fn_end(run_obj : Runnable):</span>
-<span class="sd">                print(f"on end callback starts at {format_t(time.time())}</span>
+<span class="sd">                print(f"on end callback starts at {format_t(time.time())}")</span>
 <span class="sd">                await asyncio.sleep(2)</span>
 <span class="sd">                print(f"on end callback ends at {format_t(time.time())}")</span>
 
@@ -1978,18 +1983,18 @@
 
 <span class="sd">            asyncio.run(concurrent_runs())</span>
 <span class="sd">            Result:</span>
-<span class="sd">            on start callback starts at 2024-05-16T14:20:29.637053+00:00</span>
-<span class="sd">            on start callback starts at 2024-05-16T14:20:29.637150+00:00</span>
-<span class="sd">            on start callback ends at 2024-05-16T14:20:32.638305+00:00</span>
-<span class="sd">            on start callback ends at 2024-05-16T14:20:32.638383+00:00</span>
-<span class="sd">            Runnable[3s]: starts at 2024-05-16T14:20:32.638849+00:00</span>
-<span class="sd">            Runnable[5s]: starts at 2024-05-16T14:20:32.638999+00:00</span>
-<span class="sd">            Runnable[3s]: ends at 2024-05-16T14:20:35.640016+00:00</span>
-<span class="sd">            on end callback starts at 2024-05-16T14:20:35.640534+00:00</span>
-<span class="sd">            Runnable[5s]: ends at 2024-05-16T14:20:37.640169+00:00</span>
-<span class="sd">            on end callback starts at 2024-05-16T14:20:37.640574+00:00</span>
-<span class="sd">            on end callback ends at 2024-05-16T14:20:37.640654+00:00</span>
-<span class="sd">            on end callback ends at 2024-05-16T14:20:39.641751+00:00</span>
+<span class="sd">            on start callback starts at 2025-03-01T07:05:22.875378+00:00</span>
+<span class="sd">            on start callback starts at 2025-03-01T07:05:22.875495+00:00</span>
+<span class="sd">            on start callback ends at 2025-03-01T07:05:25.878862+00:00</span>
+<span class="sd">            on start callback ends at 2025-03-01T07:05:25.878947+00:00</span>
+<span class="sd">            Runnable[2s]: starts at 2025-03-01T07:05:25.879392+00:00</span>
+<span class="sd">            Runnable[3s]: starts at 2025-03-01T07:05:25.879804+00:00</span>
+<span class="sd">            Runnable[2s]: ends at 2025-03-01T07:05:27.881998+00:00</span>
+<span class="sd">            on end callback starts at 2025-03-01T07:05:27.882360+00:00</span>
+<span class="sd">            Runnable[3s]: ends at 2025-03-01T07:05:28.881737+00:00</span>
+<span class="sd">            on end callback starts at 2025-03-01T07:05:28.882428+00:00</span>
+<span class="sd">            on end callback ends at 2025-03-01T07:05:29.883893+00:00</span>
+<span class="sd">            on end callback ends at 2025-03-01T07:05:30.884831+00:00</span>
 
 <span class="sd">        """</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tracers.root_listeners</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncRootListenersTracer</span>

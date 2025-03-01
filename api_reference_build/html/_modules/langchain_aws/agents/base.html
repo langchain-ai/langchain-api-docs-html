@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,369 +224,45 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">botocore.client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">botocore.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnknownServiceError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentAction</span><span class="p">,</span> <span class="n">AgentFinish</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumpd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">AIMessage</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AIMessage</span><span class="p">,</span>
+    <span class="n">BaseMessage</span><span class="p">,</span>
+    <span class="n">HumanMessage</span><span class="p">,</span>
+    <span class="n">SystemMessage</span><span class="p">,</span>
+    <span class="n">ToolCall</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">RunnableSerializable</span><span class="p">,</span> <span class="n">ensure_config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.agents.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_DEFAULT_ACTION_GROUP_NAME</span><span class="p">,</span>
+    <span class="n">_TEST_AGENT_ALIAS_ID</span><span class="p">,</span>
+    <span class="n">BedrockAgentAction</span><span class="p">,</span>
+    <span class="n">BedrockAgentFinish</span><span class="p">,</span>
+    <span class="n">GuardrailConfiguration</span><span class="p">,</span>
+    <span class="n">InlineAgentConfiguration</span><span class="p">,</span>
+    <span class="n">OutputType</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.agents.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_create_bedrock_action_groups</span><span class="p">,</span>
+    <span class="n">_create_bedrock_agent</span><span class="p">,</span>
+    <span class="n">_get_action_group_and_function_names</span><span class="p">,</span>
+    <span class="n">_get_bedrock_agent</span><span class="p">,</span>
+    <span class="n">_prepare_agent</span><span class="p">,</span>
+    <span class="n">_tool_to_function</span><span class="p">,</span>
+    <span class="n">get_boto_session</span><span class="p">,</span>
+    <span class="n">parse_agent_response</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
-<span class="n">_DEFAULT_ACTION_GROUP_NAME</span> <span class="o">=</span> <span class="s2">"DEFAULT_AG_"</span>
-<span class="n">_TEST_AGENT_ALIAS_ID</span> <span class="o">=</span> <span class="s2">"TSTALIASID"</span>
-
-
-<div class="viewcode-block" id="get_boto_session">
-<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.get_boto_session.html#langchain_aws.agents.base.get_boto_session">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_boto_session</span><span class="p">(</span>
-    <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Construct the boto3 session</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">credentials_profile_name</span><span class="p">:</span>
-        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">credentials_profile_name</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># use default credentials</span>
-        <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-    <span class="n">client_params</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">"config"</span><span class="p">:</span> <span class="n">Config</span><span class="p">(</span>
-            <span class="n">connect_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">read_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="p">{</span><span class="s2">"max_attempts"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
-        <span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="n">region_name</span><span class="p">:</span>
-        <span class="n">client_params</span><span class="p">[</span><span class="s2">"region_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">region_name</span>
-    <span class="k">if</span> <span class="n">endpoint_url</span><span class="p">:</span>
-        <span class="n">client_params</span><span class="p">[</span><span class="s2">"endpoint_url"</span><span class="p">]</span> <span class="o">=</span> <span class="n">endpoint_url</span>
-    <span class="k">return</span> <span class="n">client_params</span><span class="p">,</span> <span class="n">session</span></div>
-
-
-
-<div class="viewcode-block" id="parse_agent_response">
-<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.parse_agent_response.html#langchain_aws.agents.base.parse_agent_response">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">parse_agent_response</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OutputType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Parses the raw response from Bedrock Agent</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        response: The raw response from Bedrock Agent</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">        Either a BedrockAgentAction or a BedrockAgentFinish</span>
-<span class="sd">    """</span>
-    <span class="n">response_text</span> <span class="o">=</span> <span class="s2">""</span>
-    <span class="n">event_stream</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">"completion"</span><span class="p">]</span>
-    <span class="n">session_id</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">"sessionId"</span><span class="p">]</span>
-    <span class="n">trace_log_elements</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">event_stream</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">"trace"</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
-            <span class="n">trace_log_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">"trace"</span><span class="p">])</span>
-
-        <span class="k">if</span> <span class="s2">"returnControl"</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
-            <span class="n">response_text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-            <span class="k">break</span>
-
-        <span class="k">if</span> <span class="s2">"chunk"</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
-            <span class="n">response_text</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">"chunk"</span><span class="p">][</span><span class="s2">"bytes"</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="s2">"files"</span> <span class="ow">in</span> <span class="n">event</span><span class="p">:</span>
-            <span class="n">files</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">"files"</span><span class="p">][</span><span class="s2">"files"</span><span class="p">]</span>
-
-    <span class="n">trace_log</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">trace_log_elements</span><span class="p">)</span>
-
-    <span class="n">agent_finish</span> <span class="o">=</span> <span class="n">BedrockAgentFinish</span><span class="p">(</span>
-        <span class="n">return_values</span><span class="o">=</span><span class="p">{</span><span class="s2">"output"</span><span class="p">:</span> <span class="n">response_text</span><span class="p">,</span> <span class="s2">"files"</span><span class="p">:</span> <span class="n">files</span><span class="p">},</span>
-        <span class="n">log</span><span class="o">=</span><span class="n">response_text</span><span class="p">,</span>
-        <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
-        <span class="n">trace_log</span><span class="o">=</span><span class="n">trace_log</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">response_text</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">agent_finish</span>
-
-    <span class="k">if</span> <span class="s2">"returnControl"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">response_text</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">agent_finish</span>
-
-    <span class="n">return_control</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response_text</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"returnControl"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_control</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">agent_finish</span>
-
-    <span class="n">invocation_inputs</span> <span class="o">=</span> <span class="n">return_control</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"invocationInputs"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">invocation_inputs</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">agent_finish</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">invocation_input</span> <span class="o">=</span> <span class="n">invocation_inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"functionInvocationInput"</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">action_group</span> <span class="o">=</span> <span class="n">invocation_input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"actionGroup"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-        <span class="n">function</span> <span class="o">=</span> <span class="n">invocation_input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-        <span class="n">parameters</span> <span class="o">=</span> <span class="n">invocation_input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"parameters"</span><span class="p">,</span> <span class="p">[])</span>
-        <span class="n">parameters_json</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
-            <span class="n">parameters_json</span><span class="p">[</span><span class="n">parameter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)]</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"value"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-
-        <span class="n">tool</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">action_group</span><span class="si">}</span><span class="s2">::</span><span class="si">{</span><span class="n">function</span><span class="si">}</span><span class="s2">"</span>
-        <span class="k">if</span> <span class="n">_DEFAULT_ACTION_GROUP_NAME</span> <span class="ow">in</span> <span class="n">action_group</span><span class="p">:</span>
-            <span class="n">tool</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">function</span><span class="si">}</span><span class="s2">"</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="n">BedrockAgentAction</span><span class="p">(</span>
-                <span class="n">tool</span><span class="o">=</span><span class="n">tool</span><span class="p">,</span>
-                <span class="n">tool_input</span><span class="o">=</span><span class="n">parameters_json</span><span class="p">,</span>
-                <span class="n">log</span><span class="o">=</span><span class="n">response_text</span><span class="p">,</span>
-                <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
-                <span class="n">trace_log</span><span class="o">=</span><span class="n">trace_log</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Parse exception encountered </span><span class="si">{}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">ex</span><span class="p">)))</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_create_bedrock_agent</span><span class="p">(</span>
-    <span class="n">bedrock_client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">agent_resource_role_arn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">instruction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">foundation_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">client_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">customer_encryption_key_arn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">guardrail_configuration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GuardrailConfiguration</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">idle_session_ttl_in_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Creates the bedrock agent</span>
-<span class="sd">    """</span>
-    <span class="n">create_agent_request</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">"agentName"</span><span class="p">:</span> <span class="n">agent_name</span><span class="p">,</span>
-        <span class="s2">"agentResourceRoleArn"</span><span class="p">:</span> <span class="n">agent_resource_role_arn</span><span class="p">,</span>
-        <span class="s2">"foundationModel"</span><span class="p">:</span> <span class="n">foundation_model</span><span class="p">,</span>
-        <span class="s2">"instruction"</span><span class="p">:</span> <span class="n">instruction</span><span class="p">,</span>
-    <span class="p">}</span>
-
-    <span class="k">if</span> <span class="n">description</span><span class="p">:</span>
-        <span class="n">create_agent_request</span><span class="p">[</span><span class="s2">"description"</span><span class="p">]</span> <span class="o">=</span> <span class="n">description</span>
-
-    <span class="k">if</span> <span class="n">client_token</span><span class="p">:</span>
-        <span class="n">create_agent_request</span><span class="p">[</span><span class="s2">"clientToken"</span><span class="p">]</span> <span class="o">=</span> <span class="n">client_token</span>
-
-    <span class="k">if</span> <span class="n">customer_encryption_key_arn</span><span class="p">:</span>
-        <span class="n">create_agent_request</span><span class="p">[</span><span class="s2">"customerEncryptionKeyArn"</span><span class="p">]</span> <span class="o">=</span> <span class="n">customer_encryption_key_arn</span>
-
-    <span class="k">if</span> <span class="n">guardrail_configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">create_agent_request</span><span class="p">[</span><span class="s2">"guardrailConfiguration"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"guardrailIdentifier"</span><span class="p">:</span> <span class="n">guardrail_configuration</span><span class="p">[</span><span class="s2">"guardrail_identifier"</span><span class="p">],</span>
-            <span class="s2">"guardrailVersion"</span><span class="p">:</span> <span class="n">guardrail_configuration</span><span class="p">[</span><span class="s2">"guardrail_version"</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">"DRAFT"</span><span class="p">,</span>
-        <span class="p">}</span>
-
-    <span class="k">if</span> <span class="n">idle_session_ttl_in_seconds</span><span class="p">:</span>
-        <span class="n">create_agent_request</span><span class="p">[</span><span class="s2">"idleSessionTTLInSeconds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">idle_session_ttl_in_seconds</span>
-
-    <span class="n">create_agent_response</span> <span class="o">=</span> <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent</span><span class="p">(</span><span class="o">**</span><span class="n">create_agent_request</span><span class="p">)</span>
-    <span class="n">request_id</span> <span class="o">=</span> <span class="n">create_agent_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ResponseMetadata"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"RequestId"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Create bedrock agent call successful with request id: </span><span class="si">{</span><span class="n">request_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="n">agent_id</span> <span class="o">=</span> <span class="n">create_agent_response</span><span class="p">[</span><span class="s2">"agent"</span><span class="p">][</span><span class="s2">"agentId"</span><span class="p">]</span>
-    <span class="n">create_agent_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">create_agent_start_time</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
-        <span class="n">agent_creation_status</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">bedrock_client</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agent"</span><span class="p">,</span> <span class="p">{})</span>
-            <span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agentStatus"</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">agent_creation_status</span> <span class="o">==</span> <span class="s2">"NOT_PREPARED"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">agent_id</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-
-    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Failed to create bedrock agent </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Failed to create bedrock agent </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_action_group_and_function_names</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">BaseTool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Convert the LangChain 'Tool' into Bedrock Action Group name and Function name</span>
-<span class="sd">    """</span>
-    <span class="n">action_group_name</span> <span class="o">=</span> <span class="n">_DEFAULT_ACTION_GROUP_NAME</span>
-    <span class="n">function_name</span> <span class="o">=</span> <span class="n">tool</span><span class="o">.</span><span class="n">name</span>
-    <span class="n">tool_name_split</span> <span class="o">=</span> <span class="n">tool</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"::"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tool_name_split</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">action_group_name</span> <span class="o">=</span> <span class="n">tool_name_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">function_name</span> <span class="o">=</span> <span class="n">tool_name_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">action_group_name</span><span class="p">,</span> <span class="n">function_name</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_create_bedrock_action_groups</span><span class="p">(</span>
-    <span class="n">bedrock_client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">],</span>
-    <span class="n">enable_human_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">enable_code_interpreter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Create the bedrock action groups for the agent"""</span>
-
-    <span class="n">tools_by_action_group</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">:</span>
-        <span class="n">action_group_name</span><span class="p">,</span> <span class="n">function_name</span> <span class="o">=</span> <span class="n">_get_action_group_and_function_names</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
-        <span class="n">tools_by_action_group</span><span class="p">[</span><span class="n">action_group_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">action_group_name</span><span class="p">,</span> <span class="n">functions</span> <span class="ow">in</span> <span class="n">tools_by_action_group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent_action_group</span><span class="p">(</span>
-            <span class="n">actionGroupName</span><span class="o">=</span><span class="n">action_group_name</span><span class="p">,</span>
-            <span class="n">actionGroupState</span><span class="o">=</span><span class="s2">"ENABLED"</span><span class="p">,</span>
-            <span class="n">actionGroupExecutor</span><span class="o">=</span><span class="p">{</span><span class="s2">"customControl"</span><span class="p">:</span> <span class="s2">"RETURN_CONTROL"</span><span class="p">},</span>
-            <span class="n">functionSchema</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"functions"</span><span class="p">:</span> <span class="p">[</span><span class="n">_tool_to_function</span><span class="p">(</span><span class="n">function</span><span class="p">)</span> <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">functions</span><span class="p">]</span>
-            <span class="p">},</span>
-            <span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
-            <span class="n">agentVersion</span><span class="o">=</span><span class="s2">"DRAFT"</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">enable_human_input</span><span class="p">:</span>
-        <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent_action_group</span><span class="p">(</span>
-            <span class="n">actionGroupName</span><span class="o">=</span><span class="s2">"UserInputAction"</span><span class="p">,</span>
-            <span class="n">parentActionGroupSignature</span><span class="o">=</span><span class="s2">"AMAZON.UserInput"</span><span class="p">,</span>
-            <span class="n">actionGroupState</span><span class="o">=</span><span class="s2">"ENABLED"</span><span class="p">,</span>
-            <span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
-            <span class="n">agentVersion</span><span class="o">=</span><span class="s2">"DRAFT"</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">enable_code_interpreter</span><span class="p">:</span>
-        <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent_action_group</span><span class="p">(</span>
-            <span class="n">actionGroupName</span><span class="o">=</span><span class="s2">"CodeInterpreterAction"</span><span class="p">,</span>
-            <span class="n">parentActionGroupSignature</span><span class="o">=</span><span class="s2">"AMAZON.CodeInterpreter"</span><span class="p">,</span>
-            <span class="n">actionGroupState</span><span class="o">=</span><span class="s2">"ENABLED"</span><span class="p">,</span>
-            <span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
-            <span class="n">agentVersion</span><span class="o">=</span><span class="s2">"DRAFT"</span><span class="p">,</span>
-        <span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_tool_to_function</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">BaseTool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Convert LangChain tool to a Bedrock function schema</span>
-<span class="sd">    """</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">function_name</span> <span class="o">=</span> <span class="n">_get_action_group_and_function_names</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
-    <span class="n">function_parameters</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_details</span> <span class="ow">in</span> <span class="n">tool</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">function_parameters</span><span class="p">[</span><span class="n">arg_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"description"</span><span class="p">:</span> <span class="n">arg_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="s2">"description"</span><span class="p">,</span> <span class="n">arg_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="n">arg_name</span><span class="p">)</span>
-            <span class="p">),</span>
-            <span class="s2">"type"</span><span class="p">:</span> <span class="n">arg_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">),</span>
-            <span class="s2">"required"</span><span class="p">:</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">arg_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)),</span>
-        <span class="p">}</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">"description"</span><span class="p">:</span> <span class="n">tool</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
-        <span class="s2">"name"</span><span class="p">:</span> <span class="n">function_name</span><span class="p">,</span>
-        <span class="s2">"parameters"</span><span class="p">:</span> <span class="n">function_parameters</span><span class="p">,</span>
-    <span class="p">}</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_agent</span><span class="p">(</span><span class="n">bedrock_client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Prepare the agent for invocations</span>
-<span class="sd">    """</span>
-    <span class="n">bedrock_client</span><span class="o">.</span><span class="n">prepare_agent</span><span class="p">(</span><span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">)</span>
-    <span class="n">prepare_agent_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">prepare_agent_start_time</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
-        <span class="n">agent_status</span> <span class="o">=</span> <span class="n">bedrock_client</span><span class="o">.</span><span class="n">get_agent</span><span class="p">(</span><span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">agent_status</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agent"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agentStatus"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"PREPARED"</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Timed out while preparing the agent with id </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_bedrock_agent</span><span class="p">(</span><span class="n">bedrock_client</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Get the agent by name</span>
-<span class="sd">    """</span>
-    <span class="n">next_token</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">next_token</span><span class="p">:</span>
-            <span class="n">list_agents_response</span> <span class="o">=</span> <span class="n">bedrock_client</span><span class="o">.</span><span class="n">list_agents</span><span class="p">(</span>
-                <span class="n">maxResults</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">nextToken</span><span class="o">=</span><span class="n">next_token</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">list_agents_response</span> <span class="o">=</span> <span class="n">bedrock_client</span><span class="o">.</span><span class="n">list_agents</span><span class="p">(</span><span class="n">maxResults</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-        <span class="n">agent_summaries</span> <span class="o">=</span> <span class="n">list_agents_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agentSummaries"</span><span class="p">,</span> <span class="p">[])</span>
-        <span class="n">next_token</span> <span class="o">=</span> <span class="n">list_agents_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"nextToken"</span><span class="p">)</span>
-        <span class="n">agent_summary</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">agent_summaries</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"agentName"</span><span class="p">)</span> <span class="o">==</span> <span class="n">agent_name</span><span class="p">),</span> <span class="kc">None</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">agent_summary</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">agent_summary</span>
-        <span class="k">if</span> <span class="n">next_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-
-
-<div class="viewcode-block" id="BedrockAgentFinish">
-<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockAgentFinish.html#langchain_aws.agents.base.BedrockAgentFinish">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">BedrockAgentFinish</span><span class="p">(</span><span class="n">AgentFinish</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""AgentFinish with session id information.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        session_id: Session id</span>
-<span class="sd">        trace_log: trace log as string when enable_trace flag is set</span>
-<span class="sd">    """</span>
-
-    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">trace_log</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Check if the class is serializable by LangChain.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            False</span>
-<span class="sd">        """</span>
-        <span class="k">return</span> <span class="kc">False</span></div>
-
-
-
-<div class="viewcode-block" id="BedrockAgentAction">
-<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockAgentAction.html#langchain_aws.agents.base.BedrockAgentAction">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">BedrockAgentAction</span><span class="p">(</span><span class="n">AgentAction</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""AgentAction with session id information.</span>
-
-<span class="sd">    Parameters:</span>
-<span class="sd">        session_id: session id</span>
-<span class="sd">        trace_log: trace log as string when enable_trace flag is set</span>
-<span class="sd">    """</span>
-
-    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">trace_log</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Check if the class is serializable by LangChain.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            False</span>
-<span class="sd">        """</span>
-        <span class="k">return</span> <span class="kc">False</span></div>
-
-
-
-<span class="n">OutputType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BedrockAgentAction</span><span class="p">],</span> <span class="n">BedrockAgentFinish</span><span class="p">]</span>
-
-
-<div class="viewcode-block" id="GuardrailConfiguration">
-<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.GuardrailConfiguration.html#langchain_aws.agents.base.GuardrailConfiguration">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">GuardrailConfiguration</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-    <span class="n">guardrail_identifier</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">guardrail_version</span><span class="p">:</span> <span class="nb">str</span></div>
-
 
 
 <div class="viewcode-block" id="BedrockAgentsRunnable">
@@ -877,6 +553,315 @@
                     <span class="k">return</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">session_state</span>
 
         <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="BedrockInlineAgentsRunnable">
+<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockInlineAgentsRunnable.html#langchain_aws.agents.base.BedrockInlineAgentsRunnable">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BedrockInlineAgentsRunnable</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span> <span class="n">BaseMessage</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""Invoke Bedrock Inline Agent as a Runnable."""</span>
+
+    <span class="n">client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Boto3 client"""</span>
+
+    <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Region"""</span>
+
+    <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Credentials to use to invoke the agent"""</span>
+
+    <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Endpoint URL"""</span>
+
+    <span class="n">inline_agent_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">InlineAgentConfiguration</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Configuration for the inline agent"""</span>
+
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Session identifier to be used with requests"""</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return type of LLM."""</span>
+        <span class="k">return</span> <span class="s2">"bedrock-inline-agent"</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Get identifying parameters."""</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"region_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
+            <span class="s2">"endpoint_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
+            <span class="s2">"inline_agent_config"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"client"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">client_params</span><span class="p">,</span> <span class="n">session</span> <span class="o">=</span> <span class="n">get_boto_session</span><span class="p">(</span>
+                    <span class="n">credentials_profile_name</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"credentials_profile_name"</span><span class="p">),</span>
+                    <span class="n">region_name</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"region_name"</span><span class="p">),</span>
+                    <span class="n">endpoint_url</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"endpoint_url"</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">values</span><span class="p">[</span><span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+                    <span class="s2">"bedrock-agent-runtime"</span><span class="p">,</span> <span class="o">**</span><span class="n">client_params</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">"Could not import boto3 python package. "</span>
+                <span class="s2">"Please install it with `pip install boto3`."</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnknownServiceError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">"Ensure that you have installed the latest boto3 package "</span>
+                <span class="s2">"that contains the API for `bedrock-runtime-agent`."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
+                <span class="s2">"Please check that credentials in the specified "</span>
+                <span class="s2">"profile name are valid."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">return</span> <span class="n">values</span>
+
+<div class="viewcode-block" id="BedrockInlineAgentsRunnable.create">
+<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockInlineAgentsRunnable.html#langchain_aws.agents.base.BedrockInlineAgentsRunnable.create">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">inline_agent_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">InlineAgentConfiguration</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">session_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BedrockInlineAgentsRunnable</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Create a new instance of BedrockInlineAgentsRunnable."""</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">client_params</span><span class="p">,</span> <span class="n">session</span> <span class="o">=</span> <span class="n">get_boto_session</span><span class="p">(</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="n">credentials_profile_name</span><span class="p">,</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="n">region_name</span><span class="p">,</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="n">endpoint_url</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">client</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">"bedrock-agent-runtime"</span><span class="p">,</span> <span class="o">**</span><span class="n">client_params</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">client</span><span class="o">=</span><span class="n">client</span><span class="p">,</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="n">region_name</span><span class="p">,</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="n">credentials_profile_name</span><span class="p">,</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="n">endpoint_url</span><span class="p">,</span>
+                <span class="n">inline_agent_config</span><span class="o">=</span><span class="n">inline_agent_config</span><span class="p">,</span>
+                <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Error creating BedrockInlineAgentsRunnable: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
+
+
+<div class="viewcode-block" id="BedrockInlineAgentsRunnable.invoke">
+<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockInlineAgentsRunnable.html#langchain_aws.agents.base.BedrockInlineAgentsRunnable.invoke">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invoke</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="nb">input</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Call InvokeInlineAgent to generate a chat completion"""</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">ensure_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">callback_manager</span> <span class="o">=</span> <span class="n">CallbackManager</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">inheritable_callbacks</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"callbacks"</span><span class="p">),</span>
+            <span class="n">inheritable_tags</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tags"</span><span class="p">),</span>
+            <span class="n">inheritable_metadata</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">run_manager</span> <span class="o">=</span> <span class="n">callback_manager</span><span class="o">.</span><span class="n">on_chain_start</span><span class="p">(</span>
+            <span class="n">dumpd</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="nb">input</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_name"</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">input_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_messages_to_text</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="n">input_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"input_text"</span><span class="p">:</span> <span class="n">input_text</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invoke_inline_agent</span><span class="p">(</span><span class="n">input_dict</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">run_manager</span><span class="o">.</span><span class="n">on_chain_error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">BedrockAgentFinish</span><span class="p">):</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
+                <span class="n">content</span><span class="o">=</span><span class="n">response</span><span class="o">.</span><span class="n">return_values</span><span class="p">[</span><span class="s2">"output"</span><span class="p">],</span>
+                <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"session_id"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+                    <span class="s2">"trace_log"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">trace_log</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">(</span>
+                        <span class="p">{</span><span class="s2">"files"</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">return_values</span><span class="p">[</span><span class="s2">"files"</span><span class="p">]}</span>
+                        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">return_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"files"</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="p">{}</span>
+                    <span class="p">),</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># BedrockAgentAction</span>
+            <span class="c1"># Handle tool use response: parse_agent_response()</span>
+            <span class="c1"># returns BedrockAgentAction list</span>
+            <span class="n">tool_calls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ToolCall</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">"name"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span>
+                    <span class="s2">"args"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">tool_input</span><span class="p">,</span>
+                    <span class="s2">"id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">response</span>
+            <span class="p">]</span>
+
+            <span class="n">message</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span>
+                <span class="n">content</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>  <span class="c1"># Empty content for tool calls</span>
+                <span class="n">additional_kwargs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"session_id"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+                    <span class="s2">"trace_log"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">trace_log</span><span class="p">,</span>
+                    <span class="s2">"roc_log"</span><span class="p">:</span> <span class="n">response</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">log</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">run_manager</span><span class="o">.</span><span class="n">on_chain_end</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">message</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_messages_to_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Convert a list of messages to a single text input for the agent."""</span>
+        <span class="n">text_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
+                <span class="n">text_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"System: </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
+                <span class="n">text_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Human: </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+                <span class="n">text_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Assistant: </span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">text_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text_parts</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invoke_inline_agent</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">BedrockAgentAction</span><span class="p">,</span> <span class="n">BedrockAgentFinish</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Invoke the inline agent with the given input."""</span>
+        <span class="c1"># Merge configurations</span>
+        <span class="n">runtime_config</span> <span class="o">=</span> <span class="n">input_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"inline_agent_config"</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">effective_config</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span><span class="p">,</span> <span class="o">**</span><span class="n">runtime_config</span><span class="p">}</span>
+
+        <span class="c1"># Convert tools to action groups format</span>
+        <span class="n">action_groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_action_groups</span><span class="p">(</span>
+            <span class="n">tools</span><span class="o">=</span><span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tools"</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[],</span>
+            <span class="n">enableHumanInput</span><span class="o">=</span><span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"enable_human_input"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">enableCodeInterpreter</span><span class="o">=</span><span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">"enable_code_interpreter"</span><span class="p">,</span> <span class="kc">False</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Prepare the invoke_inline_agent request</span>
+        <span class="n">agent_input</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"foundationModel"</span><span class="p">:</span> <span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"foundation_model"</span><span class="p">),</span>
+            <span class="s2">"instruction"</span><span class="p">:</span> <span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instruction"</span><span class="p">),</span>
+            <span class="s2">"actionGroups"</span><span class="p">:</span> <span class="n">action_groups</span><span class="p">,</span>
+            <span class="s2">"enableTrace"</span><span class="p">:</span> <span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"enable_trace"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="s2">"endSession"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">input_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"end_session"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)),</span>
+            <span class="s2">"inputText"</span><span class="p">:</span> <span class="n">input_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"input_text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Add optional configurations</span>
+        <span class="n">optional_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"customerEncryptionKeyArn"</span><span class="p">:</span> <span class="s2">"customer_encryption_key_arn"</span><span class="p">,</span>
+            <span class="s2">"idleSessionTTLInSeconds"</span><span class="p">:</span> <span class="s2">"idle_session_ttl_in_seconds"</span><span class="p">,</span>
+            <span class="s2">"guardrailConfiguration"</span><span class="p">:</span> <span class="s2">"guardrail_configuration"</span><span class="p">,</span>
+            <span class="s2">"knowledgeBases"</span><span class="p">:</span> <span class="s2">"knowledge_bases"</span><span class="p">,</span>
+            <span class="s2">"promptOverrideConfiguration"</span><span class="p">:</span> <span class="s2">"prompt_override_configuration"</span><span class="p">,</span>
+            <span class="s2">"inlineSessionState"</span><span class="p">:</span> <span class="s2">"inline_session_state"</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">config_key</span> <span class="ow">in</span> <span class="n">optional_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">effective_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">config_key</span><span class="p">):</span>
+                <span class="n">agent_input</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">effective_config</span><span class="p">[</span><span class="n">config_key</span><span class="p">]</span>
+
+        <span class="c1"># Use existing session_id from input, or from intermediate steps,</span>
+        <span class="c1"># or generate new one</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"session_id"</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="p">)</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">invoke_inline_agent</span><span class="p">(</span>
+            <span class="n">sessionId</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span> <span class="o">**</span><span class="n">agent_input</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parse_agent_response</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_action_groups</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">enableHumanInput</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">enableCodeInterpreter</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Convert tools to Bedrock action groups format."""</span>
+        <span class="n">action_groups</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tools_by_action_group</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">:</span>
+            <span class="n">action_group_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_get_action_group_and_function_names</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+            <span class="n">tools_by_action_group</span><span class="p">[</span><span class="n">action_group_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">action_group_name</span><span class="p">,</span> <span class="n">functions</span> <span class="ow">in</span> <span class="n">tools_by_action_group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">action_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"actionGroupName"</span><span class="p">:</span> <span class="n">action_group_name</span><span class="p">,</span>
+                    <span class="s2">"actionGroupExecutor"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"customControl"</span><span class="p">:</span> <span class="s2">"RETURN_CONTROL"</span><span class="p">},</span>
+                    <span class="s2">"functionSchema"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">"functions"</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="n">_tool_to_function</span><span class="p">(</span><span class="n">function</span><span class="p">)</span> <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">functions</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">enableHumanInput</span><span class="p">:</span>
+            <span class="n">action_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"actionGroupName"</span><span class="p">:</span> <span class="s2">"UserInputAction"</span><span class="p">,</span>
+                    <span class="s2">"parentActionGroupSignature"</span><span class="p">:</span> <span class="s2">"AMAZON.UserInput"</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">enableCodeInterpreter</span><span class="p">:</span>
+            <span class="n">action_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"actionGroupName"</span><span class="p">:</span> <span class="s2">"CodeInterpreterAction"</span><span class="p">,</span>
+                    <span class="s2">"parentActionGroupSignature"</span><span class="p">:</span> <span class="s2">"AMAZON.CodeInterpreter"</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">action_groups</span>
+
+    <span class="c1"># Serialization helpers</span>
+<div class="viewcode-block" id="BedrockInlineAgentsRunnable.to_dict">
+<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockInlineAgentsRunnable.html#langchain_aws.agents.base.BedrockInlineAgentsRunnable.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Serialize the runnable to a dictionary."""</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"class_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">"region_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
+            <span class="s2">"endpoint_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
+            <span class="s2">"inline_agent_config"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span><span class="p">,</span>
+            <span class="s2">"session_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="BedrockInlineAgentsRunnable.from_dict">
+<a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.base.BedrockInlineAgentsRunnable.html#langchain_aws.agents.base.BedrockInlineAgentsRunnable.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"BedrockInlineAgentsRunnable"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Deserialize the runnable from a dictionary."""</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span></div>
+</div>
 
 </pre></div>
 </article>

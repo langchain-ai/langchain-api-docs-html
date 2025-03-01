@@ -34,7 +34,7 @@
 <link href="../../../_static/autodoc_pydantic.css" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/copybutton.css?v=76b2166b" rel="stylesheet" type="text/css"/>
 <link href="../../../_static/sphinx-design.min.css?v=95c83b7e" rel="stylesheet" type="text/css"/>
-<link href="../../../_static/css/custom.css?v=488f4e83" rel="stylesheet" type="text/css"/>
+<link href="../../../_static/css/custom.css?v=8e9fa5b3" rel="stylesheet" type="text/css"/>
 <!-- So that users can add custom icons -->
 <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
 <!-- Pre-loaded scripts that we'll load fully later -->
@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Feb 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -260,7 +260,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeBaseModel</span><span class="p">,</span> <span class="n">is_basemodel_subclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.chat_models.bedrock_converse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatBedrockConverse</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -419,6 +419,44 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_one_message_to_text_deepseek</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatMessage</span><span class="p">):</span>
+        <span class="n">message_text</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"&lt;|</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">role</span><span class="si">}</span><span class="s2">|&gt;</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
+        <span class="n">message_text</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"&lt;|User|&gt;</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+        <span class="n">message_text</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"&lt;|Assistant|&gt;</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
+        <span class="n">message_text</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"&lt;|System|&gt;</span><span class="si">{</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Got unknown type </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">message_text</span>
+
+
+<div class="viewcode-block" id="convert_messages_to_prompt_deepseek">
+<a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.convert_messages_to_prompt_deepseek.html#langchain_aws.chat_models.bedrock.convert_messages_to_prompt_deepseek">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_messages_to_prompt_deepseek</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Convert a list of messages to a prompt for DeepSeek-R1."""</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">&lt;|begin_of_sentence|&gt;"</span>
+
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="n">prompt</span> <span class="o">+=</span> <span class="n">_convert_one_message_to_text_deepseek</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">"&lt;|Assistant|&gt;</span><span class="se">\n\n</span><span class="s2">"</span>
+
+    <span class="k">return</span> <span class="n">prompt</span></div>
+
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_format_image</span><span class="p">(</span><span class="n">image_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Formats an image of format data:image/jpeg;base64,{b64_string}</span>
@@ -516,16 +554,21 @@
 
             <span class="c1"># populate content</span>
             <span class="n">content</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">thinking_blocks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">text_blocks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tool_blocks</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># First collect all blocks by type</span>
             <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">item</span><span class="p">})</span>
+                    <span class="n">text_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">item</span><span class="p">})</span>
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="k">if</span> <span class="s2">"type"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dict content item must have a type key"</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="n">item</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image_url"</span><span class="p">:</span>
                         <span class="c1"># convert format</span>
                         <span class="n">source</span> <span class="o">=</span> <span class="n">_format_image</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"url"</span><span class="p">])</span>
-                        <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"image"</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">:</span> <span class="n">source</span><span class="p">})</span>
+                        <span class="n">tool_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"image"</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">:</span> <span class="n">source</span><span class="p">})</span>
                     <span class="k">elif</span> <span class="n">item</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"tool_use"</span><span class="p">:</span>
                         <span class="c1"># If a tool_call with the same id as a tool_use content block</span>
                         <span class="c1"># exists, the tool_call is preferred.</span>
@@ -537,36 +580,92 @@
                                 <span class="k">for</span> <span class="n">tc</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span>
                                 <span class="k">if</span> <span class="n">tc</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">item</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
                             <span class="p">]</span>
-                            <span class="n">content</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                            <span class="n">tool_blocks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                                 <span class="n">_lc_tool_calls_to_anthropic_tool_use_blocks</span><span class="p">(</span><span class="n">overlapping</span><span class="p">)</span>
                             <span class="p">)</span>
                         <span class="k">else</span><span class="p">:</span>
                             <span class="n">item</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                            <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                            <span class="n">tool_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">item</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]:</span>
+                        <span class="c1"># Store thinking blocks separately</span>
+                        <span class="n">thinking_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="n">item</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
                         <span class="n">text</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-                        <span class="c1"># Only add non-empty strings for now as empty ones are not</span>
-                        <span class="c1"># accepted.</span>
-                        <span class="c1"># https://github.com/anthropics/anthropic-sdk-python/issues/461</span>
                         <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
-                            <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
+                            <span class="n">text_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">})</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                        <span class="n">tool_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"Content items must be str or dict, instead was: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
                     <span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="ow">and</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
-            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">[]</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
-                <span class="k">else</span> <span class="p">[{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">}]</span>
-            <span class="p">)</span>
-            <span class="c1"># Note: Anthropic can't have invalid tool calls as presently defined,</span>
-            <span class="c1"># since the model already returns dicts args not JSON strings, and invalid</span>
-            <span class="c1"># tool calls are those with invalid JSON for args.</span>
-            <span class="n">content</span> <span class="o">+=</span> <span class="n">_lc_tool_calls_to_anthropic_tool_use_blocks</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">)</span>
+
+            <span class="c1"># For assistant messages, when thinking blocks exist, ensure they come first</span>
+            <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span> <span class="ow">and</span> <span class="n">thinking_blocks</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">thinking_blocks</span> <span class="o">+</span> <span class="n">text_blocks</span> <span class="o">+</span> <span class="n">tool_blocks</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># For user messages or assistant messages without thinking,</span>
+                <span class="c1"># just combine all blocks in standard order</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">text_blocks</span> <span class="o">+</span> <span class="n">tool_blocks</span>
+                <span class="c1"># Only include thinking blocks if they exist (for assistant messages that might have them)</span>
+                <span class="k">if</span> <span class="n">thinking_blocks</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">thinking_blocks</span> <span class="o">+</span> <span class="n">content</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+            <span class="c1"># For string content, create appropriate structure</span>
+            <span class="n">content_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># Add thinking blocks from additional_kwargs if present</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span> <span class="ow">and</span> <span class="s2">"thinking"</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">:</span>
+                <span class="n">thinking_data</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"thinking"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">thinking_data</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">thinking_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">thinking_data</span> <span class="ow">and</span> <span class="s2">"signature"</span> <span class="ow">in</span> <span class="n">thinking_data</span><span class="p">:</span>
+                        <span class="n">content_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">{</span>
+                                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"thinking"</span><span class="p">,</span>
+                                <span class="s2">"thinking"</span><span class="p">:</span> <span class="n">thinking_data</span><span class="p">[</span><span class="s2">"text"</span><span class="p">],</span>
+                                <span class="s2">"signature"</span><span class="p">:</span> <span class="n">thinking_data</span><span class="p">[</span><span class="s2">"signature"</span><span class="p">],</span>
+                            <span class="p">}</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># Add base content as text block</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="n">content_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">})</span>
+
+            <span class="c1"># Add tool calls if present</span>
+            <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                <span class="n">content_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="n">_lc_tool_calls_to_anthropic_tool_use_blocks</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># For assistant messages with thinking blocks, ensure they come first</span>
+            <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content_list</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="c1"># Separate thinking blocks and non-thinking blocks</span>
+                <span class="n">thinking_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">block</span>
+                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content_list</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                <span class="p">]</span>
+                <span class="n">other_blocks</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">block</span>
+                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">content_list</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                        <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"thinking"</span><span class="p">,</span> <span class="s2">"redacted_thinking"</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">]</span>
+                <span class="c1"># Combine with thinking first</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">thinking_blocks</span> <span class="o">+</span> <span class="n">other_blocks</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No thinking blocks or not an assistant message</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">content_list</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Simple string content</span>
             <span class="n">content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
 
         <span class="n">formatted_messages</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="n">role</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">})</span>
@@ -588,6 +687,8 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"anthropic"</span><span class="p">:</span>
             <span class="n">prompt</span> <span class="o">=</span> <span class="n">convert_messages_to_prompt_anthropic</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"deepseek"</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="n">convert_messages_to_prompt_deepseek</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">provider</span> <span class="o">==</span> <span class="s2">"meta"</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"llama3"</span> <span class="ow">in</span> <span class="n">model</span><span class="p">:</span>
                 <span class="n">prompt</span> <span class="o">=</span> <span class="n">convert_messages_to_prompt_llama3</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">)</span>
@@ -641,6 +742,12 @@
     <span class="n">beta_use_converse_api</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="w">    </span><span class="sd">"""Use the new Bedrock ``converse`` API which provides a standardized interface to </span>
 <span class="sd">    all Bedrock models. Support still in beta. See ChatBedrockConverse docs for more."""</span>
+
+    <span class="n">stop_sequences</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"stop"</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Stop sequence inference parameter from new Bedrock ``converse`` API providing </span>
+<span class="sd">    a sequence of characters that causes a model to stop generating a response. See </span>
+<span class="sd">    https://docs.aws.amazon.com/bedrock/latest/APIReference/API_agent_InferenceConfiguration.html </span>
+<span class="sd">    for more."""</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_llm_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1135,6 +1242,9 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">"max_tokens"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">"temperature"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_sequences</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stop_sequences"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stop_sequences</span>
+
         <span class="k">return</span> <span class="n">ChatBedrockConverse</span><span class="p">(</span>
             <span class="n">client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">,</span>
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">,</span>
