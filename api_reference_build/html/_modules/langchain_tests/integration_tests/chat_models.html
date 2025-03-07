@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 06, 2025" name="docbuild:last-update"/>
+<meta content="Mar 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -2261,7 +2261,7 @@
 <span class="sd">            set the ``supports_anthropic_inputs`` property to False.</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">supports_anthropic_inputs</span><span class="p">:</span>
-            <span class="k">return</span>
+            <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Model does not explicitly support Anthropic inputs."</span><span class="p">)</span>
 
         <span class="k">class</span><span class="w"> </span><span class="nc">color_picker</span><span class="p">(</span><span class="n">BaseModelV1</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">"""Input your fav color and get a random fact about it."""</span>
@@ -2299,26 +2299,55 @@
                         <span class="s2">"id"</span><span class="p">:</span> <span class="s2">"foo"</span><span class="p">,</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"color_picker"</span><span class="p">,</span>
                     <span class="p">},</span>
+                <span class="p">],</span>
+                <span class="n">tool_calls</span><span class="o">=</span><span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"color_picker"</span><span class="p">,</span>
+                        <span class="s2">"args"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"fav_color"</span><span class="p">:</span> <span class="s2">"green"</span><span class="p">},</span>
+                        <span class="s2">"id"</span><span class="p">:</span> <span class="s2">"foo"</span><span class="p">,</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"tool_call"</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">],</span>
+            <span class="p">),</span>
+            <span class="n">ToolMessage</span><span class="p">(</span><span class="s2">"That's a great pick!"</span><span class="p">,</span> <span class="n">tool_call_id</span><span class="o">=</span><span class="s2">"foo"</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">color_picker</span><span class="p">])</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span>
+
+        <span class="c1"># Test thinking blocks</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">HumanMessage</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
+                        <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">,</span>
+                    <span class="p">},</span>
+                <span class="p">]</span>
+            <span class="p">),</span>
+            <span class="n">AIMessage</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"thinking"</span><span class="p">,</span>
+                        <span class="s2">"thinking"</span><span class="p">:</span> <span class="s2">"I'm thinking..."</span><span class="p">,</span>
+                        <span class="s2">"signature"</span><span class="p">:</span> <span class="s2">"abc123"</span><span class="p">,</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
+                        <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"Hello, how are you?"</span><span class="p">,</span>
+                    <span class="p">},</span>
                 <span class="p">]</span>
             <span class="p">),</span>
             <span class="n">HumanMessage</span><span class="p">(</span>
                 <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"tool_result"</span><span class="p">,</span>
-                        <span class="s2">"tool_use_id"</span><span class="p">:</span> <span class="s2">"foo"</span><span class="p">,</span>
-                        <span class="s2">"content"</span><span class="p">:</span> <span class="p">[</span>
-                            <span class="p">{</span>
-                                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
-                                <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"green is a great pick! that's my sister's favorite color"</span><span class="p">,</span>  <span class="c1"># noqa: E501</span>
-                            <span class="p">}</span>
-                        <span class="p">],</span>
-                        <span class="s2">"is_error"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span>
+                        <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"Well, thanks."</span><span class="p">,</span>
                     <span class="p">},</span>
-                    <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"what's my sister's favorite color"</span><span class="p">},</span>
                 <span class="p">]</span>
             <span class="p">),</span>
         <span class="p">]</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">color_picker</span><span class="p">])</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span></div>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ChatModelIntegrationTests.test_tool_message_error_status">

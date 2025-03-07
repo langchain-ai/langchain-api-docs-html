@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 06, 2025" name="docbuild:last-update"/>
+<meta content="Mar 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -315,7 +315,16 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.preview.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CodeChatModel</span> <span class="k">as</span> <span class="n">PreviewCodeChatModel</span><span class="p">,</span>
 <span class="p">)</span>
-
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Content</span> <span class="k">as</span> <span class="n">v1Content</span><span class="p">,</span>
+    <span class="n">FunctionCallingConfig</span> <span class="k">as</span> <span class="n">v1FunctionCallingConfig</span><span class="p">,</span>
+    <span class="n">GenerateContentRequest</span> <span class="k">as</span> <span class="n">v1GenerateContentRequest</span><span class="p">,</span>
+    <span class="n">GenerationConfig</span> <span class="k">as</span> <span class="n">v1GenerationConfig</span><span class="p">,</span>
+    <span class="n">Part</span> <span class="k">as</span> <span class="n">v1Part</span><span class="p">,</span>
+    <span class="n">SafetySetting</span> <span class="k">as</span> <span class="n">v1SafetySetting</span><span class="p">,</span>
+    <span class="n">Tool</span> <span class="k">as</span> <span class="n">v1Tool</span><span class="p">,</span>
+    <span class="n">ToolConfig</span> <span class="k">as</span> <span class="n">v1ToolConfig</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1beta1.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Blob</span><span class="p">,</span>
     <span class="n">Candidate</span><span class="p">,</span>
@@ -1392,7 +1401,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_gemini_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_family</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">"Non-Gemini models are deprecated. "</span>
-                <span class="s2">"They will be remoced starting from Dec-01-2024. "</span>
+                <span class="s2">"They will be removed starting Dec-01-2024. "</span>
             <span class="p">)</span>
             <span class="n">values</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s2">"project"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
@@ -1508,7 +1517,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">logprobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerationConfig</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">GenerationConfig</span><span class="p">,</span> <span class="n">v1GenerationConfig</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Prepares GenerationConfig part of the request.</span>
 
 <span class="sd">        https://cloud.google.com/vertex-ai/docs/reference/rpc/google.cloud.aiplatform.v1beta1#generationconfig</span>
@@ -1520,6 +1529,15 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">"logprobs"</span><span class="p">]</span> <span class="o">=</span> <span class="n">logprobs</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_version</span> <span class="o">==</span> <span class="s2">"v1"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">v1GenerationConfig</span><span class="p">(</span>
+                <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span>
+                    <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span>
+                    <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_allowed_params</span><span class="p">},</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">GenerationConfig</span><span class="p">(</span>
             <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_prepare_params</span><span class="p">(</span>
@@ -1573,7 +1591,7 @@
         <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_ToolChoiceType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">logprobs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerateContentRequest</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">v1GenerateContentRequest</span><span class="p">,</span> <span class="n">GenerateContentRequest</span><span class="p">]:</span>
         <span class="n">system_instruction</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">_parse_chat_history_gemini</span><span class="p">(</span>
             <span class="n">messages</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_bytes_loader_client</span>
         <span class="p">)</span>
@@ -1596,18 +1614,82 @@
             <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="n">logprobs</span><span class="o">=</span><span class="n">logprobs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
+        <span class="k">def</span><span class="w"> </span><span class="nf">_content_to_v1</span><span class="p">(</span><span class="n">contents</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Content</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">v1Content</span><span class="p">]:</span>
+            <span class="n">v1_contens</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+                <span class="n">v1_parts</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">content</span><span class="o">.</span><span class="n">parts</span><span class="p">:</span>
+                    <span class="n">raw_part</span> <span class="o">=</span> <span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+                    <span class="n">_</span> <span class="o">=</span> <span class="n">raw_part</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"thought"</span><span class="p">)</span>
+                    <span class="n">v1_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v1Part</span><span class="p">(</span><span class="o">**</span><span class="n">raw_part</span><span class="p">))</span>
+                <span class="n">v1_contens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v1Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">content</span><span class="o">.</span><span class="n">role</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">v1_parts</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">v1_contens</span>
+
+        <span class="n">v1_system_instruction</span><span class="p">,</span> <span class="n">v1_tools</span><span class="p">,</span> <span class="n">v1_tool_config</span><span class="p">,</span> <span class="n">v1_safety_settings</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_version</span> <span class="o">==</span> <span class="s2">"v1"</span><span class="p">:</span>
+            <span class="n">v1_system_instruction</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">_content_to_v1</span><span class="p">([</span><span class="n">system_instruction</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">system_instruction</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">formatted_tools</span><span class="p">:</span>
+                <span class="n">v1_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">v1Tool</span><span class="p">(</span><span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">formatted_tools</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">tool_config</span><span class="p">:</span>
+                <span class="n">v1_tool_config</span> <span class="o">=</span> <span class="n">v1ToolConfig</span><span class="p">(</span>
+                    <span class="n">function_calling_config</span><span class="o">=</span><span class="n">v1FunctionCallingConfig</span><span class="p">(</span>
+                        <span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">tool_config</span><span class="o">.</span><span class="n">function_calling_config</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">safety_settings</span><span class="p">:</span>
+                <span class="n">v1_safety_settings</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">v1SafetySetting</span><span class="p">(</span>
+                        <span class="n">category</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">category</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">threshold</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">safety_settings</span>
+                <span class="p">]</span>
+
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">cached_content</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
             <span class="n">selected_cached_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span> <span class="ow">or</span> <span class="n">cached_content</span>
 
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request_from_cached_content</span><span class="p">(</span>
+            <span class="n">full_cache_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request_from_cached_content</span><span class="p">(</span>
                 <span class="n">cached_content</span><span class="o">=</span><span class="n">selected_cached_content</span><span class="p">,</span>  <span class="c1"># type: ignore</span>
-                <span class="n">contents</span><span class="o">=</span><span class="n">contents</span><span class="p">,</span>
                 <span class="n">system_instruction</span><span class="o">=</span><span class="n">system_instruction</span><span class="p">,</span>
                 <span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span>
                 <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_version</span> <span class="o">==</span> <span class="s2">"v1"</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">GenerateContentRequest</span><span class="p">(</span>
+                    <span class="n">contents</span><span class="o">=</span><span class="n">_content_to_v1</span><span class="p">(</span><span class="n">contents</span><span class="p">),</span>
+                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
+                    <span class="n">safety_settings</span><span class="o">=</span><span class="n">v1_safety_settings</span><span class="p">,</span>
+                    <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
+                    <span class="n">cached_content</span><span class="o">=</span><span class="n">full_cache_name</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">GenerateContentRequest</span><span class="p">(</span>
+                <span class="n">contents</span><span class="o">=</span><span class="n">contents</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
                 <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span><span class="p">,</span>
                 <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
+                <span class="n">cached_content</span><span class="o">=</span><span class="n">full_cache_name</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_version</span> <span class="o">==</span> <span class="s2">"v1"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">v1GenerateContentRequest</span><span class="p">(</span>
+                <span class="n">contents</span><span class="o">=</span><span class="n">_content_to_v1</span><span class="p">(</span><span class="n">contents</span><span class="p">),</span>
+                <span class="n">system_instruction</span><span class="o">=</span><span class="n">v1_system_instruction</span><span class="p">,</span>
+                <span class="n">tools</span><span class="o">=</span><span class="n">v1_tools</span><span class="p">,</span>
+                <span class="n">tool_config</span><span class="o">=</span><span class="n">v1_tool_config</span><span class="p">,</span>
+                <span class="n">safety_settings</span><span class="o">=</span><span class="n">v1_safety_settings</span><span class="p">,</span>
+                <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
                 <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
+                <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">GenerateContentRequest</span><span class="p">(</span>
@@ -1627,11 +1709,7 @@
         <span class="n">system_instruction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Content</span><span class="p">],</span>
         <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">GapicTool</span><span class="p">]],</span>
         <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolConfigDict</span><span class="p">,</span> <span class="n">ToolConfig</span><span class="p">]],</span>
-        <span class="n">contents</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Content</span><span class="p">],</span>
-        <span class="n">safety_settings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">SafetySetting</span><span class="p">]],</span>
-        <span class="n">generation_config</span><span class="p">:</span> <span class="n">GenerationConfig</span><span class="p">,</span>
-        <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerateContentRequest</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">not_allowed_parameters</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="s2">"system_instructions"</span><span class="p">,</span> <span class="n">system_instruction</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"tools"</span><span class="p">,</span> <span class="n">tools</span><span class="p">),</span>
@@ -1645,17 +1723,9 @@
                 <span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
-        <span class="n">full_cache_name</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="k">return</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"projects/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="si">}</span><span class="s2">/locations/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="si">}</span><span class="s2">/"</span>
             <span class="sa">f</span><span class="s2">"cachedContents/</span><span class="si">{</span><span class="n">cached_content</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">GenerateContentRequest</span><span class="p">(</span>
-            <span class="n">contents</span><span class="o">=</span><span class="n">contents</span><span class="p">,</span>
-            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
-            <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span><span class="p">,</span>
-            <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
-            <span class="n">cached_content</span><span class="o">=</span><span class="n">full_cache_name</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_generate_gemini</span><span class="p">(</span>
@@ -1703,7 +1773,7 @@
             <span class="n">_</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">_parse_chat_history_gemini</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">text</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_bytes_loader_client</span>
             <span class="p">)</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_client</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_client</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>  <span class="c1"># type: ignore[union-attr]</span>
                 <span class="p">{</span>
                     <span class="s2">"endpoint"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
                     <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
