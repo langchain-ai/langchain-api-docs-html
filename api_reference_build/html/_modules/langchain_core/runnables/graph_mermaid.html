@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 11, 2025" name="docbuild:last-update"/>
+<meta content="Mar 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -280,37 +280,50 @@
         <span class="k">if</span> <span class="n">with_styles</span>
         <span class="k">else</span> <span class="s2">"graph TD;</span><span class="se">\n</span><span class="s2">"</span>
     <span class="p">)</span>
+    <span class="c1"># Group nodes by subgraph</span>
+    <span class="n">subgraph_nodes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Node</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">regular_nodes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Node</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">if</span> <span class="n">with_styles</span><span class="p">:</span>
-        <span class="c1"># Node formatting templates</span>
-        <span class="n">default_class_label</span> <span class="o">=</span> <span class="s2">"default"</span>
-        <span class="n">format_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">default_class_label</span><span class="p">:</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">(</span><span class="si">{1}</span><span class="s2">)"</span><span class="p">}</span>
-        <span class="k">if</span> <span class="n">first_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">format_dict</span><span class="p">[</span><span class="n">first_node</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">([</span><span class="si">{1}</span><span class="s2">]):::first"</span>
-        <span class="k">if</span> <span class="n">last_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">format_dict</span><span class="p">[</span><span class="n">last_node</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">([</span><span class="si">{1}</span><span class="s2">]):::last"</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+            <span class="c1"># For nodes with colons, add them only to their deepest subgraph level</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s2">":"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">subgraph_nodes</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">regular_nodes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
 
-        <span class="c1"># Add nodes to the graph</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">node_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Node formatting templates</span>
+    <span class="n">default_class_label</span> <span class="o">=</span> <span class="s2">"default"</span>
+    <span class="n">format_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">default_class_label</span><span class="p">:</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">(</span><span class="si">{1}</span><span class="s2">)"</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">first_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">format_dict</span><span class="p">[</span><span class="n">first_node</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">([</span><span class="si">{1}</span><span class="s2">]):::first"</span>
+    <span class="k">if</span> <span class="n">last_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">format_dict</span><span class="p">[</span><span class="n">last_node</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{0}</span><span class="s2">([</span><span class="si">{1}</span><span class="s2">]):::last"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">render_node</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span> <span class="n">indent</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Helper function to render a node with consistent formatting."""</span>
+        <span class="n">node_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"&lt;p&gt;</span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">&lt;/p&gt;"</span>
+            <span class="k">if</span> <span class="n">node_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MARKDOWN_SPECIAL_CHARS</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="n">node_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MARKDOWN_SPECIAL_CHARS</span><span class="p">))</span>
+            <span class="k">else</span> <span class="n">node_name</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">metadata</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"&lt;p&gt;</span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">&lt;/p&gt;"</span>
-                <span class="k">if</span> <span class="n">node_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MARKDOWN_SPECIAL_CHARS</span><span class="p">))</span>
-                <span class="ow">and</span> <span class="n">node_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">MARKDOWN_SPECIAL_CHARS</span><span class="p">))</span>
-                <span class="k">else</span> <span class="n">node_name</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&lt;hr/&gt;&lt;small&gt;&lt;em&gt;"</span>
+                <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="o">+</span> <span class="s2">"&lt;/em&gt;&lt;/small&gt;"</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">metadata</span><span class="p">:</span>
-                <span class="n">label</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&lt;hr/&gt;&lt;small&gt;&lt;em&gt;"</span>
-                    <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                    <span class="p">)</span>
-                    <span class="o">+</span> <span class="s2">"&lt;/em&gt;&lt;/small&gt;"</span>
-                <span class="p">)</span>
-            <span class="n">node_label</span> <span class="o">=</span> <span class="n">format_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">format_dict</span><span class="p">[</span><span class="n">default_class_label</span><span class="p">])</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">_escape_node_label</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">label</span>
-            <span class="p">)</span>
-            <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="si">{</span><span class="n">node_label</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="n">node_label</span> <span class="o">=</span> <span class="n">format_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">format_dict</span><span class="p">[</span><span class="n">default_class_label</span><span class="p">])</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">_escape_node_label</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">label</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">indent</span><span class="si">}{</span><span class="n">node_label</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+
+    <span class="c1"># Add non-subgraph nodes to the graph</span>
+    <span class="k">if</span> <span class="n">with_styles</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">regular_nodes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="n">render_node</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
 
     <span class="c1"># Group edges by their common prefixes</span>
     <span class="n">edge_groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Edge</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -339,6 +352,11 @@
 
             <span class="n">seen_subgraphs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
             <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="s2">subgraph </span><span class="si">{</span><span class="n">subgraph</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+
+            <span class="c1"># Add nodes that belong to this subgraph</span>
+            <span class="k">if</span> <span class="n">with_styles</span> <span class="ow">and</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">subgraph_nodes</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph_nodes</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="n">render_node</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
             <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">edge</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">target</span>
@@ -380,11 +398,25 @@
     <span class="c1"># Start with the top-level edges (no common prefix)</span>
     <span class="n">add_subgraph</span><span class="p">(</span><span class="n">edge_groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="p">[]),</span> <span class="s2">""</span><span class="p">)</span>
 
-    <span class="c1"># Add remaining subgraphs</span>
+    <span class="c1"># Add remaining subgraphs with edges</span>
     <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">edge_groups</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="ow">or</span> <span class="n">prefix</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">add_subgraph</span><span class="p">(</span><span class="n">edge_groups</span><span class="p">[</span><span class="n">prefix</span><span class="p">],</span> <span class="n">prefix</span><span class="p">)</span>
+        <span class="n">seen_subgraphs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># Add empty subgraphs (subgraphs with no internal edges)</span>
+    <span class="k">if</span> <span class="n">with_styles</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">subgraph_nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">":"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="ow">and</span> <span class="n">prefix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_subgraphs</span><span class="p">:</span>
+                <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\t</span><span class="s2">subgraph </span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+
+                <span class="c1"># Add nodes that belong to this subgraph</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">subgraph_nodes</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="n">render_node</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+
+                <span class="n">mermaid_graph</span> <span class="o">+=</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">end</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="n">seen_subgraphs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
 
     <span class="c1"># Add custom styles for nodes</span>
     <span class="k">if</span> <span class="n">with_styles</span><span class="p">:</span>

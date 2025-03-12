@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 11, 2025" name="docbuild:last-update"/>
+<meta content="Mar 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -2168,7 +2168,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
             <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-                <span class="n">response_mime_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">,</span> <span class="n">response_schema</span><span class="o">=</span><span class="n">schema</span>
+                <span class="n">response_mime_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">,</span>
+                <span class="n">response_schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">ls_structured_output_format</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"method"</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
+                    <span class="s2">"schema"</span><span class="p">:</span> <span class="n">schema</span><span class="p">,</span>
+                <span class="p">},</span>
             <span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
@@ -2181,7 +2186,17 @@
                 <span class="p">)</span>
             <span class="n">tool_choice</span> <span class="o">=</span> <span class="n">tool_name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_gemini_advanced</span> <span class="k">else</span> <span class="kc">None</span>
 
-            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">schema</span><span class="p">],</span>
+                    <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
+                    <span class="n">ls_structured_output_format</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">"kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"method"</span><span class="p">:</span> <span class="s2">"function_calling"</span><span class="p">},</span>
+                        <span class="s2">"schema"</span><span class="p">:</span> <span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
+                    <span class="p">},</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">schema</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">include_raw</span><span class="p">:</span>
             <span class="n">parser_with_fallback</span> <span class="o">=</span> <span class="n">RunnablePassthrough</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
