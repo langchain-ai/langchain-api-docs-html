@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 20, 2025" name="docbuild:last-update"/>
+<meta content="Mar 21, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -221,12 +221,14 @@
 <article class="bd-article">
 <h1>Source code for langchain_tests.integration_tests.chat_models</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">cast</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MagicMock</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn_deprecated</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCallbackHandler</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">GenericFakeChatModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -428,12 +430,12 @@
 
 <span class="sd">        Value to use for tool choice when used in tests.</span>
 
-<span class="sd">        Some tests for tool calling features attempt to force tool calling via a</span>
-<span class="sd">        `tool_choice` parameter. A common value for this parameter is "any". Defaults</span>
-<span class="sd">        to `None`.</span>
-
-<span class="sd">        Note: if the value is set to "tool_name", the name of the tool used in each</span>
-<span class="sd">        test will be set as the value for `tool_choice`.</span>
+<span class="sd">        .. warning:: Deprecated since version 0.3.15:</span>
+<span class="sd">           This property will be removed in version 0.3.20. If a model supports</span>
+<span class="sd">           ``tool_choice``, it should accept ``tool_choice="any"`` and</span>
+<span class="sd">           ``tool_choice=&lt;string name of tool&gt;``. If a model does not</span>
+<span class="sd">           support forcing tool calling, override the ``has_tool_choice`` property to</span>
+<span class="sd">           return ``False``.</span>
 
 <span class="sd">        Example:</span>
 
@@ -442,6 +444,26 @@
 <span class="sd">            @property</span>
 <span class="sd">            def tool_choice_value(self) -&gt; Optional[str]:</span>
 <span class="sd">                return "any"</span>
+
+<span class="sd">    .. dropdown:: has_tool_choice</span>
+
+<span class="sd">        Boolean property indicating whether the chat model supports forcing tool</span>
+<span class="sd">        calling via a ``tool_choice`` parameter.</span>
+
+<span class="sd">        By default, this is determined by whether the parameter is included in the</span>
+<span class="sd">        signature for the corresponding ``bind_tools`` method.</span>
+
+<span class="sd">        If ``True``, the minimum requirement for this feature is that</span>
+<span class="sd">        ``tool_choice="any"`` will force a tool call, and ``tool_choice=&lt;tool name&gt;``</span>
+<span class="sd">        will force a call to a specific tool.</span>
+
+<span class="sd">        Example override:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            @property</span>
+<span class="sd">            def has_tool_choice(self) -&gt; bool:</span>
+<span class="sd">                return False</span>
 
 <span class="sd">    .. dropdown:: has_structured_output</span>
 
@@ -1248,16 +1270,33 @@
 <span class="sd">                def test_tool_calling(self, model: BaseChatModel) -&gt; None:</span>
 <span class="sd">                    super().test_tool_calling(model)</span>
 
-<span class="sd">            Otherwise, ensure that the ``tool_choice_value`` property is correctly</span>
-<span class="sd">            specified on the test class.</span>
+<span class="sd">            Otherwise, in the case that only one tool is bound, ensure that</span>
+<span class="sd">            ``tool_choice`` supports the string ``"any"`` to force calling that tool.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_calling</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Test requires tool calling."</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span> <span class="o">==</span> <span class="s2">"tool_name"</span><span class="p">:</span>
-            <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"magic_function"</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_choice</span><span class="p">:</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tool_choice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span>
-        <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">magic_function</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="s2">"any"</span>
+        <span class="c1"># Emit warning if tool_choice_value property is overridden</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getattr_static</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="s2">"tool_choice_value"</span>
+        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getattr_static</span><span class="p">(</span><span class="n">ChatModelIntegrationTests</span><span class="p">,</span> <span class="s2">"tool_choice_value"</span><span class="p">):</span>
+            <span class="n">warn_deprecated</span><span class="p">(</span>
+                <span class="s2">"0.3.15"</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                    <span class="s2">"`tool_choice_value` will be removed in version 0.3.20. If a "</span>
+                    <span class="s2">"model supports `tool_choice`, it should accept `tool_choice='any' "</span>
+                    <span class="s2">"and `tool_choice=&lt;string name of tool&gt;`. If the model does not "</span>
+                    <span class="s2">"support `tool_choice`, override the `supports_tool_choice` "</span>
+                    <span class="s2">"property to return `False`."</span>
+                <span class="p">),</span>
+                <span class="n">removal</span><span class="o">=</span><span class="s2">"0.3.20"</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">magic_function</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice_value</span>
+        <span class="p">)</span>
 
         <span class="c1"># Test invoke</span>
         <span class="n">query</span> <span class="o">=</span> <span class="s2">"What is the value of magic_function(3)? Use the tool."</span>
@@ -1270,6 +1309,60 @@
             <span class="n">full</span> <span class="o">=</span> <span class="n">chunk</span> <span class="k">if</span> <span class="n">full</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">full</span> <span class="o">+</span> <span class="n">chunk</span>  <span class="c1"># type: ignore</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">full</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span>
         <span class="n">_validate_tool_call_message</span><span class="p">(</span><span class="n">full</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ChatModelIntegrationTests.test_tool_choice">
+<a class="viewcode-back" href="../../../standard_tests/integration_tests/langchain_tests.integration_tests.chat_models.ChatModelIntegrationTests.html#langchain_tests.integration_tests.chat_models.ChatModelIntegrationTests.test_tool_choice">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_tool_choice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">BaseChatModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Test that the model can force tool calling via the ``tool_choice``</span>
+<span class="sd">        parameter. This test is skipped if the ``has_tool_choice`` property on the</span>
+<span class="sd">        test class is set to False.</span>
+
+<span class="sd">        This test is optional and should be skipped if the model does not support</span>
+<span class="sd">        tool calling (see Configuration below).</span>
+
+<span class="sd">        .. dropdown:: Configuration</span>
+
+<span class="sd">            To disable tool calling tests, set ``has_tool_choice`` to False in your</span>
+<span class="sd">            test class:</span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                class TestMyChatModelIntegration(ChatModelIntegrationTests):</span>
+<span class="sd">                    @property</span>
+<span class="sd">                    def has_tool_choice(self) -&gt; bool:</span>
+<span class="sd">                        return False</span>
+
+<span class="sd">        .. dropdown:: Troubleshooting</span>
+
+<span class="sd">            If this test fails, check whether the ``test_tool_calling`` test is passing.</span>
+<span class="sd">            If it is not, refer to the troubleshooting steps in that test first.</span>
+
+<span class="sd">            If ``test_tool_calling`` is passing, check that the underlying model</span>
+<span class="sd">            supports forced tool calling. If it does, ``bind_tools`` should accept a</span>
+<span class="sd">            ``tool_choice`` parameter that can be used to force a tool call.</span>
+
+<span class="sd">            It should accept (1) the string ``"any"`` to force calling the bound tool,</span>
+<span class="sd">            and (2) the string name of the tool to force calling that tool.</span>
+
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_choice</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_calling</span><span class="p">:</span>
+            <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Test requires tool choice."</span><span class="p">)</span>
+
+        <span class="nd">@tool</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">"""Get weather at a location."""</span>
+            <span class="k">return</span> <span class="s2">"It's sunny."</span>
+
+        <span class="k">for</span> <span class="n">tool_choice</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"any"</span><span class="p">,</span> <span class="s2">"magic_function"</span><span class="p">]:</span>
+            <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">magic_function</span><span class="p">,</span> <span class="n">get_weather</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span>
+            <span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">model_with_tools</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tool_calls</span>
+            <span class="k">if</span> <span class="n">tool_choice</span> <span class="o">==</span> <span class="s2">"magic_function"</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"magic_function"</span></div>
 
 
 <div class="viewcode-block" id="ChatModelIntegrationTests.test_tool_calling_async">
@@ -1310,16 +1403,18 @@
 <span class="sd">                async def test_tool_calling_async(self, model: BaseChatModel) -&gt; None:</span>
 <span class="sd">                    await super().test_tool_calling_async(model)</span>
 
-<span class="sd">            Otherwise, ensure that the ``tool_choice_value`` property is correctly</span>
-<span class="sd">            specified on the test class.</span>
+<span class="sd">            Otherwise, in the case that only one tool is bound, ensure that</span>
+<span class="sd">            ``tool_choice`` supports the string ``"any"`` to force calling that tool.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_calling</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Test requires tool calling."</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span> <span class="o">==</span> <span class="s2">"tool_name"</span><span class="p">:</span>
-            <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"magic_function"</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_choice</span><span class="p">:</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tool_choice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span>
-        <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">magic_function</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="s2">"any"</span>
+        <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">magic_function</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice_value</span>
+        <span class="p">)</span>
 
         <span class="c1"># Test ainvoke</span>
         <span class="n">query</span> <span class="o">=</span> <span class="s2">"What is the value of magic_function(3)? Use the tool."</span>
@@ -1374,18 +1469,17 @@
 <span class="sd">                def test_tool_calling_with_no_arguments(self, model: BaseChatModel) -&gt; None:</span>
 <span class="sd">                    super().test_tool_calling_with_no_arguments(model)</span>
 
-<span class="sd">            Otherwise, ensure that the ``tool_choice_value`` property is correctly</span>
-<span class="sd">            specified on the test class.</span>
+<span class="sd">            Otherwise, in the case that only one tool is bound, ensure that</span>
+<span class="sd">            ``tool_choice`` supports the string ``"any"`` to force calling that tool.</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_calling</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Test requires tool calling."</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span> <span class="o">==</span> <span class="s2">"tool_name"</span><span class="p">:</span>
-            <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"magic_function_no_args"</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_choice</span><span class="p">:</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tool_choice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span>
+            <span class="n">tool_choice_value</span> <span class="o">=</span> <span class="s2">"any"</span>
         <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">magic_function_no_args</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span>
+            <span class="p">[</span><span class="n">magic_function_no_args</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice_value</span>
         <span class="p">)</span>
         <span class="n">query</span> <span class="o">=</span> <span class="s2">"What is the value of magic_function_no_args()? Use the tool."</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">model_with_tools</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -1452,10 +1546,10 @@
             <span class="n">name</span><span class="o">=</span><span class="s2">"greeting_generator"</span><span class="p">,</span>
             <span class="n">description</span><span class="o">=</span><span class="s2">"Generate a greeting in a particular style of speaking."</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span> <span class="o">==</span> <span class="s2">"tool_name"</span><span class="p">:</span>
-            <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"greeting_generator"</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_choice</span><span class="p">:</span>
+            <span class="n">tool_choice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"any"</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tool_choice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool_choice_value</span>
+            <span class="n">tool_choice</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">model_with_tools</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">([</span><span class="n">tool_</span><span class="p">],</span> <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">)</span>
         <span class="n">query</span> <span class="o">=</span> <span class="s2">"Using the tool, generate a Pirate greeting."</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">model_with_tools</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -2390,9 +2484,6 @@
 
 <span class="sd">            If this test fails, check that the ``status`` field on ``ToolMessage``</span>
 <span class="sd">            objects is either ignored or passed to the model appropriately.</span>
-
-<span class="sd">            Otherwise, ensure that the ``tool_choice_value`` property is correctly</span>
-<span class="sd">            specified on the test class.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_tool_calling</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Test requires tool calling."</span><span class="p">)</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 20, 2025" name="docbuild:last-update"/>
+<meta content="Mar 21, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -297,6 +297,7 @@
     <span class="n">get_pydantic_field_names</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">convert_to_json_schema</span><span class="p">,</span>
     <span class="n">convert_to_openai_function</span><span class="p">,</span>
     <span class="n">convert_to_openai_tool</span><span class="p">,</span>
 <span class="p">)</span>
@@ -969,7 +970,9 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"function_calling"</span><span class="p">,</span> <span class="s2">"json_mode"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"function_calling"</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">"function_calling"</span><span class="p">,</span> <span class="s2">"json_mode"</span><span class="p">,</span> <span class="s2">"json_schema"</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">"function_calling"</span><span class="p">,</span>
         <span class="n">include_raw</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]]:</span>
@@ -993,13 +996,19 @@
 
 <span class="sd">                        Added support for TypedDict class.</span>
 
-<span class="sd">            method:</span>
-<span class="sd">                The method for steering model generation, either "function_calling"</span>
-<span class="sd">                or "json_mode". If "function_calling" then the schema will be converted</span>
-<span class="sd">                to an OpenAI function and the returned model will make use of the</span>
-<span class="sd">                function-calling API. If "json_mode" then OpenAI's JSON mode will be</span>
-<span class="sd">                used. Note that if using "json_mode" then you must include instructions</span>
-<span class="sd">                for formatting the output into the desired schema into the model call.</span>
+<span class="sd">            method: The method for steering model generation, one of:</span>
+
+<span class="sd">                - "function_calling":</span>
+<span class="sd">                    Uses Fireworks's `tool-calling features &lt;https://docs.fireworks.ai/guides/function-calling&gt;`_.</span>
+<span class="sd">                - "json_schema":</span>
+<span class="sd">                    Uses Fireworks's `structured output feature &lt;https://docs.fireworks.ai/structured-responses/structured-response-formatting&gt;`_.</span>
+<span class="sd">                - "json_mode":</span>
+<span class="sd">                    Uses Fireworks's `JSON mode feature &lt;https://docs.fireworks.ai/structured-responses/structured-response-formatting&gt;`_.</span>
+
+<span class="sd">                .. versionchanged:: 0.2.8</span>
+
+<span class="sd">                    Added support for ``"json_schema"``.</span>
+
 <span class="sd">            include_raw:</span>
 <span class="sd">                If False then only the parsed structured output is returned. If</span>
 <span class="sd">                an error occurs during model output parsing it will be raised. If True</span>
@@ -1160,11 +1169,11 @@
 
 <span class="sd">                structured_llm.invoke(</span>
 <span class="sd">                    "Answer the following question. "</span>
-<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
+<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'. "</span>
 <span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
 <span class="sd">                )</span>
 <span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='{\n    "answer": "They are both the same weight.",\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \n}'),</span>
+<span class="sd">                #     'raw': AIMessage(content='{"answer": "They are both the same weight.", "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight."}'),</span>
 <span class="sd">                #     'parsed': AnswerWithJustification(answer='They are both the same weight.', justification='Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.'),</span>
 <span class="sd">                #     'parsing_error': None</span>
 <span class="sd">                # }</span>
@@ -1176,11 +1185,11 @@
 
 <span class="sd">                structured_llm.invoke(</span>
 <span class="sd">                    "Answer the following question. "</span>
-<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
+<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'. "</span>
 <span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
 <span class="sd">                )</span>
 <span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='{\n    "answer": "They are both the same weight.",\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \n}'),</span>
+<span class="sd">                #     'raw': AIMessage(content='{"answer": "They are both the same weight.", "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight."}'),</span>
 <span class="sd">                #     'parsed': {</span>
 <span class="sd">                #         'answer': 'They are both the same weight.',</span>
 <span class="sd">                #         'justification': 'Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.'</span>
@@ -1188,6 +1197,7 @@
 <span class="sd">                #     'parsing_error': None</span>
 <span class="sd">                # }</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="n">_is_pydantic_class</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
@@ -1216,6 +1226,25 @@
                 <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputKeyToolsParser</span><span class="p">(</span>
                     <span class="n">key_name</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"schema must be specified when method is 'json_schema'. "</span>
+                    <span class="s2">"Received None."</span>
+                <span class="p">)</span>
+            <span class="n">formatted_schema</span> <span class="o">=</span> <span class="n">convert_to_json_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+                <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"json_object"</span><span class="p">,</span> <span class="s2">"schema"</span><span class="p">:</span> <span class="n">formatted_schema</span><span class="p">},</span>
+                <span class="n">ls_structured_output_format</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"method"</span><span class="p">:</span> <span class="s2">"json_schema"</span><span class="p">},</span>
+                    <span class="s2">"schema"</span><span class="p">:</span> <span class="n">schema</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
+            <span class="n">output_parser</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="k">if</span> <span class="n">is_pydantic_schema</span>
+                <span class="k">else</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_mode"</span><span class="p">:</span>
             <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
                 <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"json_object"</span><span class="p">},</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 20, 2025" name="docbuild:last-update"/>
+<meta content="Mar 21, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -237,6 +237,7 @@
     <span class="n">HumanMessage</span><span class="p">,</span>
     <span class="n">SystemMessage</span><span class="p">,</span>
     <span class="n">ToolCall</span><span class="p">,</span>
+    <span class="n">ToolMessage</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">RunnableConfig</span><span class="p">,</span> <span class="n">RunnableSerializable</span><span class="p">,</span> <span class="n">ensure_config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
@@ -682,6 +683,29 @@
         <span class="p">)</span>
 
         <span class="n">input_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_messages_to_text</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="n">last_message</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">last_message</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">):</span>
+            <span class="n">roc_bloc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_roc_block</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+            <span class="n">function_name</span> <span class="o">=</span> <span class="n">roc_bloc</span><span class="p">[</span><span class="s2">"invocationInputs"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"functionInvocationInput"</span><span class="p">][</span>
+                <span class="s2">"function"</span>
+            <span class="p">]</span>
+            <span class="n">action_group</span> <span class="o">=</span> <span class="n">roc_bloc</span><span class="p">[</span><span class="s2">"invocationInputs"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"functionInvocationInput"</span><span class="p">][</span>
+                <span class="s2">"actionGroup"</span>
+            <span class="p">]</span>
+            <span class="n">roc_input</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"invocationId"</span><span class="p">:</span> <span class="n">last_message</span><span class="o">.</span><span class="n">tool_call_id</span><span class="p">,</span>
+                <span class="s2">"returnControlInvocationResults"</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">"functionResult"</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">"actionGroup"</span><span class="p">:</span> <span class="n">action_group</span><span class="p">,</span>
+                            <span class="s2">"function"</span><span class="p">:</span> <span class="n">function_name</span><span class="p">,</span>
+                            <span class="s2">"responseBody"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"TEXT"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="n">last_message</span><span class="o">.</span><span class="n">content</span><span class="p">}},</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">],</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inline_agent_config</span><span class="p">[</span><span class="s2">"inline_session_state"</span><span class="p">]</span> <span class="o">=</span> <span class="n">roc_input</span>
+
         <span class="n">input_dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"input_text"</span><span class="p">:</span> <span class="n">input_text</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -713,7 +737,9 @@
                 <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span>
                     <span class="s2">"args"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">tool_input</span><span class="p">,</span>
-                    <span class="s2">"id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                    <span class="s2">"id"</span><span class="p">:</span> <span class="n">action</span><span class="o">.</span><span class="n">invocation_id</span>
+                    <span class="k">if</span> <span class="n">action</span><span class="o">.</span><span class="n">invocation_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
                 <span class="p">}</span>
                 <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">response</span>
             <span class="p">]</span>
@@ -744,6 +770,23 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">text_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
         <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text_parts</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_roc_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">roc_log</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"roc_log"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">roc_log</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">roc_log</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"returnControl"</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                <span class="c1"># log error</span>
+                <span class="k">continue</span>
+
+        <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_invoke_inline_agent</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

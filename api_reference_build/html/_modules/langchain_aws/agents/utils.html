@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 20, 2025" name="docbuild:last-update"/>
+<meta content="Mar 21, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -242,6 +242,18 @@
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
+<span class="c1"># Bedrock agents version is being used to specify the version of the agent impl on langchain.</span>
+<span class="c1"># This should be updated on any major change where we want to detect usage increase/decrease from the change.</span>
+<span class="n">__bedrock_agents_version__</span> <span class="o">=</span> <span class="s2">"0.1.0"</span>
+<span class="n">SDK_USER_AGENT</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"LangChainAWS#Agents#</span><span class="si">{</span><span class="n">__bedrock_agents_version__</span><span class="si">}</span><span class="s2">"</span>
+
+<span class="c1"># Set default client parameters</span>
+<span class="n">DEFAULT_CONFIG_VALUES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"connect_timeout"</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="s2">"read_timeout"</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+    <span class="s2">"retries"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"max_attempts"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+<span class="p">}</span>
+
 
 <div class="viewcode-block" id="get_boto_session">
 <a class="viewcode-back" href="../../../aws/agents/langchain_aws.agents.utils.get_boto_session.html#langchain_aws.agents.utils.get_boto_session">[docs]</a>
@@ -249,24 +261,42 @@
     <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Construct the boto3 session</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        credentials_profile_name: AWS profile name to use for credentials</span>
+<span class="sd">        region_name: AWS region to use</span>
+<span class="sd">        endpoint_url: Custom endpoint URL to use</span>
+<span class="sd">        config: Optional boto3 Config object</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">credentials_profile_name</span><span class="p">:</span>
         <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">credentials_profile_name</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># use default credentials</span>
         <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-    <span class="n">client_params</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">"config"</span><span class="p">:</span> <span class="n">Config</span><span class="p">(</span>
-            <span class="n">connect_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">read_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="p">{</span><span class="s2">"max_attempts"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
-        <span class="p">)</span>
-    <span class="p">}</span>
+
+    <span class="c1"># If a custom config is provided, ensure our defaults are maintained</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">(</span><span class="o">**</span><span class="n">DEFAULT_CONFIG_VALUES</span><span class="p">)</span>
+    <span class="c1"># Set default values if not present in custom config</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">default_value</span> <span class="ow">in</span> <span class="n">DEFAULT_CONFIG_VALUES</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default_value</span><span class="p">)</span>
+
+    <span class="c1"># Update user agent</span>
+    <span class="n">existing_user_agent</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">"user_agent_extra"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">user_agent_extra</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">existing_user_agent</span><span class="si">}</span><span class="s2"> md/sdk_user_agent/</span><span class="si">{</span><span class="n">SDK_USER_AGENT</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">client_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"config"</span><span class="p">:</span> <span class="n">config</span><span class="p">}</span>
+
     <span class="k">if</span> <span class="n">region_name</span><span class="p">:</span>
         <span class="n">client_params</span><span class="p">[</span><span class="s2">"region_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">region_name</span>
     <span class="k">if</span> <span class="n">endpoint_url</span><span class="p">:</span>
         <span class="n">client_params</span><span class="p">[</span><span class="s2">"endpoint_url"</span><span class="p">]</span> <span class="o">=</span> <span class="n">endpoint_url</span>
+
     <span class="k">return</span> <span class="n">client_params</span><span class="p">,</span> <span class="n">session</span></div>
 
 
@@ -343,6 +373,7 @@
                 <span class="n">log</span><span class="o">=</span><span class="n">response_text</span><span class="p">,</span>
                 <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
                 <span class="n">trace_log</span><span class="o">=</span><span class="n">trace_log</span><span class="p">,</span>
+                <span class="n">invocation_id</span><span class="o">=</span><span class="n">return_control</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"invocationId"</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">]</span>
     <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
@@ -449,6 +480,7 @@
     <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseTool</span><span class="p">],</span>
     <span class="n">enable_human_input</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">enable_code_interpreter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create the bedrock action groups for the agent"""</span>
 
@@ -473,6 +505,15 @@
         <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent_action_group</span><span class="p">(</span>
             <span class="n">actionGroupName</span><span class="o">=</span><span class="s2">"UserInputAction"</span><span class="p">,</span>
             <span class="n">parentActionGroupSignature</span><span class="o">=</span><span class="s2">"AMAZON.UserInput"</span><span class="p">,</span>
+            <span class="n">actionGroupState</span><span class="o">=</span><span class="s2">"ENABLED"</span><span class="p">,</span>
+            <span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">agentVersion</span><span class="o">=</span><span class="s2">"DRAFT"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">enable_code_interpreter</span><span class="p">:</span>
+        <span class="n">bedrock_client</span><span class="o">.</span><span class="n">create_agent_action_group</span><span class="p">(</span>
+            <span class="n">actionGroupName</span><span class="o">=</span><span class="s2">"CodeInterpreterAction"</span><span class="p">,</span>
+            <span class="n">parentActionGroupSignature</span><span class="o">=</span><span class="s2">"AMAZON.CodeInterpreter"</span><span class="p">,</span>
             <span class="n">actionGroupState</span><span class="o">=</span><span class="s2">"ENABLED"</span><span class="p">,</span>
             <span class="n">agentId</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
             <span class="n">agentVersion</span><span class="o">=</span><span class="s2">"DRAFT"</span><span class="p">,</span>

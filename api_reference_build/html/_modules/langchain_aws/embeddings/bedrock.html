@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 20, 2025" name="docbuild:last-update"/>
+<meta content="Mar 21, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,7 +224,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
@@ -378,13 +378,20 @@
 <span class="w">        </span><span class="sd">"""Call out to Cohere Bedrock embedding endpoint with multiple inputs."""</span>
         <span class="c1"># replace newlines, which can negatively affect performance.</span>
         <span class="n">texts</span> <span class="o">=</span> <span class="p">[</span><span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invoke_model</span><span class="p">(</span>
-            <span class="n">input_body</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"search_document"</span><span class="p">,</span>
-                <span class="s2">"texts"</span><span class="p">:</span> <span class="n">texts</span><span class="p">,</span>
-            <span class="p">}</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"embeddings"</span><span class="p">)</span>
+        <span class="c1"># Iterate through the list of strings in batches</span>
+        <span class="k">for</span> <span class="n">text_batch</span> <span class="ow">in</span> <span class="n">_batch_cohere_embedding_texts</span><span class="p">(</span><span class="n">texts</span><span class="p">):</span>
+            <span class="n">batch_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invoke_model</span><span class="p">(</span>
+                <span class="n">input_body</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"search_document"</span><span class="p">,</span>
+                    <span class="s2">"texts"</span><span class="p">:</span> <span class="n">text_batch</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"embeddings"</span><span class="p">)</span>
+
+            <span class="n">results</span> <span class="o">+=</span> <span class="n">batch_embeddings</span>
+
+        <span class="k">return</span> <span class="n">results</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_invoke_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_body</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="p">:</span>
@@ -505,6 +512,43 @@
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
 </div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_batch_cohere_embedding_texts</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Batches a set of texts into chunks that are acceptable for the Cohere embedding API:</span>
+<span class="sd">    chunks of at most 96 items, or 2048 characters."""</span>
+
+    <span class="c1"># Cohere embeddings want a maximum of 96 items and 2048 characters</span>
+    <span class="c1"># See: https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-embed.html</span>
+    <span class="n">max_items</span> <span class="o">=</span> <span class="mi">96</span>
+    <span class="n">max_chars</span> <span class="o">=</span> <span class="mi">2048</span>
+
+    <span class="c1"># Initialize batches</span>
+    <span class="n">current_batch</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current_chars</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">:</span>
+        <span class="n">text_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">text_len</span> <span class="o">&gt;</span> <span class="n">max_chars</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"The Cohere embedding API does not support texts longer than 2048 characters."</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Check if adding the current string would exceed the limits</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_batch</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_items</span> <span class="ow">or</span> <span class="n">current_chars</span> <span class="o">+</span> <span class="n">text_len</span> <span class="o">&gt;</span> <span class="n">max_chars</span><span class="p">:</span>
+            <span class="c1"># Process the current batch if limits are exceeded</span>
+            <span class="k">yield</span> <span class="n">current_batch</span>
+            <span class="c1"># Start a new batch</span>
+            <span class="n">current_batch</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">current_chars</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Otherwise, add the string to the current batch</span>
+        <span class="n">current_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">current_chars</span> <span class="o">+=</span> <span class="n">text_len</span>
+
+    <span class="k">if</span> <span class="n">current_batch</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">current_batch</span>
 </pre></div>
 </article>
 </div>
