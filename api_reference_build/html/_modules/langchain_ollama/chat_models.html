@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 21, 2025" name="docbuild:last-update"/>
+<meta content="Mar 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -229,12 +229,14 @@
     <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">Final</span><span class="p">,</span>
     <span class="n">Iterator</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
     <span class="n">Literal</span><span class="p">,</span>
     <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
     <span class="n">Sequence</span><span class="p">,</span>
+    <span class="n">Tuple</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
@@ -252,6 +254,7 @@
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
+    <span class="n">BaseMessageChunk</span><span class="p">,</span>
     <span class="n">HumanMessage</span><span class="p">,</span>
     <span class="n">SystemMessage</span><span class="p">,</span>
     <span class="n">ToolCall</span><span class="p">,</span>
@@ -278,6 +281,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonSchemaValue</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic.v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span> <span class="k">as</span> <span class="n">BaseModelV1</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span><span class="p">,</span> <span class="n">is_typeddict</span>
+
+<span class="n">DEFAULT_THINK_TOKEN_START</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"&lt;think&gt;"</span>
+<span class="n">DEFAULT_THINK_TOKEN_END</span><span class="p">:</span> <span class="n">Final</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"&lt;/think&gt;"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_usage_metadata_from_generation_info</span><span class="p">(</span>
@@ -559,6 +565,13 @@
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span>
 <span class="w">    </span><span class="sd">"""Model name to use."""</span>
 
+    <span class="n">extract_reasoning</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">"""Whether to extract the reasoning tokens in think blocks.</span>
+<span class="sd">    Extracts `chunk.content` to `chunk.additional_kwargs.reasoning_content`.</span>
+<span class="sd">    If a tuple is supplied, they are assumed to be the (start, end) tokens.</span>
+<span class="sd">    If `extract_reasoning=True`, the tokens will default to (&lt;think&gt;, &lt;/think&gt;).</span>
+<span class="sd">    """</span>
+
     <span class="n">mirostat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Enable Mirostat sampling for controlling perplexity.</span>
 <span class="sd">    (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0)"""</span>
@@ -792,6 +805,28 @@
 
         <span class="k">return</span> <span class="n">ollama_messages</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_reasoning</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">message_chunk</span><span class="p">:</span> <span class="n">BaseMessageChunk</span><span class="p">,</span> <span class="n">is_thinking</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Mutate a message chunk to extract reasoning content."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_reasoning</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">message_chunk</span><span class="p">,</span> <span class="n">is_thinking</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_reasoning</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">start_token</span> <span class="o">=</span> <span class="n">DEFAULT_THINK_TOKEN_START</span>
+            <span class="n">end_token</span> <span class="o">=</span> <span class="n">DEFAULT_THINK_TOKEN_END</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start_token</span><span class="p">,</span> <span class="n">end_token</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_reasoning</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">start_token</span> <span class="ow">in</span> <span class="n">message_chunk</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+            <span class="n">is_thinking</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">message_chunk</span><span class="o">.</span><span class="n">content</span>
+        <span class="k">if</span> <span class="n">is_thinking</span><span class="p">:</span>
+            <span class="n">message_chunk</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"reasoning_content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">content</span>
+            <span class="n">message_chunk</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
+        <span class="k">if</span> <span class="n">end_token</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="n">is_thinking</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">message_chunk</span><span class="p">,</span> <span class="n">is_thinking</span>
+
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_acreate_chat_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
@@ -828,35 +863,17 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatGenerationChunk</span><span class="p">:</span>
         <span class="n">final_chunk</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">stream_resp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_chat_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span>
-                        <span class="n">content</span><span class="o">=</span><span class="p">(</span>
-                            <span class="n">stream_resp</span><span class="p">[</span><span class="s2">"message"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span>
-                            <span class="k">if</span> <span class="s2">"message"</span> <span class="ow">in</span> <span class="n">stream_resp</span>
-                            <span class="ow">and</span> <span class="s2">"content"</span> <span class="ow">in</span> <span class="n">stream_resp</span><span class="p">[</span><span class="s2">"message"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">),</span>
-                        <span class="n">usage_metadata</span><span class="o">=</span><span class="n">_get_usage_metadata_from_generation_info</span><span class="p">(</span>
-                            <span class="n">stream_resp</span>
-                        <span class="p">),</span>
-                        <span class="n">tool_calls</span><span class="o">=</span><span class="n">_get_tool_calls_from_response</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">),</span>
-                    <span class="p">),</span>
-                    <span class="n">generation_info</span><span class="o">=</span><span class="p">(</span>
-                        <span class="nb">dict</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">)</span> <span class="k">if</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"done"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="kc">None</span>
-                    <span class="p">),</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterate_over_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">final_chunk</span> <span class="o">=</span> <span class="n">chunk</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">final_chunk</span> <span class="o">+=</span> <span class="n">chunk</span>
+            <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">final_chunk</span> <span class="o">=</span> <span class="n">chunk</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">final_chunk</span> <span class="o">+=</span> <span class="n">chunk</span>
-                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                    <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                        <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
-                        <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span>
-                        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-                    <span class="p">)</span>
         <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No data received from Ollama stream."</span><span class="p">)</span>
 
@@ -871,35 +888,17 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatGenerationChunk</span><span class="p">:</span>
         <span class="n">final_chunk</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">async</span> <span class="k">for</span> <span class="n">stream_resp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acreate_chat_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="n">AIMessageChunk</span><span class="p">(</span>
-                        <span class="n">content</span><span class="o">=</span><span class="p">(</span>
-                            <span class="n">stream_resp</span><span class="p">[</span><span class="s2">"message"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span>
-                            <span class="k">if</span> <span class="s2">"message"</span> <span class="ow">in</span> <span class="n">stream_resp</span>
-                            <span class="ow">and</span> <span class="s2">"content"</span> <span class="ow">in</span> <span class="n">stream_resp</span><span class="p">[</span><span class="s2">"message"</span><span class="p">]</span>
-                            <span class="k">else</span> <span class="s2">""</span>
-                        <span class="p">),</span>
-                        <span class="n">usage_metadata</span><span class="o">=</span><span class="n">_get_usage_metadata_from_generation_info</span><span class="p">(</span>
-                            <span class="n">stream_resp</span>
-                        <span class="p">),</span>
-                        <span class="n">tool_calls</span><span class="o">=</span><span class="n">_get_tool_calls_from_response</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">),</span>
-                    <span class="p">),</span>
-                    <span class="n">generation_info</span><span class="o">=</span><span class="p">(</span>
-                        <span class="nb">dict</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">)</span> <span class="k">if</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"done"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="kc">None</span>
-                    <span class="p">),</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aiterate_over_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">final_chunk</span> <span class="o">=</span> <span class="n">chunk</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">final_chunk</span> <span class="o">+=</span> <span class="n">chunk</span>
+            <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">final_chunk</span> <span class="o">=</span> <span class="n">chunk</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">final_chunk</span> <span class="o">+=</span> <span class="n">chunk</span>
-                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                    <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                        <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
-                        <span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span>
-                        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-                    <span class="p">)</span>
         <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No data received from Ollama stream."</span><span class="p">)</span>
 
@@ -936,18 +935,19 @@
                 <span class="n">content</span><span class="o">=</span><span class="n">final_chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
                 <span class="n">usage_metadata</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">,</span>
                 <span class="n">tool_calls</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">,</span>
+                <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">chat_generation</span><span class="p">])</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_iterate_over_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="n">is_thinking</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">for</span> <span class="n">stream_resp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_chat_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
@@ -967,20 +967,35 @@
                         <span class="nb">dict</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">)</span> <span class="k">if</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"done"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="kc">None</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                    <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                        <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
-                        <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_reasoning</span><span class="p">:</span>
+                    <span class="n">message</span><span class="p">,</span> <span class="n">is_thinking</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_reasoning</span><span class="p">(</span>
+                        <span class="n">chunk</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">is_thinking</span>
                     <span class="p">)</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
                 <span class="k">yield</span> <span class="n">chunk</span>
 
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterate_over_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">yield</span> <span class="n">chunk</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aiterate_over_stream</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="n">is_thinking</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">async</span> <span class="k">for</span> <span class="n">stream_resp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acreate_chat_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span>
@@ -1000,12 +1015,27 @@
                         <span class="nb">dict</span><span class="p">(</span><span class="n">stream_resp</span><span class="p">)</span> <span class="k">if</span> <span class="n">stream_resp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"done"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="kc">None</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                    <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                        <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
-                        <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_reasoning</span><span class="p">:</span>
+                    <span class="n">message</span><span class="p">,</span> <span class="n">is_thinking</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_reasoning</span><span class="p">(</span>
+                        <span class="n">chunk</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">is_thinking</span>
                     <span class="p">)</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
                 <span class="k">yield</span> <span class="n">chunk</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aiterate_over_stream</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">yield</span> <span class="n">chunk</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1023,6 +1053,7 @@
                 <span class="n">content</span><span class="o">=</span><span class="n">final_chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
                 <span class="n">usage_metadata</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">,</span>
                 <span class="n">tool_calls</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">,</span>
+                <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">final_chunk</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1312,6 +1343,7 @@
 <span class="sd">                #     'parsing_error': None</span>
 <span class="sd">                # }</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501, D301</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">is_pydantic_schema</span> <span class="o">=</span> <span class="n">_is_pydantic_class</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 21, 2025" name="docbuild:last-update"/>
+<meta content="Mar 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -640,6 +640,7 @@
     <span class="n">exclude_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">exclude_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">exclude_tool_calls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Filter messages based on name, type or id.</span>
 
@@ -655,6 +656,13 @@
 <span class="sd">            SystemMessage, HumanMessage, AIMessage, ...). Default is None.</span>
 <span class="sd">        include_ids: Message IDs to include. Default is None.</span>
 <span class="sd">        exclude_ids: Message IDs to exclude. Default is None.</span>
+<span class="sd">        exclude_tool_calls: Tool call IDs to exclude. Default is None.</span>
+<span class="sd">            Can be one of the following:</span>
+<span class="sd">            - `True`: all AIMessages with tool calls and all ToolMessages will be excluded.</span>
+<span class="sd">            - a sequence of tool call IDs to exclude:</span>
+<span class="sd">              - ToolMessages with the corresponding tool call ID will be excluded.</span>
+<span class="sd">              - The `tool_calls` in the AIMessage will be updated to exclude matching tool calls.</span>
+<span class="sd">                If all tool_calls are filtered from an AIMessage, the whole message is excluded.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A list of Messages that meets at least one of the incl_* conditions and none</span>
@@ -702,6 +710,43 @@
             <span class="k">continue</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">exclude_tool_calls</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exclude_tool_calls</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">)</span> <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
+                <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">tool_call</span>
+                    <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_calls</span>
+                    <span class="k">if</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude_tool_calls</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_calls</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">content</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span>
+                <span class="c1"># handle Anthropic content blocks</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">content_block</span>
+                        <span class="k">for</span> <span class="n">content_block</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span>
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content_block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="ow">or</span> <span class="n">content_block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"tool_use"</span>
+                            <span class="ow">or</span> <span class="n">content_block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude_tool_calls</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span>
+                    <span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"tool_calls"</span><span class="p">:</span> <span class="n">tool_calls</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">}</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">ToolMessage</span><span class="p">)</span> <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">tool_call_id</span> <span class="ow">in</span> <span class="n">exclude_tool_calls</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
 
         <span class="c1"># default to inclusion when no inclusion criteria given.</span>
         <span class="k">if</span> <span class="p">(</span>
@@ -1066,10 +1111,14 @@
 <span class="sd">                    AIMessage( [{"type": "text", "text": "This is the FIRST 4 token block."}], id="second"),</span>
 <span class="sd">                ]</span>
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
+    <span class="c1"># Validate arguments</span>
     <span class="k">if</span> <span class="n">start_on</span> <span class="ow">and</span> <span class="n">strategy</span> <span class="o">==</span> <span class="s2">"first"</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"start_on parameter is only valid with strategy='last'"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">include_system</span> <span class="ow">and</span> <span class="n">strategy</span> <span class="o">==</span> <span class="s2">"first"</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"include_system parameter is only valid with strategy='last'"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
     <span class="n">messages</span> <span class="o">=</span> <span class="n">convert_to_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">token_counter</span><span class="p">,</span> <span class="s2">"get_num_tokens_from_messages"</span><span class="p">):</span>
         <span class="n">list_token_counter</span> <span class="o">=</span> <span class="n">token_counter</span><span class="o">.</span><span class="n">get_num_tokens_from_messages</span>
@@ -1478,15 +1527,40 @@
     <span class="n">messages</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">messages</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">messages</span>
-    <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">token_counter</span><span class="p">(</span><span class="n">messages</span><span class="p">[:</span><span class="o">-</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="k">else</span> <span class="n">messages</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_tokens</span><span class="p">:</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="n">i</span>
+
+    <span class="c1"># Check if all messages already fit within token limit</span>
+    <span class="k">if</span> <span class="n">token_counter</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_tokens</span><span class="p">:</span>
+        <span class="c1"># When all messages fit, only apply end_on filtering if needed</span>
+        <span class="k">if</span> <span class="n">end_on</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_message_type</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">end_on</span><span class="p">):</span>
+                    <span class="n">messages</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+        <span class="k">return</span> <span class="n">messages</span>
+
+    <span class="c1"># Use binary search to find the maximum number of messages within token limit</span>
+    <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+    <span class="n">max_iterations</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iterations</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">left</span> <span class="o">&gt;=</span> <span class="n">right</span><span class="p">:</span>
             <span class="k">break</span>
-    <span class="k">if</span> <span class="n">partial_strategy</span> <span class="ow">and</span> <span class="p">(</span><span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">token_counter</span><span class="p">(</span><span class="n">messages</span><span class="p">[:</span><span class="n">mid</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_tokens</span><span class="p">:</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">mid</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">mid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="c1"># idx now contains the maximum number of complete messages we can include</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">left</span>
+
+    <span class="k">if</span> <span class="n">partial_strategy</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">):</span>
         <span class="n">included_partial</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">copied</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="n">excluded</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">copied</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">num_block</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
                 <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
@@ -1500,41 +1574,59 @@
             <span class="k">if</span> <span class="n">included_partial</span> <span class="ow">and</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
                 <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">included_partial</span><span class="p">:</span>
-            <span class="n">excluded</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
-                <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span>
-                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">content</span>
-            <span class="p">):</span>
-                <span class="n">text_block</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-                    <span class="n">block</span>
-                    <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">content</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span>
-                <span class="p">)</span>
-                <span class="n">text</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">text_block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text_block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">text_block</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">copied</span><span class="p">:</span>
+                <span class="n">excluded</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">copied</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># Extract text content efficiently</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">excluded</span><span class="o">.</span><span class="n">content</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">text</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
-                <span class="n">split_texts</span> <span class="o">=</span> <span class="n">text_splitter</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-                <span class="n">num_splits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_texts</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
-                    <span class="n">split_texts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">split_texts</span><span class="p">))</span>
-                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-                    <span class="n">split_texts</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-                    <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_texts</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">token_counter</span><span class="p">(</span><span class="n">messages</span><span class="p">[:</span><span class="n">idx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">excluded</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_tokens</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
-                            <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">split_texts</span><span class="p">))</span>
-                        <span class="n">messages</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[:</span><span class="n">idx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">excluded</span><span class="p">]</span>
-                        <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">excluded</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="n">block</span>
+                        <span class="k">break</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">)</span>
                         <span class="k">break</span>
 
+            <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">copied</span><span class="p">:</span>
+                    <span class="n">excluded</span> <span class="o">=</span> <span class="n">excluded</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">split_texts</span> <span class="o">=</span> <span class="n">text_splitter</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                <span class="n">base_message_count</span> <span class="o">=</span> <span class="n">token_counter</span><span class="p">(</span><span class="n">messages</span><span class="p">[:</span><span class="n">idx</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
+                    <span class="n">split_texts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">split_texts</span><span class="p">))</span>
+
+                <span class="c1"># Binary search for the maximum number of splits we can include</span>
+                <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_texts</span><span class="p">)</span>
+                <span class="n">max_iterations</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_texts</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_iterations</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">left</span> <span class="o">&gt;=</span> <span class="n">right</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="n">mid</span> <span class="o">=</span> <span class="p">(</span><span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+                    <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_texts</span><span class="p">[:</span><span class="n">mid</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">base_message_count</span> <span class="o">+</span> <span class="n">token_counter</span><span class="p">([</span><span class="n">excluded</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">max_tokens</span><span class="p">:</span>
+                        <span class="n">left</span> <span class="o">=</span> <span class="n">mid</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">right</span> <span class="o">=</span> <span class="n">mid</span> <span class="o">-</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="n">left</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">content_splits</span> <span class="o">=</span> <span class="n">split_texts</span><span class="p">[:</span><span class="n">left</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">partial_strategy</span> <span class="o">==</span> <span class="s2">"last"</span><span class="p">:</span>
+                        <span class="n">content_splits</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">content_splits</span><span class="p">))</span>
+                    <span class="n">excluded</span><span class="o">.</span><span class="n">content</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">content_splits</span><span class="p">)</span>
+                    <span class="n">messages</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[:</span><span class="n">idx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">excluded</span><span class="p">]</span>
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
     <span class="k">if</span> <span class="n">end_on</span><span class="p">:</span>
-        <span class="k">while</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_message_type</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">end_on</span><span class="p">):</span>
-            <span class="n">idx</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_message_type</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">end_on</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
 
     <span class="k">return</span> <span class="n">messages</span><span class="p">[:</span><span class="n">idx</span><span class="p">]</span>
 
@@ -1557,24 +1649,45 @@
     <span class="n">messages</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">end_on</span><span class="p">:</span>
-        <span class="k">while</span> <span class="n">messages</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_message_type</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">end_on</span><span class="p">):</span>
-            <span class="n">messages</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-    <span class="n">swapped_system</span> <span class="o">=</span> <span class="n">include_system</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">SystemMessage</span><span class="p">)</span>
-    <span class="n">reversed_</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">messages</span><span class="p">[</span><span class="mi">1</span><span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">swapped_system</span> <span class="k">else</span> <span class="n">messages</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-    <span class="n">reversed_</span> <span class="o">=</span> <span class="n">_first_max_tokens</span><span class="p">(</span>
-        <span class="n">reversed_</span><span class="p">,</span>
-        <span class="n">max_tokens</span><span class="o">=</span><span class="n">max_tokens</span><span class="p">,</span>
+    <span class="c1"># Filter out messages after end_on type</span>
+    <span class="k">if</span> <span class="n">end_on</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_message_type</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">end_on</span><span class="p">):</span>
+                <span class="n">messages</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="c1"># Handle system message preservation</span>
+    <span class="n">system_message</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">include_system</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">SystemMessage</span><span class="p">):</span>
+        <span class="n">system_message</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="c1"># Reverse messages to use _first_max_tokens with reversed logic</span>
+    <span class="n">reversed_messages</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Calculate remaining tokens after accounting for system message if present</span>
+    <span class="n">remaining_tokens</span> <span class="o">=</span> <span class="n">max_tokens</span>
+    <span class="k">if</span> <span class="n">system_message</span><span class="p">:</span>
+        <span class="n">system_tokens</span> <span class="o">=</span> <span class="n">token_counter</span><span class="p">([</span><span class="n">system_message</span><span class="p">])</span>
+        <span class="n">remaining_tokens</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_tokens</span> <span class="o">-</span> <span class="n">system_tokens</span><span class="p">)</span>
+
+    <span class="n">reversed_result</span> <span class="o">=</span> <span class="n">_first_max_tokens</span><span class="p">(</span>
+        <span class="n">reversed_messages</span><span class="p">,</span>
+        <span class="n">max_tokens</span><span class="o">=</span><span class="n">remaining_tokens</span><span class="p">,</span>
         <span class="n">token_counter</span><span class="o">=</span><span class="n">token_counter</span><span class="p">,</span>
         <span class="n">text_splitter</span><span class="o">=</span><span class="n">text_splitter</span><span class="p">,</span>
         <span class="n">partial_strategy</span><span class="o">=</span><span class="s2">"last"</span> <span class="k">if</span> <span class="n">allow_partial</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">end_on</span><span class="o">=</span><span class="n">start_on</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="n">swapped_system</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">reversed_</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">reversed_</span><span class="p">[</span><span class="mi">1</span><span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">reversed_</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Re-reverse the messages and add back the system message if needed</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">reversed_result</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">system_message</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">system_message</span><span class="p">]</span> <span class="o">+</span> <span class="n">result</span>
+
+    <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="n">_MSG_CHUNK_MAP</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
@@ -1708,6 +1821,9 @@
 <span class="sd">    Note:</span>
 <span class="sd">        This is a simple approximation that may not match the exact token count</span>
 <span class="sd">        used by specific models. For accurate counts, use model-specific tokenizers.</span>
+
+<span class="sd">    Warning:</span>
+<span class="sd">        This function does not currently support counting image tokens.</span>
 
 <span class="sd">    .. versionadded:: 0.3.46</span>
 <span class="sd">    """</span>

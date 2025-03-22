@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 21, 2025" name="docbuild:last-update"/>
+<meta content="Mar 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -225,7 +225,9 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.graph</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CurveStyle</span><span class="p">,</span>
@@ -250,6 +252,7 @@
     <span class="n">curve_style</span><span class="p">:</span> <span class="n">CurveStyle</span> <span class="o">=</span> <span class="n">CurveStyle</span><span class="o">.</span><span class="n">LINEAR</span><span class="p">,</span>
     <span class="n">node_styles</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NodeStyles</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">wrap_label_n_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span>
+    <span class="n">frontmatter_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Draws a Mermaid graph using the provided graph data.</span>
 
@@ -267,15 +270,44 @@
 <span class="sd">            Defaults to NodeStyles().</span>
 <span class="sd">        wrap_label_n_words (int, optional): Words to wrap the edge labels.</span>
 <span class="sd">            Defaults to 9.</span>
+<span class="sd">        frontmatter_config (dict[str, Any], optional): Mermaid frontmatter config.</span>
+<span class="sd">            Can be used to customize theme and styles. Will be converted to YAML and</span>
+<span class="sd">            added to the beginning of the mermaid graph. Defaults to None.</span>
+
+<span class="sd">            See more here: https://mermaid.js.org/config/configuration.html.</span>
+
+<span class="sd">            Example:</span>
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "config": {</span>
+<span class="sd">                    "theme": "neutral",</span>
+<span class="sd">                    "look": "handDrawn",</span>
+<span class="sd">                    "themeVariables": { "primaryColor": "#e2e2e2"},</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Mermaid graph syntax.</span>
 <span class="sd">    """</span>
     <span class="c1"># Initialize Mermaid graph configuration</span>
+    <span class="n">original_frontmatter_config</span> <span class="o">=</span> <span class="n">frontmatter_config</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">original_flowchart_config</span> <span class="o">=</span> <span class="n">original_frontmatter_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"config"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">"flowchart"</span><span class="p">,</span> <span class="p">{}</span>
+    <span class="p">)</span>
+    <span class="n">frontmatter_config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">original_frontmatter_config</span><span class="p">,</span>
+        <span class="s2">"config"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="o">**</span><span class="n">original_frontmatter_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"config"</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="s2">"flowchart"</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">original_flowchart_config</span><span class="p">,</span> <span class="s2">"curve"</span><span class="p">:</span> <span class="n">curve_style</span><span class="o">.</span><span class="n">value</span><span class="p">},</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
     <span class="n">mermaid_graph</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"%%</span><span class="se">{{</span><span class="s2">init: </span><span class="se">{{</span><span class="s2">'flowchart': </span><span class="se">{{</span><span class="s2">'curve': '</span><span class="si">{</span><span class="n">curve_style</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">'"</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="se">}}}}}}</span><span class="s2">%%</span><span class="se">\n</span><span class="s2">graph TD;</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="s2">"---</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="o">+</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">frontmatter_config</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">"---</span><span class="se">\n</span><span class="s2">graph TD;</span><span class="se">\n</span><span class="s2">"</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">with_styles</span>
         <span class="k">else</span> <span class="s2">"graph TD;</span><span class="se">\n</span><span class="s2">"</span>
