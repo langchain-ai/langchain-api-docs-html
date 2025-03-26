@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,7 +223,6 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
@@ -244,7 +243,6 @@
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">OutputParserException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">LanguageModelInput</span>
@@ -278,6 +276,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolsOutputParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_aws_client</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">_BM</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_BM"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">BaseModel</span><span class="p">)</span>
@@ -792,53 +791,16 @@
 
         <span class="c1"># Skip creating new client if passed in constructor</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">creds</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s2">"aws_access_key_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aws_access_key_id</span><span class="p">,</span>
-                <span class="s2">"aws_secret_access_key"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aws_secret_access_key</span><span class="p">,</span>
-                <span class="s2">"aws_session_token"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aws_session_token</span><span class="p">,</span>
-            <span class="p">}</span>
-            <span class="k">if</span> <span class="n">creds</span><span class="p">[</span><span class="s2">"aws_access_key_id"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">creds</span><span class="p">[</span><span class="s2">"aws_secret_access_key"</span><span class="p">]:</span>
-                <span class="n">session_params</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">creds</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span>
-                <span class="p">}</span>
-            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">creds</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"If any of aws_access_key_id, aws_secret_access_key, or "</span>
-                    <span class="sa">f</span><span class="s2">"aws_session_token are specified then both aws_access_key_id and "</span>
-                    <span class="sa">f</span><span class="s2">"aws_secret_access_key must be specified. Only received "</span>
-                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">creds</span><span class="o">.</span><span class="n">items</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">session_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"profile_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span><span class="p">}</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># use default credentials</span>
-                <span class="n">session_params</span> <span class="o">=</span> <span class="p">{}</span>
-
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="o">**</span><span class="n">session_params</span><span class="p">)</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span>
-                    <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"AWS_REGION"</span><span class="p">)</span>
-                    <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"AWS_DEFAULT_REGION"</span><span class="p">)</span>
-                    <span class="ow">or</span> <span class="n">session</span><span class="o">.</span><span class="n">region_name</span>
-                <span class="p">)</span>
-
-                <span class="n">client_params</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">"endpoint_url"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
-                    <span class="s2">"config"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
-                    <span class="s2">"region_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
-                <span class="p">}</span>
-                <span class="n">client_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">client_params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">}</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">"bedrock-runtime"</span><span class="p">,</span> <span class="o">**</span><span class="n">client_params</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Error raised by bedrock service:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
-                    <span class="s2">"Please check that credentials in the specified "</span>
-                    <span class="sa">f</span><span class="s2">"profile name are valid. Bedrock error:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">create_aws_client</span><span class="p">(</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span><span class="p">,</span>
+                <span class="n">aws_access_key_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_access_key_id</span><span class="p">,</span>
+                <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_secret_access_key</span><span class="p">,</span>
+                <span class="n">aws_session_token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_session_token</span><span class="p">,</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                <span class="n">service_name</span><span class="o">=</span><span class="s2">"bedrock-runtime"</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span>
 

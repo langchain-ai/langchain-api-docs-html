@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -290,17 +290,36 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rm_titles</span><span class="p">(</span><span class="n">kv</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prev_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Recursively removes "title" fields from a JSON schema dictionary.</span>
+
+<span class="sd">    Remove "title" fields from the input JSON schema dictionary,</span>
+<span class="sd">    except when a "title" appears within a property definition under "properties".</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kv (dict): The input JSON schema as a dictionary.</span>
+<span class="sd">        prev_key (str): The key from the parent dictionary, used to identify context.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A new dictionary with appropriate "title" fields removed.</span>
+<span class="sd">    """</span>
     <span class="n">new_kv</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kv</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">"title"</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">prev_key</span> <span class="o">==</span> <span class="s2">"properties"</span> <span class="ow">and</span> <span class="s2">"title"</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+            <span class="c1"># If the value is a nested dict and part of a property under "properties",</span>
+            <span class="c1"># preserve the title but continue recursion</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">prev_key</span> <span class="o">==</span> <span class="s2">"properties"</span><span class="p">:</span>
                 <span class="n">new_kv</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_rm_titles</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Otherwise, remove this "title" key</span>
                 <span class="k">continue</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="c1"># Recurse into nested dictionaries</span>
             <span class="n">new_kv</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_rm_titles</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Leave non-dict values untouched</span>
             <span class="n">new_kv</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
     <span class="k">return</span> <span class="n">new_kv</span>
 
 

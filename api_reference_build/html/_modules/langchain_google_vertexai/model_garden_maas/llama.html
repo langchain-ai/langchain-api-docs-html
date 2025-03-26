@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -293,9 +293,9 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate_llama</span><span class="p">(</span>
-    <span class="n">response_candidate</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">response_candidate</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">response_candidate</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">response_candidate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
     <span class="n">role</span> <span class="o">=</span> <span class="n">response_candidate</span><span class="p">[</span><span class="s2">"role"</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">"assistant"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Role in response is </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">, expected 'assistant'!"</span><span class="p">)</span>
@@ -304,7 +304,8 @@
 
     <span class="n">response_json</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">response_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response_candidate</span><span class="p">[</span><span class="s2">"content"</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s2">"content"</span> <span class="ow">in</span> <span class="n">response_candidate</span><span class="p">:</span>
+            <span class="n">response_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response_candidate</span><span class="p">[</span><span class="s2">"content"</span><span class="p">])</span>
     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
         <span class="k">pass</span>
     <span class="k">if</span> <span class="n">response_json</span> <span class="ow">and</span> <span class="s2">"name"</span> <span class="ow">in</span> <span class="n">response_json</span><span class="p">:</span>
@@ -323,6 +324,31 @@
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">elif</span> <span class="s2">"tool_calls"</span> <span class="ow">in</span> <span class="n">response_candidate</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">response_candidate</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]:</span>
+            <span class="n">function_name</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
+            <span class="n">function_args</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">function_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">function_args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">function_args</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
+                <span class="n">tool_call_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">tool_call_chunk</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">function_name</span><span class="p">,</span>
+                        <span class="n">args</span><span class="o">=</span><span class="n">function_args</span><span class="p">,</span>
+                        <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">create_tool_call</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="n">tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">],</span>
+                        <span class="n">args</span><span class="o">=</span><span class="n">function_args</span><span class="p">,</span>
+                        <span class="nb">id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 25, 2025" name="docbuild:last-update"/>
+<meta content="Mar 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -236,13 +236,17 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForRetrieverRun</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.retrievers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseRetriever</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">secret_from_env</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">Field</span><span class="p">,</span>
+    <span class="n">SecretStr</span><span class="p">,</span>
     <span class="n">field_validator</span><span class="p">,</span>
     <span class="n">model_validator</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_aws_client</span>
 
 
 <div class="viewcode-block" id="clean_excerpt">
@@ -632,13 +636,35 @@
 <span class="sd">        index_id: Kendra index id</span>
 
 <span class="sd">        region_name: The aws region e.g., `us-west-2`.</span>
-<span class="sd">            Fallsback to AWS_DEFAULT_REGION env variable</span>
+<span class="sd">            Falls back to AWS_REGION/AWS_DEFAULT_REGION env variable</span>
 <span class="sd">            or region specified in ~/.aws/config.</span>
 
 <span class="sd">        credentials_profile_name: The name of the profile in the ~/.aws/credentials</span>
 <span class="sd">            or ~/.aws/config files, which has either access keys or role information</span>
 <span class="sd">            specified. If not specified, the default credential profile or, if on an</span>
 <span class="sd">            EC2 instance, credentials from IMDS will be used.</span>
+
+<span class="sd">        aws_access_key_id: AWS access key id. If provided, aws_secret_access_key must</span>
+<span class="sd">            also be provided. If not specified, the default credential profile or, if</span>
+<span class="sd">            on an EC2 instance, credentials from IMDS will be used. See:</span>
+<span class="sd">            https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+<span class="sd">            If not provided, will be read from 'AWS_ACCESS_KEY_ID' environment variable.</span>
+
+<span class="sd">        aws_secret_access_key: AWS secret_access_key. If provided, aws_access_key_id</span>
+<span class="sd">            must also be provided. If not specified, the default credential profile or,</span>
+<span class="sd">            if on an EC2 instance, credentials from IMDS will be used. See:</span>
+<span class="sd">            https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+<span class="sd">            If not provided, will be read from 'AWS_SECRET_ACCESS_KEY' environment variable.</span>
+
+<span class="sd">        aws_session_token: AWS session token. If provided, aws_access_key_id and</span>
+<span class="sd">            aws_secret_access_key must also be provided. Not required unless using temporary</span>
+<span class="sd">            credentials. See:</span>
+<span class="sd">            https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+<span class="sd">            If not provided, will be read from 'AWS_SESSION_TOKEN' environment variable.</span>
+
+<span class="sd">        endpoint_url: Needed if you don't want to default to us-east-1 endpoint.</span>
+
+<span class="sd">        config: An optional botocore.config.Config instance to pass to the client.</span>
 
 <span class="sd">        top_k: No of results to return</span>
 
@@ -666,10 +692,21 @@
     <span class="n">index_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">aws_access_key_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_ACCESS_KEY_ID"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">aws_secret_access_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SECRET_ACCESS_KEY"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">aws_session_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SESSION_TOKEN"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="n">attribute_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">page_content_formatter</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ResultItem</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">combined_text</span>
-    <span class="n">client</span><span class="p">:</span> <span class="n">Any</span>
     <span class="n">user_context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">min_score_confidence</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Field</span><span class="p">(</span><span class="n">ge</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)]</span>
 
@@ -682,36 +719,19 @@
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_client</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"client"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">values</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
-
-            <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"credentials_profile_name"</span><span class="p">):</span>
-                <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="s2">"credentials_profile_name"</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># use default credentials</span>
-                <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-
-            <span class="n">client_params</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"region_name"</span><span class="p">):</span>
-                <span class="n">client_params</span><span class="p">[</span><span class="s2">"region_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">"region_name"</span><span class="p">]</span>
-
-            <span class="n">values</span><span class="p">[</span><span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">"kendra"</span><span class="p">,</span> <span class="o">**</span><span class="n">client_params</span><span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">values</span>
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
-                <span class="s2">"Could not import boto3 python package. "</span>
-                <span class="s2">"Please install it with `pip install boto3`."</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"client"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">values</span><span class="p">[</span><span class="s2">"client"</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_aws_client</span><span class="p">(</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"region_name"</span><span class="p">),</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"credentials_profile_name"</span><span class="p">),</span>
+                <span class="n">aws_access_key_id</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"aws_access_key_id"</span><span class="p">),</span>
+                <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"aws_secret_access_key"</span><span class="p">),</span>
+                <span class="n">aws_session_token</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"aws_session_token"</span><span class="p">),</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"endpoint_url"</span><span class="p">),</span>
+                <span class="n">config</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"config"</span><span class="p">),</span>
+                <span class="n">service_name</span><span class="o">=</span><span class="s2">"kendra"</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
-                <span class="s2">"Please check that credentials in the specified "</span>
-                <span class="s2">"profile name are valid."</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="k">return</span> <span class="n">values</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_kendra_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ResultItem</span><span class="p">]:</span>
         <span class="n">kendra_kwargs</span> <span class="o">=</span> <span class="p">{</span>
