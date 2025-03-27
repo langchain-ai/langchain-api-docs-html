@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 26, 2025" name="docbuild:last-update"/>
+<meta content="Mar 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -561,6 +561,9 @@
 <span class="sd">            def returns_usage_metadata(self) -&gt; bool:</span>
 <span class="sd">                return False</span>
 
+<span class="sd">        Models supporting ``usage_metadata`` should also return the name of the</span>
+<span class="sd">        underlying model in the ``response_metadata`` of the AIMessage.</span>
+
 <span class="sd">    .. dropdown:: supports_anthropic_inputs</span>
 
 <span class="sd">        Boolean property indicating whether the chat model supports Anthropic-style</span>
@@ -919,6 +922,11 @@
 <span class="sd">        This test is optional and should be skipped if the model does not return</span>
 <span class="sd">        usage metadata (see Configuration below).</span>
 
+<span class="sd">        .. versionchanged:: 0.3.17</span>
+
+<span class="sd">            Additionally check for the presence of `model_name` in the response</span>
+<span class="sd">            metadata, which is needed for usage tracking in callback handlers.</span>
+
 <span class="sd">        .. dropdown:: Configuration</span>
 
 <span class="sd">            By default, this test is run.</span>
@@ -989,6 +997,9 @@
 <span class="sd">                        )</span>
 <span class="sd">                    )]</span>
 <span class="sd">                )</span>
+
+<span class="sd">            Check also that the response includes a ``"model_name"`` key in its</span>
+<span class="sd">            ``usage_metadata``.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">returns_usage_metadata</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Not implemented."</span><span class="p">)</span>
@@ -999,6 +1010,12 @@
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"input_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"output_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># Check model_name is in response_metadata</span>
+        <span class="c1"># Needed for langchain_core.callbacks.usage</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">response_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_name"</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">model_name</span>
 
         <span class="k">if</span> <span class="s2">"audio_input"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_usage_metadata_details</span><span class="p">[</span><span class="s2">"invoke"</span><span class="p">]:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invoke_with_audio_input</span><span class="p">()</span>
@@ -1061,6 +1078,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">test_usage_metadata_streaming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">BaseChatModel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Test to verify that the model returns correct usage metadata in streaming mode.</span>
+
+<span class="sd">        .. versionchanged:: 0.3.17</span>
+
+<span class="sd">            Additionally check for the presence of `model_name` in the response</span>
+<span class="sd">            metadata, which is needed for usage tracking in callback handlers.</span>
 
 <span class="sd">        .. dropdown:: Configuration</span>
 
@@ -1144,6 +1166,9 @@
 <span class="sd">                        )</span>
 <span class="sd">                    )]</span>
 <span class="sd">                )</span>
+
+<span class="sd">            Check also that the aggregated response includes a ``"model_name"`` key</span>
+<span class="sd">            in its ``usage_metadata``.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">returns_usage_metadata</span><span class="p">:</span>
             <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">"Not implemented."</span><span class="p">)</span>
@@ -1167,6 +1192,12 @@
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">full</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"input_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">full</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"output_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">full</span><span class="o">.</span><span class="n">usage_metadata</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># Check model_name is in response_metadata</span>
+        <span class="c1"># Needed for langchain_core.callbacks.usage</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="n">full</span><span class="o">.</span><span class="n">response_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_name"</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">model_name</span>
 
         <span class="k">if</span> <span class="s2">"audio_input"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_usage_metadata_details</span><span class="p">[</span><span class="s2">"stream"</span><span class="p">]:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">invoke_with_audio_input</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

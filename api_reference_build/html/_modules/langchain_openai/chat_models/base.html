@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 26, 2025" name="docbuild:last-update"/>
+<meta content="Mar 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -680,6 +680,12 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""Timeout for requests to OpenAI completion API. Can be float, httpx.Timeout or </span>
 <span class="sd">        None."""</span>
+    <span class="n">stream_usage</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">"""Whether to include usage metadata in streaming output. If True, an additional</span>
+<span class="sd">    message chunk will be generated during the stream including usage metadata.</span>
+
+<span class="sd">    .. versionadded:: 0.3.9</span>
+<span class="sd">    """</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Maximum number of retries to make when generating."""</span>
     <span class="n">presence_penalty</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1035,14 +1041,38 @@
                     <span class="n">is_first_chunk</span> <span class="o">=</span> <span class="kc">False</span>
                     <span class="k">yield</span> <span class="n">generation_chunk</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_stream_usage</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Determine whether to include usage metadata in streaming output.</span>
+
+<span class="sd">        For backwards compatibility, we check for `stream_options` passed</span>
+<span class="sd">        explicitly to kwargs or in the model_kwargs and override self.stream_usage.</span>
+<span class="sd">        """</span>
+        <span class="n">stream_usage_sources</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># order of precedence</span>
+            <span class="n">stream_usage</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stream_options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"include_usage"</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stream_options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"include_usage"</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">stream_usage_sources</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">source</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">stream_usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_stream_usage</span><span class="p">(</span><span class="n">stream_usage</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stream_usage</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream_options"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="n">stream_usage</span><span class="p">}</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_request_payload</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">default_chunk_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]</span> <span class="o">=</span> <span class="n">AIMessageChunk</span>
         <span class="n">base_generation_info</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1229,9 +1259,14 @@
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">stream_usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_stream_usage</span><span class="p">(</span><span class="n">stream_usage</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stream_usage</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream_options"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="n">stream_usage</span><span class="p">}</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_request_payload</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">default_chunk_class</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">BaseMessageChunk</span><span class="p">]</span> <span class="o">=</span> <span class="n">AIMessageChunk</span>
         <span class="n">base_generation_info</span> <span class="o">=</span> <span class="p">{}</span>
@@ -2444,11 +2479,6 @@
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
-    <span class="n">stream_usage</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="w">    </span><span class="sd">"""Whether to include usage metadata in streaming output. If True, additional</span>
-<span class="sd">    message chunks will be generated during the stream including usage metadata.</span>
-<span class="sd">    """</span>
-
     <span class="n">max_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"max_completion_tokens"</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""Maximum number of tokens to generate."""</span>
 
@@ -2510,55 +2540,21 @@
                     <span class="n">message</span><span class="p">[</span><span class="s2">"role"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"developer"</span>
         <span class="k">return</span> <span class="n">payload</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_should_stream_usage</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Determine whether to include usage metadata in streaming output.</span>
-
-<span class="sd">        For backwards compatibility, we check for `stream_options` passed</span>
-<span class="sd">        explicitly to kwargs or in the model_kwargs and override self.stream_usage.</span>
-<span class="sd">        """</span>
-        <span class="n">stream_usage_sources</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># order of preference</span>
-            <span class="n">stream_usage</span><span class="p">,</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stream_options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"include_usage"</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stream_options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"include_usage"</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span><span class="p">,</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">stream_usage_sources</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">source</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Set default stream_options."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Route to Chat Completions or Responses API."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_responses_api</span><span class="p">({</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="p">}):</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_stream_responses</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">stream_usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_stream_usage</span><span class="p">(</span><span class="n">stream_usage</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="c1"># Note: stream_options is not a valid parameter for Azure OpenAI.</span>
-            <span class="c1"># To support users proxying Azure through ChatOpenAI, here we only specify</span>
-            <span class="c1"># stream_options if include_usage is set to True.</span>
-            <span class="c1"># See https://learn.microsoft.com/en-us/azure/ai-services/openai/whats-new</span>
-            <span class="c1"># for release notes.</span>
-            <span class="k">if</span> <span class="n">stream_usage</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream_options"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="n">stream_usage</span><span class="p">}</span>
-
             <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_stream</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Set default stream_options."""</span>
+<span class="w">        </span><span class="sd">"""Route to Chat Completions or Responses API."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_responses_api</span><span class="p">({</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span><span class="p">}):</span>
             <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_astream_responses</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
                 <span class="k">yield</span> <span class="n">chunk</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">stream_usage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_stream_usage</span><span class="p">(</span><span class="n">stream_usage</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">stream_usage</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"stream_options"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"include_usage"</span><span class="p">:</span> <span class="n">stream_usage</span><span class="p">}</span>
-
             <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_astream</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
                 <span class="k">yield</span> <span class="n">chunk</span>
 

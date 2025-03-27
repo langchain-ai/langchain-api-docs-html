@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 26, 2025" name="docbuild:last-update"/>
+<meta content="Mar 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -221,15 +221,9 @@
 <article class="bd-article">
 <h1>Source code for langchain_aws.chat_models.sagemaker_endpoint</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Sagemaker Chat Model."""</span>
-
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Any</span><span class="p">,</span>
-    <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">List</span><span class="p">,</span>
-    <span class="n">Mapping</span><span class="p">,</span>
-    <span class="n">Optional</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForLLMRun</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -242,13 +236,97 @@
     <span class="n">SystemMessage</span><span class="p">,</span>
     <span class="n">merge_message_runs</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatResult</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">secret_from_env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContentHandlerBase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContentHandlerBase</span><span class="p">,</span>
+    <span class="n">create_aws_client</span><span class="p">,</span>
+    <span class="n">enforce_stop_tokens</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ChatLineIterator">
+<a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.sagemaker_endpoint.ChatLineIterator.html#langchain_aws.chat_models.sagemaker_endpoint.ChatLineIterator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ChatLineIterator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    A helper class for parsing the byte stream input.</span>
+
+<span class="sd">    The output of the model will be in the following format:</span>
+
+<span class="sd">    b'{"outputs": [" a"]}\n'</span>
+<span class="sd">    b'{"outputs": [" challenging"]}\n'</span>
+<span class="sd">    b'{"outputs": [" problem"]}\n'</span>
+<span class="sd">    ...</span>
+
+<span class="sd">    While usually each PayloadPart event from the event stream will</span>
+<span class="sd">    contain a byte array with a full json, this is not guaranteed</span>
+<span class="sd">    and some of the json objects may be split acrossPayloadPart events.</span>
+
+<span class="sd">    For example:</span>
+
+<span class="sd">    {'PayloadPart': {'Bytes': b'{"outputs": '}}</span>
+<span class="sd">    {'PayloadPart': {'Bytes': b'[" problem"]}\n'}}</span>
+
+
+<span class="sd">    This class accounts for this by concatenating bytes written via the 'write' function</span>
+<span class="sd">    and then exposing a method which will return lines (ending with a '\n' character)</span>
+<span class="sd">    within the buffer via the 'scan_lines' function.</span>
+<span class="sd">    It maintains the position of the last read position to ensure</span>
+<span class="sd">    that previous bytes are not exposed again.</span>
+
+<span class="sd">    For more details see:</span>
+<span class="sd">    https://aws.amazon.com/blogs/machine-learning/elevating-the-generative-ai-experience-introducing-streaming-support-in-amazon-sagemaker-hosting/</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="ChatLineIterator.__init__">
+<a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.sagemaker_endpoint.ChatLineIterator.html#langchain_aws.chat_models.sagemaker_endpoint.ChatLineIterator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">byte_iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ChatLineIterator"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">byte_iterator</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">"PayloadPart"</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">[</span><span class="s2">"PayloadPart"</span><span class="p">][</span><span class="s2">"Bytes"</span><span class="p">])</span>
+                    <span class="k">continue</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">()</span><span class="o">.</span><span class="n">nbytes</span><span class="p">:</span>
+                    <span class="n">remaining</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="p">:]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">()</span><span class="o">.</span><span class="n">nbytes</span>
+                    <span class="k">return</span> <span class="n">remaining</span>
+                <span class="k">raise</span>
+            <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span> <span class="k">else</span> <span class="n">line</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">byte_iterator</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_pos</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">getbuffer</span><span class="p">()</span><span class="o">.</span><span class="n">nbytes</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">raise</span>
+            <span class="k">if</span> <span class="s2">"PayloadPart"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">io</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">[</span><span class="s2">"PayloadPart"</span><span class="p">][</span><span class="s2">"Bytes"</span><span class="p">])</span></div>
+
 
 
 <div class="viewcode-block" id="ChatModelContentHandler">
@@ -261,7 +339,7 @@
 <div class="viewcode-block" id="ChatSagemakerEndpoint">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.sagemaker_endpoint.ChatSagemakerEndpoint.html#langchain_aws.chat_models.sagemaker_endpoint.ChatSagemakerEndpoint">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatSagemakerEndpoint</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""A chat model that uses a HugguingFace TGI compatible SageMaker Endpoint.</span>
+<span class="w">    </span><span class="sd">"""A chat model that uses a HuggingFace TGI compatible SageMaker Endpoint.</span>
 
 <span class="sd">    To use, you must supply the endpoint name from your deployed</span>
 <span class="sd">    Sagemaker model &amp; the region where it is deployed.</span>
@@ -279,7 +357,7 @@
 <span class="sd">    """</span>
 
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Args:        </span>
+<span class="sd">    Key Args:</span>
 
 <span class="sd">        region_name: The aws region e.g., `us-west-2`.</span>
 <span class="sd">            Fallsback to AWS_DEFAULT_REGION env variable</span>
@@ -291,6 +369,8 @@
 <span class="sd">            EC2 instance, credentials from IMDS will be used.</span>
 
 <span class="sd">        client: boto3 client for Sagemaker Endpoint</span>
+<span class="sd">        </span>
+<span class="sd">        endpoint_name: The name of the endpoint from the deployed Sagemaker model.</span>
 
 <span class="sd">        content_handler: Implementation for model specific ChatContentHandler </span>
 
@@ -346,16 +426,65 @@
 <span class="w">    </span><span class="sd">"""Optional name of the inference component to invoke </span>
 <span class="sd">    if specified with endpoint name."""</span>
 
-    <span class="n">region_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-<span class="w">    </span><span class="sd">"""The aws region where the Sagemaker model is deployed, eg. `us-west-2`."""</span>
+    <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="w">    </span><span class="sd">"""The aws region, e.g., `us-west-2`. </span>
 
-    <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">    </span><span class="sd">"""The name of the profile in the ~/.aws/credentials or ~/.aws/config files, which</span>
-<span class="sd">    has either access keys or role information specified.</span>
+<span class="sd">    Falls back to AWS_REGION or AWS_DEFAULT_REGION env variable or region specified in </span>
+<span class="sd">    ~/.aws/config in case it is not provided here.</span>
+<span class="sd">    """</span>
+
+    <span class="n">credentials_profile_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""The name of the profile in the ~/.aws/credentials or ~/.aws/config files.</span>
+
+<span class="sd">    Profile should either have access keys or role information specified.</span>
+<span class="sd">    If not specified, the default credential profile or, if on an EC2 instance,</span>
+<span class="sd">    credentials from IMDS will be used. </span>
+<span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+<span class="sd">    """</span>
+
+    <span class="n">aws_access_key_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_ACCESS_KEY_ID"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">"""AWS access key id. </span>
+
+<span class="sd">    If provided, aws_secret_access_key must also be provided.</span>
 <span class="sd">    If not specified, the default credential profile or, if on an EC2 instance,</span>
 <span class="sd">    credentials from IMDS will be used.</span>
 <span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+
+<span class="sd">    If not provided, will be read from 'AWS_ACCESS_KEY_ID' environment variable.</span>
 <span class="sd">    """</span>
+
+    <span class="n">aws_secret_access_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SECRET_ACCESS_KEY"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">"""AWS secret_access_key. </span>
+
+<span class="sd">    If provided, aws_access_key_id must also be provided.</span>
+<span class="sd">    If not specified, the default credential profile or, if on an EC2 instance,</span>
+<span class="sd">    credentials from IMDS will be used.</span>
+<span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+
+<span class="sd">    If not provided, will be read from 'AWS_SECRET_ACCESS_KEY' environment variable.</span>
+<span class="sd">    """</span>
+
+    <span class="n">aws_session_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SESSION_TOKEN"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">"""AWS session token. </span>
+
+<span class="sd">    If provided, aws_access_key_id and aws_secret_access_key must </span>
+<span class="sd">    also be provided. Not required unless using temporary credentials.</span>
+<span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
+
+<span class="sd">    If not provided, will be read from 'AWS_SESSION_TOKEN' environment variable.</span>
+<span class="sd">    """</span>
+
+    <span class="n">endpoint_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"base_url"</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Needed if you don't want to default to us-east-1 endpoint"""</span>
+
+    <span class="n">config</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""An optional botocore.config.Config instance to pass to the client."""</span>
 
     <span class="n">content_handler</span><span class="p">:</span> <span class="n">ChatModelContentHandler</span>
 <span class="w">    </span><span class="sd">"""The content handler class that provides an input and</span>
@@ -400,37 +529,19 @@
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Dont do anything if client provided externally"""</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span>
-
-<span class="w">        </span><span class="sd">"""Validate that AWS credentials to and python package exists in environment."""</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
-
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">profile_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># use default credentials</span>
-                    <span class="n">session</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
-
-                <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-                    <span class="s2">"sagemaker-runtime"</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region_name</span>
-                <span class="p">)</span>
-
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Could not load credentials to authenticate with AWS client. "</span>
-                    <span class="s2">"Please check that credentials in the specified "</span>
-                    <span class="s2">"profile name are valid."</span>
-                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-                <span class="s2">"Could not import boto3 python package. "</span>
-                <span class="s2">"Please install it with `pip install boto3`."</span>
+<span class="w">        </span><span class="sd">"""Skip creating new client if passed in constructor"""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">create_aws_client</span><span class="p">(</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span><span class="p">,</span>
+                <span class="n">aws_access_key_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_access_key_id</span><span class="p">,</span>
+                <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_secret_access_key</span><span class="p">,</span>
+                <span class="n">aws_session_token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_session_token</span><span class="p">,</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                <span class="n">service_name</span><span class="o">=</span><span class="s2">"sagemaker-runtime"</span><span class="p">,</span>
             <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@property</span>
@@ -466,14 +577,10 @@
             <span class="n">attributes</span><span class="p">[</span><span class="s2">"region_name"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region_name</span>
 
         <span class="k">return</span> <span class="n">attributes</span>
-        
-    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
-        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_messages_request</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="n">_model_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_model_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
         <span class="n">_endpoint_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">endpoint_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -489,10 +596,50 @@
             <span class="o">**</span><span class="n">_endpoint_kwargs</span><span class="p">,</span>
         <span class="p">}</span>
 
-        <span class="c1"># If inference_compoent_name is specified, append it to invocation_params</span>
+        <span class="c1"># If inference_component_name is specified, append it to invocation_params</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_component_name</span><span class="p">:</span>
             <span class="n">invocation_params</span><span class="p">[</span><span class="s2">"InferenceComponentName"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_component_name</span>
+        <span class="k">return</span> <span class="n">invocation_params</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]:</span>
+        <span class="n">invocation_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_messages_request</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">invoke_endpoint_with_response_stream</span><span class="p">(</span><span class="o">**</span><span class="n">invocation_params</span><span class="p">)</span>
+            <span class="n">iterator</span> <span class="o">=</span> <span class="n">ChatLineIterator</span><span class="p">(</span><span class="n">resp</span><span class="p">[</span><span class="s2">"Body"</span><span class="p">])</span>
+
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">content_handler</span><span class="o">.</span><span class="n">transform_output</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">enforce_stop_tokens</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
+                    <span class="n">generation_chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
+                        <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
+                            <span class="n">generation_chunk</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">generation_chunk</span>
+                        <span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">generation_chunk</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">"Error raised by streaming inference endpoint"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">run_manager</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CallbackManagerForLLMRun</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
+        <span class="n">invocation_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_messages_request</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">invoke_endpoint</span><span class="p">(</span><span class="o">**</span><span class="n">invocation_params</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>

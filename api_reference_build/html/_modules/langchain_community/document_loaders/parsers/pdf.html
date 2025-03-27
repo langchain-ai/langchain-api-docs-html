@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 26, 2025" name="docbuild:last-update"/>
+<meta content="Mar 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -663,6 +663,7 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">images_parser</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">""</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pypdf</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 
         <span class="k">if</span> <span class="s2">"/XObject"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">page</span><span class="p">[</span><span class="s2">"/Resources"</span><span class="p">])</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -673,13 +674,18 @@
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">xObject</span><span class="p">:</span>
             <span class="n">np_image</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Subtype"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"/Image"</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Filter"</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="ow">in</span> <span class="n">_PDF_FILTER_WITHOUT_LOSS</span><span class="p">:</span>
+                <span class="n">img_filter</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Filter"</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Filter"</span><span class="p">])</span> <span class="ow">is</span> <span class="n">pypdf</span><span class="o">.</span><span class="n">generic</span><span class="o">.</span><span class="n">_base</span><span class="o">.</span><span class="n">NameObject</span>
+                    <span class="k">else</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Filter"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">img_filter</span> <span class="ow">in</span> <span class="n">_PDF_FILTER_WITHOUT_LOSS</span><span class="p">:</span>
                     <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Height"</span><span class="p">],</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Width"</span><span class="p">]</span>
 
                     <span class="n">np_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span>
                         <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span>
                     <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="s2">"/Filter"</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="ow">in</span> <span class="n">_PDF_FILTER_WITH_LOSS</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="n">img_filter</span> <span class="ow">in</span> <span class="n">_PDF_FILTER_WITH_LOSS</span><span class="p">:</span>
                     <span class="n">np_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">xObject</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span><span class="o">.</span><span class="n">get_data</span><span class="p">())))</span>
 
                 <span class="k">else</span><span class="p">:</span>

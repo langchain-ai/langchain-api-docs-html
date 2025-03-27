@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 26, 2025" name="docbuild:last-update"/>
+<meta content="Mar 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -361,8 +361,6 @@
 <span class="sd">        ChevronError: If the tag is unclosed.</span>
 <span class="sd">        ChevronError: If the set delimiter tag is unclosed.</span>
 <span class="sd">    """</span>
-    <span class="k">global</span> <span class="n">_CURRENT_LINE</span><span class="p">,</span> <span class="n">_LAST_TAG_LINE</span>
-
     <span class="n">tag_types</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"!"</span><span class="p">:</span> <span class="s2">"comment"</span><span class="p">,</span>
         <span class="s2">"#"</span><span class="p">:</span> <span class="s2">"section"</span><span class="p">,</span>
@@ -592,32 +590,33 @@
             <span class="k">if</span> <span class="n">scope</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">scope</span>
 
+            <span class="n">resolved_scope</span> <span class="o">=</span> <span class="n">scope</span>
             <span class="c1"># For every dot separated key</span>
             <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
                 <span class="c1"># Return an empty string if falsy, with two exceptions</span>
                 <span class="c1"># 0 should return 0, and False should return False</span>
-                <span class="k">if</span> <span class="n">scope</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">scope</span>
+                <span class="k">if</span> <span class="n">resolved_scope</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">resolved_scope</span>
                 <span class="c1"># Move into the scope</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="c1"># Try subscripting (Normal dictionaries)</span>
-                    <span class="n">scope</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">scope</span><span class="p">)[</span><span class="n">child</span><span class="p">]</span>
+                    <span class="n">resolved_scope</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">resolved_scope</span><span class="p">)[</span><span class="n">child</span><span class="p">]</span>
                 <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
                     <span class="k">try</span><span class="p">:</span>
-                        <span class="n">scope</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
+                        <span class="n">resolved_scope</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">resolved_scope</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
                     <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
                         <span class="c1"># Try as a list</span>
-                        <span class="n">scope</span> <span class="o">=</span> <span class="n">scope</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">child</span><span class="p">)]</span>  <span class="c1"># type: ignore</span>
+                        <span class="n">resolved_scope</span> <span class="o">=</span> <span class="n">resolved_scope</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">child</span><span class="p">)]</span>  <span class="c1"># type: ignore</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># This allows for custom falsy data types</span>
                 <span class="c1"># https://github.com/noahmorrison/chevron/issues/35</span>
-                <span class="k">if</span> <span class="n">scope</span><span class="o">.</span><span class="n">_CHEVRON_return_scope_when_falsy</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
-                    <span class="k">return</span> <span class="n">scope</span>
+                <span class="k">if</span> <span class="n">resolved_scope</span><span class="o">.</span><span class="n">_CHEVRON_return_scope_when_falsy</span><span class="p">:</span>  <span class="c1"># type: ignore</span>
+                    <span class="k">return</span> <span class="n">resolved_scope</span>
             <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">scope</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">scope</span>
-                <span class="k">return</span> <span class="n">scope</span> <span class="ow">or</span> <span class="s2">""</span>
+                <span class="k">if</span> <span class="n">resolved_scope</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">resolved_scope</span>
+                <span class="k">return</span> <span class="n">resolved_scope</span> <span class="ow">or</span> <span class="s2">""</span>
         <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
             <span class="c1"># We couldn't find the key in the current scope</span>
             <span class="c1"># We'll try again on the next pass</span>
