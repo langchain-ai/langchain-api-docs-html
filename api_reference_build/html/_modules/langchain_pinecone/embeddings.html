@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -223,10 +223,16 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">aiohttp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">secret_from_env</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pinecone</span> <span class="k">as</span> <span class="n">PineconeClient</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PineconeAsyncio</span> <span class="k">as</span> <span class="n">PineconeAsyncioClient</span><span class="p">,</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparseValues</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone.data.features.inference.inference</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
+    <span class="n">EmbeddingsList</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseModel</span><span class="p">,</span>
     <span class="n">ConfigDict</span><span class="p">,</span>
@@ -257,7 +263,7 @@
 
     <span class="c1"># Clients</span>
     <span class="n">_client</span><span class="p">:</span> <span class="n">PineconeClient</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">_async_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">]</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">_async_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PineconeAsyncioClient</span><span class="p">]</span> <span class="o">=</span> <span class="n">PrivateAttr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">str</span>
 <span class="w">    </span><span class="sd">"""Model to use for example 'multilingual-e5-large'."""</span>
     <span class="c1"># Config</span>
@@ -290,15 +296,11 @@
     <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">async_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">async_client</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PineconeAsyncioClient</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Lazily initialize the async client."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_async_client</span> <span class="o">=</span> <span class="n">aiohttp</span><span class="o">.</span><span class="n">ClientSession</span><span class="p">(</span>
-                <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
-                    <span class="s2">"Api-Key"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pinecone_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(),</span>
-                    <span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span>
-                    <span class="s2">"X-Pinecone-API-Version"</span><span class="p">:</span> <span class="s2">"2024-10"</span><span class="p">,</span>
-                <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_async_client</span> <span class="o">=</span> <span class="n">PineconeAsyncioClient</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pinecone_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">(),</span> <span class="n">source_tag</span><span class="o">=</span><span class="s2">"langchain"</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_client</span>
 
@@ -312,7 +314,7 @@
                 <span class="s2">"query_params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"query"</span><span class="p">,</span> <span class="s2">"truncation"</span><span class="p">:</span> <span class="s2">"END"</span><span class="p">},</span>
                 <span class="s2">"document_params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"passage"</span><span class="p">,</span> <span class="s2">"truncation"</span><span class="p">:</span> <span class="s2">"END"</span><span class="p">},</span>
                 <span class="s2">"dimension"</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
-            <span class="p">}</span>
+            <span class="p">},</span>
         <span class="p">}</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">default_config_map</span><span class="p">:</span>
@@ -332,7 +334,7 @@
         <span class="c1"># Ensure async_client is lazily initialized</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_get_batch_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_batch_iterator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch_size</span> <span class="o">=</span> <span class="n">DEFAULT_BATCH_SIZE</span>
         <span class="k">else</span><span class="p">:</span>
@@ -351,7 +353,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_iter</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">texts</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">_iter</span>
+        <span class="k">return</span> <span class="n">_iter</span><span class="p">,</span> <span class="n">batch_size</span>
 
 <div class="viewcode-block" id="PineconeEmbeddings.embed_documents">
 <a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeEmbeddings.html#langchain_pinecone.embeddings.PineconeEmbeddings.embed_documents">[docs]</a>
@@ -359,12 +361,12 @@
 <span class="w">        </span><span class="sd">"""Embed search docs."""</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+        <span class="n">_iter</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_iter</span><span class="p">:</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed_texts</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_params</span><span class="p">,</span>
-                <span class="n">inputs</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">],</span>
+                <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">response</span><span class="p">])</span>
 
@@ -375,14 +377,14 @@
 <a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeEmbeddings.html#langchain_pinecone.embeddings.PineconeEmbeddings.aembed_documents">[docs]</a>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aembed_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
         <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+        <span class="n">_iter</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_iter</span><span class="p">:</span>
             <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_texts</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_params</span><span class="p">,</span>
-                <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">],</span>
+                <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span>
             <span class="p">)</span>
-            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">response</span><span class="p">[</span><span class="s2">"data"</span><span class="p">]])</span>
+            <span class="n">embeddings</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">response</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">embeddings</span></div>
 
 
@@ -390,8 +392,8 @@
 <a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeEmbeddings.html#langchain_pinecone.embeddings.PineconeEmbeddings.embed_query">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">embed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Embed query text."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query_params</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">text</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed_texts</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query_params</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="p">[</span><span class="n">text</span><span class="p">]</span>
         <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"values"</span><span class="p">]</span></div>
 
 
@@ -399,27 +401,131 @@
 <a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeEmbeddings.html#langchain_pinecone.embeddings.PineconeEmbeddings.aembed_query">[docs]</a>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aembed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Asynchronously embed query text."""</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_texts</span><span class="p">(</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_texts</span><span class="p">(</span>
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_params</span><span class="p">,</span>
             <span class="n">texts</span><span class="o">=</span><span class="p">[</span><span class="n">text</span><span class="p">],</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="s2">"data"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"values"</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"values"</span><span class="p">]</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_embed_texts</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmbeddingsList</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aembed_texts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"model"</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
-            <span class="s2">"inputs"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">],</span>
-            <span class="s2">"parameters"</span><span class="p">:</span> <span class="n">parameters</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmbeddingsList</span><span class="p">:</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span> <span class="k">as</span> <span class="n">aclient</span><span class="p">:</span>
+            <span class="n">embeddings</span><span class="p">:</span> <span class="n">EmbeddingsList</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aclient</span><span class="o">.</span><span class="n">inference</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">texts</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">embeddings</span></div>
+
+
+
+<div class="viewcode-block" id="PineconeSparseEmbeddings">
+<a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeSparseEmbeddings.html#langchain_pinecone.embeddings.PineconeSparseEmbeddings">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PineconeSparseEmbeddings</span><span class="p">(</span><span class="n">PineconeEmbeddings</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""PineconeSparseEmbeddings embedding model.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from langchain_pinecone import PineconeSparseEmbeddings</span>
+
+<span class="sd">            model = PineconeSparseEmbeddings(model="pinecone-sparse-english-v0")</span>
+<span class="sd">    """</span>
+
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_default_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Set default configuration based on model."""</span>
+        <span class="n">default_config_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"pinecone-sparse-english-v0"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"batch_size"</span><span class="p">:</span> <span class="mi">96</span><span class="p">,</span>
+                <span class="s2">"query_params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"query"</span><span class="p">,</span> <span class="s2">"truncation"</span><span class="p">:</span> <span class="s2">"END"</span><span class="p">},</span>
+                <span class="s2">"document_params"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"input_type"</span><span class="p">:</span> <span class="s2">"passage"</span><span class="p">,</span> <span class="s2">"truncation"</span><span class="p">:</span> <span class="s2">"END"</span><span class="p">},</span>
+                <span class="s2">"dimension"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">},</span>
         <span class="p">}</span>
-        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-            <span class="s2">"https://api.pinecone.io/embed"</span><span class="p">,</span> <span class="n">json</span><span class="o">=</span><span class="n">data</span>
-        <span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
-            <span class="n">response_data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">response_data</span></div>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">default_config_map</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">default_config_map</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+                    <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">values</span>
+
+<div class="viewcode-block" id="PineconeSparseEmbeddings.embed_documents">
+<a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeSparseEmbeddings.html#langchain_pinecone.embeddings.PineconeSparseEmbeddings.embed_documents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embed_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SparseValues</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Embed search docs with sparse embeddings."""</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SparseValues</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">_iter</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_iter</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed_texts</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_params</span><span class="p">,</span>
+                <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+                <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">SparseValues</span><span class="p">(</span><span class="n">indices</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">"sparse_indices"</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">"sparse_values"</span><span class="p">])</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">embeddings</span></div>
+
+
+<div class="viewcode-block" id="PineconeSparseEmbeddings.aembed_documents">
+<a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeSparseEmbeddings.html#langchain_pinecone.embeddings.PineconeSparseEmbeddings.aembed_documents">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aembed_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SparseValues</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Asynchronously embed search docs with sparse embeddings."""</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SparseValues</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">_iter</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batch_iterator</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_iter</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_texts</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_params</span><span class="p">,</span>
+                <span class="n">texts</span><span class="o">=</span><span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+                <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">SparseValues</span><span class="p">(</span><span class="n">indices</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">"sparse_indices"</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">"sparse_values"</span><span class="p">])</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">embeddings</span></div>
+
+
+<div class="viewcode-block" id="PineconeSparseEmbeddings.embed_query">
+<a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeSparseEmbeddings.html#langchain_pinecone.embeddings.PineconeSparseEmbeddings.embed_query">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">embed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SparseValues</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Embed query text with sparse embeddings."""</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embed_texts</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query_params</span><span class="p">,</span> <span class="n">texts</span><span class="o">=</span><span class="p">[</span><span class="n">text</span><span class="p">]</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">SparseValues</span><span class="p">(</span>
+            <span class="n">indices</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"sparse_indices"</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"sparse_values"</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PineconeSparseEmbeddings.aembed_query">
+<a class="viewcode-back" href="../../pinecone/embeddings/langchain_pinecone.embeddings.PineconeSparseEmbeddings.html#langchain_pinecone.embeddings.PineconeSparseEmbeddings.aembed_query">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aembed_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SparseValues</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Asynchronously embed query text with sparse embeddings."""</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aembed_texts</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">query_params</span><span class="p">,</span>
+            <span class="n">texts</span><span class="o">=</span><span class="p">[</span><span class="n">text</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">embeddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">SparseValues</span><span class="p">(</span>
+            <span class="n">indices</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"sparse_indices"</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">response</span><span class="p">[</span><span class="s2">"sparse_values"</span><span class="p">]</span>
+        <span class="p">)</span></div>
+</div>
 
 </pre></div>
 </article>

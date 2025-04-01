@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -242,14 +242,19 @@
     <span class="n">NamedTuple</span><span class="p">,</span>
     <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">TypeVar</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
     <span class="n">overload</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">InsertManyException</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionVectorServiceOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionInsertManyException</span><span class="p">,</span> <span class="n">DataAPIResponseException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CollectionLexicalOptions</span><span class="p">,</span>
+    <span class="n">CollectionRerankOptions</span><span class="p">,</span>
+    <span class="n">VectorServiceOptions</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.vectorstores.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">maximal_marginal_relevance</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gather_with_concurrency</span>
@@ -262,6 +267,7 @@
     <span class="n">MAX_CONCURRENT_DOCUMENT_DELETIONS</span><span class="p">,</span>
     <span class="n">MAX_CONCURRENT_DOCUMENT_INSERTIONS</span><span class="p">,</span>
     <span class="n">MAX_CONCURRENT_DOCUMENT_REPLACEMENTS</span><span class="p">,</span>
+    <span class="n">HybridSearchMode</span><span class="p">,</span>
     <span class="n">SetupMode</span><span class="p">,</span>
     <span class="n">_AstraDBCollectionEnvironment</span><span class="p">,</span>
     <span class="n">_survey_collection</span><span class="p">,</span>
@@ -270,6 +276,8 @@
     <span class="n">_detect_document_codec</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_astradb.utils.vector_store_codecs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LEXICAL_FIELD_NAME</span><span class="p">,</span>
+    <span class="n">VECTOR_FIELD_NAME</span><span class="p">,</span>
     <span class="n">VECTORIZE_FIELD_NAME</span><span class="p">,</span>
     <span class="n">_AstraDBVectorStoreDocumentCodec</span><span class="p">,</span>
     <span class="n">_DefaultVectorizeVSDocumentCodec</span><span class="p">,</span>
@@ -277,19 +285,32 @@
 <span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span> <span class="n">TokenProvider</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">AstraDB</span> <span class="k">as</span> <span class="n">AstraDBClient</span><span class="p">,</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span>
+        <span class="n">RerankingHeadersProvider</span><span class="p">,</span>
+        <span class="n">TokenProvider</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">AsyncAstraDB</span> <span class="k">as</span> <span class="n">AsyncAstraDBClient</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.results</span><span class="w"> </span><span class="kn">import</span> <span class="n">UpdateResult</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.cursors</span><span class="w"> </span><span class="kn">import</span> <span class="n">RerankedResult</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">RerankServiceOptions</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.results</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionUpdateResult</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 
 <span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"T"</span><span class="p">)</span>
 <span class="n">U</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"U"</span><span class="p">)</span>
 <span class="n">DocDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>  <span class="c1"># dicts expressing entries to insert</span>
+
+<span class="c1"># error code to check for during bulk insertions</span>
+<span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span> <span class="o">=</span> <span class="s2">"DOCUMENT_ALREADY_EXISTS"</span>
+<span class="c1"># max number of errors shown in full insertion error messages</span>
+<span class="n">MAX_SHOWN_INSERTION_ERRORS</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="c1"># key for the 'rerank' score within the find_and_rerank scores</span>
+<span class="n">RERANK_SCORE_KEY</span> <span class="o">=</span> <span class="s2">"$rerank"</span>
+<span class="c1"># Error message for receiving a lexical_query for a non-hybrid search</span>
+<span class="n">ERROR_LEXICAL_QUERY_ON_NONHYBRID_SEARCH</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"Parameter 'lexical_query' cannot be passed for a non-hybrid search"</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="AstraDBQueryResult">
@@ -299,6 +320,14 @@
 
 <span class="sd">    This class represents all that can be returned from the collection when running</span>
 <span class="sd">    a query, which goes beyond just the corresponding Document.</span>
+
+<span class="sd">    Atributes:</span>
+<span class="sd">        document: a ``langchain.schema.Document`` object representing the query result.</span>
+<span class="sd">        id: the ID of the returned document.</span>
+<span class="sd">        embedding: the embedding vector associated to the document. This may be None,</span>
+<span class="sd">            depending on whether the embeddings were requested in the query or not.</span>
+<span class="sd">        similarity: the numeric similarity score of the document in the query. In case</span>
+<span class="sd">            this quantity was not requested by the query, it will be set to None.</span>
 <span class="sd">    """</span>
 
     <span class="n">document</span><span class="p">:</span> <span class="n">Document</span>
@@ -308,12 +337,29 @@
 
 
 
-<span class="c1"># error code to check for during bulk insertions</span>
-<span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span> <span class="o">=</span> <span class="s2">"DOCUMENT_ALREADY_EXISTS"</span>
-<span class="c1"># max number of errors shown in full insertion error messages</span>
-<span class="n">MAX_SHOWN_INSERTION_ERRORS</span> <span class="o">=</span> <span class="mi">8</span>
+<div class="viewcode-block" id="HybridLimitFactorPrescription">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.HybridLimitFactorPrescription.html#langchain_astradb.vectorstores.HybridLimitFactorPrescription">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HybridLimitFactorPrescription</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A per-subsearch setting for the hybrid-search 'limit' factors.</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="sd">    This structure is to be used to set different values for</span>
+<span class="sd">    the vector and the lexical portions of the hybrid search.</span>
+
+<span class="sd">    Each of the attributes is a floating-point number, representing the multiplicative</span>
+<span class="sd">    factor applied to a search final 'k' to calculate the "limit" value for</span>
+<span class="sd">    the associated sub-search. For instance, if vector=1.5 and lexical=3.0,</span>
+<span class="sd">    a hybrid search called by asking a final set of k=4 results will be executed</span>
+<span class="sd">    with limits of 6 for vector and 12 for lexical. (The results are approximated</span>
+<span class="sd">    to an integer.)</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        vector: the multiplicative factor for the "vector" part of the hybrid search.</span>
+<span class="sd">        lexical: the multiplicative factor for the "lexical" part of the hybrid search.</span>
+<span class="sd">    """</span>
+
+    <span class="n">vector</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lexical</span><span class="p">:</span> <span class="nb">float</span></div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_unique_list</span><span class="p">(</span><span class="n">lst</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">],</span> <span class="n">U</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
@@ -359,7 +405,9 @@
     <span class="n">metadata_indexing_include</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">metadata_indexing_exclude</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">collection_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">CollectionVectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">VectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collection_rerank</span><span class="p">:</span> <span class="n">CollectionRerankOptions</span> <span class="o">|</span> <span class="n">RerankServiceOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collection_lexical</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">CollectionLexicalOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Check that the passed parameters do not violate the autodetect constraints."""</span>
     <span class="n">forbidden_parameters</span> <span class="o">=</span> <span class="p">[</span>
@@ -370,6 +418,8 @@
             <span class="p">(</span><span class="s2">"metadata_indexing_exclude"</span><span class="p">,</span> <span class="n">metadata_indexing_exclude</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"collection_indexing_policy"</span><span class="p">,</span> <span class="n">collection_indexing_policy</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">"collection_vector_service_options"</span><span class="p">,</span> <span class="n">collection_vector_service_options</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"collection_rerank"</span><span class="p">,</span> <span class="n">collection_rerank</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"collection_lexical"</span><span class="p">,</span> <span class="n">collection_lexical</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">p_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="p">]</span>
@@ -391,26 +441,86 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_insertmany_error_message</span><span class="p">(</span><span class="n">err</span><span class="p">:</span> <span class="n">InsertManyException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_decide_hybrid_search_setting</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">required_hybrid_search</span><span class="p">:</span> <span class="n">HybridSearchMode</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">has_hybrid</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Determine whether searches must be hybrid.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        required_hybrid_search: the hybrid_search parameter required in the constructor.</span>
+<span class="sd">        has_hybrid: whether the collection actually is hybrid-capable.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">required_hybrid_search</span> <span class="o">==</span> <span class="n">HybridSearchMode</span><span class="o">.</span><span class="n">OFF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">required_hybrid_search</span> <span class="o">==</span> <span class="n">HybridSearchMode</span><span class="o">.</span><span class="n">ON</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">has_hybrid</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_hybrid_limits</span><span class="p">(</span>
+    <span class="n">hlf</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">hlf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hlf</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hlf</span> <span class="o">*</span> <span class="n">k</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># hlf is a dict:</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">hlk</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hlf</span> <span class="o">*</span> <span class="n">k</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">hlk</span><span class="p">,</span> <span class="n">hlf</span> <span class="ow">in</span> <span class="n">hlf</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_hybrid_limit_factor</span><span class="p">(</span>
+    <span class="n">hybrid_limit_factor</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="o">|</span> <span class="kc">None</span>
+    <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+    <span class="o">|</span> <span class="n">HybridLimitFactorPrescription</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Bring `hybrid_limit_factor` to a normal form."""</span>
+    <span class="k">if</span> <span class="n">hybrid_limit_factor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hybrid_limit_factor</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">hybrid_limit_factor</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hybrid_limit_factor</span><span class="p">,</span> <span class="n">HybridLimitFactorPrescription</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">VECTOR_FIELD_NAME</span><span class="p">:</span> <span class="n">hybrid_limit_factor</span><span class="o">.</span><span class="n">vector</span><span class="p">,</span>
+            <span class="n">LEXICAL_FIELD_NAME</span><span class="p">:</span> <span class="n">hybrid_limit_factor</span><span class="o">.</span><span class="n">lexical</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="c1"># already a dict:</span>
+    <span class="k">return</span> <span class="n">hybrid_limit_factor</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_insertmany_error_message</span><span class="p">(</span><span class="n">err</span><span class="p">:</span> <span class="n">CollectionInsertManyException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Format an astrapy insert exception into an error message.</span>
 
-<span class="sd">    This utility prepares a detailed message from an astrapy InsertManyException,</span>
-<span class="sd">    to be used in raising an exception within a vectorstore multiple insertion.</span>
+<span class="sd">    This utility prepares a detailed message from an astrapy</span>
+<span class="sd">    CollectionInsertManyException, to be used in raising an exception within a</span>
+<span class="sd">    vectorstore multiple insertion.</span>
 
 <span class="sd">    This operation must filter out duplicate-id specific errors</span>
-<span class="sd">    (which the vector store could actually handle, if they were the only ondes).</span>
+<span class="sd">    (which the vector store could actually handle, if they were the only ones).</span>
 <span class="sd">    """</span>
     <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">"Cannot insert documents. The Data API returned the following error(s): "</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_describe_error</span><span class="p">(</span><span class="n">_errd</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_errd</span><span class="p">,</span> <span class="n">DataAPIResponseException</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">edesc</span><span class="o">.</span><span class="n">message</span> <span class="ow">or</span> <span class="s2">""</span>
+                <span class="k">for</span> <span class="n">edesc</span> <span class="ow">in</span> <span class="n">_errd</span><span class="o">.</span><span class="n">error_descriptors</span>
+                <span class="k">if</span> <span class="n">edesc</span><span class="o">.</span><span class="n">error_code</span> <span class="o">!=</span> <span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">_errd</span><span class="p">)]</span>
+
     <span class="n">filtered_error_descs</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">edesc</span>
-        <span class="k">for</span> <span class="n">edesc</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">error_descriptors</span>
-        <span class="k">if</span> <span class="n">edesc</span><span class="o">.</span><span class="n">error_code</span> <span class="o">!=</span> <span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span>
-        <span class="k">if</span> <span class="n">edesc</span><span class="o">.</span><span class="n">message</span>
+        <span class="k">for</span> <span class="n">insmany_err</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">exceptions</span>
+        <span class="k">for</span> <span class="n">edesc</span> <span class="ow">in</span> <span class="n">_describe_error</span><span class="p">(</span><span class="n">insmany_err</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">edesc</span><span class="o">.</span><span class="n">message</span> <span class="ow">or</span> <span class="s2">""</span>
-        <span class="k">for</span> <span class="n">edesc</span> <span class="ow">in</span> <span class="n">filtered_error_descs</span><span class="p">[:</span><span class="n">MAX_SHOWN_INSERTION_ERRORS</span><span class="p">]</span>
+        <span class="n">edesc</span> <span class="ow">or</span> <span class="s2">""</span> <span class="k">for</span> <span class="n">edesc</span> <span class="ow">in</span> <span class="n">filtered_error_descs</span><span class="p">[:</span><span class="n">MAX_SHOWN_INSERTION_ERRORS</span><span class="p">]</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">num_residual</span> <span class="o">:=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_error_descs</span><span class="p">)</span> <span class="o">-</span> <span class="n">MAX_SHOWN_INSERTION_ERRORS</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -437,7 +547,7 @@
 <div class="viewcode-block" id="AstraDBVectorStore">
 <a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AstraDBVectorStore</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""AstraDB vector store integration.</span>
+<span class="w">    </span><span class="sd">"""A vector store which uses DataStax Astra DB as backend.</span>
 
 <span class="sd">    Setup:</span>
 <span class="sd">        Install the ``langchain-astradb`` package and head to the</span>
@@ -456,7 +566,7 @@
 
 <span class="sd">    Key init args — client params:</span>
 <span class="sd">        api_endpoint: str</span>
-<span class="sd">            AstraDB API endpoint.</span>
+<span class="sd">            Astra DB API endpoint.</span>
 <span class="sd">        token: str</span>
 <span class="sd">            API token for Astra DB usage.</span>
 <span class="sd">        namespace: Optional[str]</span>
@@ -465,9 +575,12 @@
 <span class="sd">    Instantiate:</span>
 <span class="sd">        Get your API endpoint and application token from the dashboard of your database.</span>
 
+<span class="sd">        Create a vector store and provide a LangChain embedding object for working with it:</span>
+
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            import getpass</span>
+
 <span class="sd">            from langchain_astradb import AstraDBVectorStore</span>
 <span class="sd">            from langchain_openai import OpenAIEmbeddings</span>
 
@@ -481,22 +594,115 @@
 <span class="sd">                token=ASTRA_DB_APPLICATION_TOKEN,</span>
 <span class="sd">            )</span>
 
-<span class="sd">        Have the vector store figure out its configuration (documents scheme on DB)</span>
-<span class="sd">        from an existing collection, in the case of `server-side-embeddings &lt;https://docs.datastax.com/en/astra-db-serverless/databases/embedding-generation.html&gt;`_:</span>
+<span class="sd">        (Vectorize) Create a vector store where the embedding vector computation happens entirely</span>
+<span class="sd">        on the server-side, using the `vectorize &lt;https://docs.datastax.com/en/astra-db-serverless/databases/embedding-generation.html&gt;`_ feature:</span>
 
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            import getpass</span>
+<span class="sd">            from astrapy.info import VectorServiceOptions</span>
+
 <span class="sd">            from langchain_astradb import AstraDBVectorStore</span>
 
 <span class="sd">            ASTRA_DB_API_ENDPOINT = getpass.getpass("ASTRA_DB_API_ENDPOINT = ")</span>
 <span class="sd">            ASTRA_DB_APPLICATION_TOKEN = getpass.getpass("ASTRA_DB_APPLICATION_TOKEN = ")</span>
 
 <span class="sd">            vector_store = AstraDBVectorStore(</span>
-<span class="sd">                collection_name="astra_vector_langchain",</span>
+<span class="sd">                collection_name="astra_vectorize_langchain",</span>
+<span class="sd">                api_endpoint=ASTRA_DB_API_ENDPOINT,</span>
+<span class="sd">                token=ASTRA_DB_APPLICATION_TOKEN,</span>
+<span class="sd">                collection_vector_service_options=VectorServiceOptions(</span>
+<span class="sd">                    provider="nvidia",</span>
+<span class="sd">                    model_name="NV-Embed-QA",</span>
+<span class="sd">                    # authentication=...,  # needed by some providers/models</span>
+<span class="sd">                ),</span>
+<span class="sd">            )</span>
+
+<span class="sd">        (Hybrid) The underlying Astra DB typically supports hybrid search</span>
+<span class="sd">        (i.e. lexical + vector ANN) to boost the results' accuracy.</span>
+<span class="sd">        This is provisioned and used automatically when available. For manual control,</span>
+<span class="sd">        use the ``collection_rerank`` and ``collection_lexical`` constructor parameters:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import getpass</span>
+<span class="sd">            from astrapy.info import (</span>
+<span class="sd">                CollectionLexicalOptions,</span>
+<span class="sd">                CollectionRerankOptions,</span>
+<span class="sd">                RerankServiceOptions,</span>
+<span class="sd">                VectorServiceOptions,</span>
+<span class="sd">            )</span>
+
+<span class="sd">            from langchain_astradb import AstraDBVectorStore</span>
+
+<span class="sd">            ASTRA_DB_API_ENDPOINT = getpass.getpass("ASTRA_DB_API_ENDPOINT = ")</span>
+<span class="sd">            ASTRA_DB_APPLICATION_TOKEN = getpass.getpass("ASTRA_DB_APPLICATION_TOKEN = ")</span>
+
+<span class="sd">            vector_store = AstraDBVectorStore(</span>
+<span class="sd">                collection_name="astra_vectorize_langchain",</span>
+<span class="sd">                # embedding=...,  # needed unless using 'vectorize'</span>
+<span class="sd">                api_endpoint=ASTRA_DB_API_ENDPOINT,</span>
+<span class="sd">                token=ASTRA_DB_APPLICATION_TOKEN,</span>
+<span class="sd">                collection_vector_service_options=VectorServiceOptions(...),  # see above</span>
+<span class="sd">                collection_lexical=CollectionLexicalOptions(analyzer="standard"),</span>
+<span class="sd">                collection_rerank=CollectionRerankOptions(</span>
+<span class="sd">                    service=RerankServiceOptions(</span>
+<span class="sd">                        provider="nvidia",</span>
+<span class="sd">                        model_name="nvidia/llama-3.2-nv-rerankqa-1b-v2",</span>
+<span class="sd">                    ),</span>
+<span class="sd">                ),</span>
+<span class="sd">                collection_reranking_api_key=...,  # if needed by the model/setup</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Hybrid-related server upgrades may introduce a mismatch between the store</span>
+<span class="sd">        defaults and a pre-existing collection: in case one such mismatch is</span>
+<span class="sd">        reported (as a Data API "EXISTING_COLLECTION_DIFFERENT_SETTINGS" error),</span>
+<span class="sd">        the options to resolve are:</span>
+<span class="sd">        (1) use autodetect mode, (2) switch to ``setup_mode`` "OFF", or</span>
+<span class="sd">        (3) explicitly specify lexical and/or rerank settings in the vector</span>
+<span class="sd">        store constructor, to match the existing collection configuration.</span>
+<span class="sd">        See `here &lt;https://github.com/langchain-ai/langchain-datastax/blob/main/libs/astradb/README.md#collection-defaults-mismatch&gt;`_ for more details.</span>
+
+<span class="sd">        (Autodetect) Let the vector store figure out the configuration (including vectorize</span>
+<span class="sd">        and document encoding scheme on DB), by inspection of an existing collection:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import getpass</span>
+
+<span class="sd">            from langchain_astradb import AstraDBVectorStore</span>
+
+<span class="sd">            ASTRA_DB_API_ENDPOINT = getpass.getpass("ASTRA_DB_API_ENDPOINT = ")</span>
+<span class="sd">            ASTRA_DB_APPLICATION_TOKEN = getpass.getpass("ASTRA_DB_APPLICATION_TOKEN = ")</span>
+
+<span class="sd">            vector_store = AstraDBVectorStore(</span>
+<span class="sd">                collection_name="astra_existing_collection",</span>
+<span class="sd">                # embedding=...,  # needed unless using 'vectorize'</span>
 <span class="sd">                api_endpoint=ASTRA_DB_API_ENDPOINT,</span>
 <span class="sd">                token=ASTRA_DB_APPLICATION_TOKEN,</span>
 <span class="sd">                autodetect_collection=True,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        (Non-Astra DB) This class can also target a non-Astra DB database, such as a</span>
+<span class="sd">        self-deployed HCD, through the Data API:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import getpass</span>
+
+<span class="sd">            from astrapy.authentication import UsernamePasswordTokenProvider</span>
+
+<span class="sd">            from langchain_astradb import AstraDBVectorStore</span>
+
+<span class="sd">            vector_store = AstraDBVectorStore(</span>
+<span class="sd">                collection_name="astra_existing_collection",</span>
+<span class="sd">                # embedding=...,  # needed unless using 'vectorize'</span>
+<span class="sd">                api_endpoint="http://localhost:8181",</span>
+<span class="sd">                token=UsernamePasswordTokenProvider(</span>
+<span class="sd">                    username="user",</span>
+<span class="sd">                    password="pwd",</span>
+<span class="sd">                ),</span>
+<span class="sd">                collection_vector_service_options=...,  # if 'vectorize'</span>
 <span class="sd">            )</span>
 
 <span class="sd">    Add Documents:</span>
@@ -674,27 +880,35 @@
         <span class="n">metadata_indexing_include</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">metadata_indexing_exclude</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">CollectionVectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">VectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_embedding_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EmbeddingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">content_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ignore_invalid_documents</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">autodetect_collection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">component_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">COMPONENT_NAME_VECTORSTORE</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDBClient</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDBClient</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_rerank</span><span class="p">:</span> <span class="n">CollectionRerankOptions</span> <span class="o">|</span> <span class="n">RerankServiceOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_reranking_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RerankingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_lexical</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">CollectionLexicalOptions</span>
+        <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">hybrid_search</span><span class="p">:</span> <span class="n">HybridSearchMode</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">hybrid_limit_factor</span><span class="p">:</span> <span class="nb">float</span>
+        <span class="o">|</span> <span class="kc">None</span>
+        <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">HybridLimitFactorPrescription</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Wrapper around DataStax Astra DB for vector-store workloads.</span>
+<span class="w">        </span><span class="sd">"""A vector store wich uses DataStax Astra DB as backend.</span>
 
-<span class="sd">        For quickstart and details, visit</span>
+<span class="sd">        For more on Astra DB, visit</span>
 <span class="sd">        https://docs.datastax.com/en/astra-db-serverless/index.html</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            embedding: the embeddings function or service to use.</span>
 <span class="sd">                This enables client-side embedding functions or calls to external</span>
-<span class="sd">                embedding providers. If ``embedding`` is provided, arguments</span>
-<span class="sd">                ``collection_vector_service_options`` and</span>
-<span class="sd">                ``collection_embedding_api_key`` cannot be provided.</span>
+<span class="sd">                embedding providers. If ``embedding`` is passed, then</span>
+<span class="sd">                ``collection_vector_service_options`` can not be provided.</span>
 <span class="sd">            collection_name: name of the Astra DB collection to create/use.</span>
 <span class="sd">            token: API token for Astra DB usage, either in the form of a string</span>
 <span class="sd">                or a subclass of ``astrapy.authentication.TokenProvider``.</span>
@@ -789,16 +1003,41 @@
 <span class="sd">                Defaults to "langchain_vectorstore", but can be overridden if this</span>
 <span class="sd">                component actually serves as the building block for another component</span>
 <span class="sd">                (such as a Graph Vector Store).</span>
-<span class="sd">            astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
-<span class="sd">            async_astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AsyncAstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
+<span class="sd">            collection_rerank: providing reranking settings is necessary to run</span>
+<span class="sd">                hybrid searches for similarity. This parameter can be an instance</span>
+<span class="sd">                of the astrapy classes `CollectionRerankOptions` or</span>
+<span class="sd">                ``RerankServiceOptions``.</span>
+<span class="sd">            collection_reranking_api_key: for usage of server-side reranking services</span>
+<span class="sd">                within Astra DB. With this parameter one can supply an API Key</span>
+<span class="sd">                that will be passed to Astra DB with each data request.</span>
+<span class="sd">                This parameter can be either a string or a subclass of</span>
+<span class="sd">                ``astrapy.authentication.RerankingHeadersProvider``.</span>
+<span class="sd">                This is useful when the service is configured for the collection,</span>
+<span class="sd">                but no corresponding secret is stored within</span>
+<span class="sd">                Astra's key management system.</span>
+<span class="sd">            collection_lexical: configuring a lexical analyzer is necessary to run</span>
+<span class="sd">                lexical and hybrid searches. This parameter can be a string or dict,</span>
+<span class="sd">                which is then passed as-is for the "analyzer" field of a</span>
+<span class="sd">                createCollection's "$lexical.analyzer" value, or a ready-made</span>
+<span class="sd">                astrapy `CollectionLexicalOptions` object.</span>
+<span class="sd">            hybrid_search: whether similarity searches should be run as Hybrid searches</span>
+<span class="sd">                or not. Values are DEFAULT, ON or OFF. In case of DEFAULT, searches</span>
+<span class="sd">                are performed as permitted by the collection configuration, with a</span>
+<span class="sd">                preference for hybrid search. Forcing this setting to ON for a</span>
+<span class="sd">                non-hybrid-enabled collection would result in a server error when</span>
+<span class="sd">                running searches.</span>
+<span class="sd">            hybrid_limit_factor: subsearch "limit" specification for hybrid searches.</span>
+<span class="sd">                If omitted, hybrid searches do not specify it and leave the Data API</span>
+<span class="sd">                to use its defaults.</span>
+<span class="sd">                If a floating-point positive number is provided: each subsearch</span>
+<span class="sd">                participating in the hybrid search (i.e. both the vector-based ANN</span>
+<span class="sd">                and the lexical-based) will be requested to fecth up to</span>
+<span class="sd">                `int(k*hybrid_limit_factor)` items, where `k` is the desired result</span>
+<span class="sd">                count from the whole search.</span>
+<span class="sd">                If a `HybridLimitFactorPrescription` is provided (see the class</span>
+<span class="sd">                docstring for details), separate factors are applied to the vector</span>
+<span class="sd">                and the lexical subsearches. Alternatively, a simple dictionary</span>
+<span class="sd">                with keys "$lexical" and "$vector" achieves the same effect.</span>
 
 <span class="sd">        Note:</span>
 <span class="sd">            For concurrency in synchronous :meth:`~add_texts`:, as a rule of thumb,</span>
@@ -847,6 +1086,11 @@
 
         <span class="n">_setup_mode</span><span class="p">:</span> <span class="n">SetupMode</span>
         <span class="n">_embedding_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Awaitable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_hybrid</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span> <span class="nb">bool</span>  <span class="c1"># affecting the actual behaviour when running searches</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_limit_factor</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span> <span class="o">=</span> <span class="n">collection_reranking_api_key</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">autodetect_collection</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -862,14 +1106,33 @@
                 <span class="n">has_vectorize</span><span class="o">=</span><span class="n">has_vectorize</span><span class="p">,</span>
             <span class="p">)</span>
 
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">collection_lexical</span><span class="o">.</span><span class="n">enabled</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collection_lexical</span><span class="p">,</span> <span class="n">CollectionLexicalOptions</span><span class="p">)</span>
+                <span class="k">else</span> <span class="p">(</span><span class="n">collection_lexical</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">_has_reranking</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">collection_rerank</span><span class="o">.</span><span class="n">enabled</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collection_rerank</span><span class="p">,</span> <span class="n">CollectionRerankOptions</span><span class="p">)</span>
+                <span class="k">else</span> <span class="p">(</span><span class="n">collection_rerank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_hybrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span> <span class="ow">and</span> <span class="n">_has_reranking</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span> <span class="o">=</span> <span class="n">_decide_hybrid_search_setting</span><span class="p">(</span>
+                <span class="n">required_hybrid_search</span><span class="o">=</span><span class="n">hybrid_search</span><span class="p">,</span>
+                <span class="n">has_hybrid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_hybrid</span><span class="p">,</span>
+            <span class="p">)</span>
+
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span> <span class="o">=</span> <span class="n">_DefaultVectorizeVSDocumentCodec</span><span class="p">(</span>
                     <span class="n">ignore_invalid_documents</span><span class="o">=</span><span class="n">ignore_invalid_documents</span><span class="p">,</span>
+                    <span class="n">has_lexical</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span> <span class="o">=</span> <span class="n">_DefaultVSDocumentCodec</span><span class="p">(</span>
                     <span class="n">content_field</span><span class="o">=</span><span class="n">_content_field</span><span class="p">,</span>
                     <span class="n">ignore_invalid_documents</span><span class="o">=</span><span class="n">ignore_invalid_documents</span><span class="p">,</span>
+                    <span class="n">has_lexical</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="c1"># indexing policy setting</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">indexing_policy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_metadata_indexing_policy</span><span class="p">(</span>
@@ -891,6 +1154,8 @@
                 <span class="n">metadata_indexing_exclude</span><span class="o">=</span><span class="n">metadata_indexing_exclude</span><span class="p">,</span>
                 <span class="n">collection_indexing_policy</span><span class="o">=</span><span class="n">collection_indexing_policy</span><span class="p">,</span>
                 <span class="n">collection_vector_service_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span><span class="p">,</span>
+                <span class="n">collection_lexical</span><span class="o">=</span><span class="n">collection_lexical</span><span class="p">,</span>
+                <span class="n">collection_rerank</span><span class="o">=</span><span class="n">collection_rerank</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">_setup_mode</span> <span class="o">=</span> <span class="n">SetupMode</span><span class="o">.</span><span class="n">OFF</span>
 
@@ -903,18 +1168,17 @@
                 <span class="n">environment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">environment</span><span class="p">,</span>
                 <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
                 <span class="n">component_name</span><span class="o">=</span><span class="n">component_name</span><span class="p">,</span>
-                <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-                <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">c_descriptor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Collection '</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="si">}</span><span class="s2">' not found."</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="c1"># use the collection info to set the store properties</span>
-            <span class="k">if</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">c_vector_options</span> <span class="o">=</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">as_dict</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"vector"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">c_vector_options</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Non-vector collection detected."</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="n">_embedding_dimension</span> <span class="o">=</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">dimension</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="o">=</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">service</span>
+            <span class="n">_embedding_dimension</span> <span class="o">=</span> <span class="n">c_vector_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"dimension"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="o">=</span> <span class="n">c_vector_options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"service"</span><span class="p">)</span>
             <span class="n">has_vectorize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"vector store autodetect: has_vectorize = </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">has_vectorize</span><span class="p">)</span>
             <span class="n">norm_content_field</span> <span class="o">=</span> <span class="n">_normalize_content_field</span><span class="p">(</span>
@@ -922,17 +1186,35 @@
                 <span class="n">is_autodetect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">has_vectorize</span><span class="o">=</span><span class="n">has_vectorize</span><span class="p">,</span>
             <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">lexical</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">lexical</span><span class="o">.</span><span class="n">enabled</span>
+            <span class="p">)</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span> <span class="o">=</span> <span class="n">_detect_document_codec</span><span class="p">(</span>
                 <span class="n">c_documents</span><span class="p">,</span>
                 <span class="n">has_vectorize</span><span class="o">=</span><span class="n">has_vectorize</span><span class="p">,</span>
+                <span class="n">has_lexical</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span><span class="p">,</span>
                 <span class="n">ignore_invalid_documents</span><span class="o">=</span><span class="n">ignore_invalid_documents</span><span class="p">,</span>
                 <span class="n">norm_content_field</span><span class="o">=</span><span class="n">norm_content_field</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">indexing_policy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_metadata_indexing_policy</span><span class="p">(</span>
                 <span class="n">metadata_indexing_include</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">metadata_indexing_exclude</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">collection_indexing_policy</span><span class="o">=</span><span class="n">c_descriptor</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">indexing</span><span class="p">,</span>
+                <span class="n">collection_indexing_policy</span><span class="o">=</span><span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">indexing</span><span class="p">,</span>
                 <span class="n">document_codec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">_has_reranking</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">rerank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">c_descriptor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">rerank</span><span class="o">.</span><span class="n">enabled</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_hybrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span> <span class="ow">and</span> <span class="n">_has_reranking</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span> <span class="o">=</span> <span class="n">_decide_hybrid_search_setting</span><span class="p">(</span>
+                <span class="n">required_hybrid_search</span><span class="o">=</span><span class="n">hybrid_search</span><span class="p">,</span>
+                <span class="n">has_hybrid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_hybrid</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="c1"># validate embedding/vectorize compatibility and such.</span>
@@ -947,12 +1229,7 @@
             <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Embedding cannot be provided for vectorize collections."</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="p">):</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Embedding API Key cannot be provided for non-vectorize collections."</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_limit_factor</span> <span class="o">=</span> <span class="n">_normalize_hybrid_limit_factor</span><span class="p">(</span><span class="n">hybrid_limit_factor</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span> <span class="o">=</span> <span class="n">_AstraDBCollectionEnvironment</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
@@ -972,8 +1249,9 @@
             <span class="n">collection_embedding_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">component_name</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
+            <span class="n">collection_rerank</span><span class="o">=</span><span class="n">collection_rerank</span><span class="p">,</span>
+            <span class="n">collection_reranking_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span><span class="p">,</span>
+            <span class="n">collection_lexical</span><span class="o">=</span><span class="n">collection_lexical</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -1035,6 +1313,7 @@
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">component_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_embedding_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EmbeddingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_reranking_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RerankingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AstraDBVectorStore</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a copy, possibly with changed attributes.</span>
 
@@ -1062,6 +1341,14 @@
 <span class="sd">                feature and no secret is stored with the database.</span>
 <span class="sd">                In order to suppress the API Key in the copy, explicitly pass</span>
 <span class="sd">                ``astrapy.authentication.EmbeddingAPIKeyHeaderProvider(None)``.</span>
+<span class="sd">            collection_reranking_api_key: for usage of server-side reranking services</span>
+<span class="sd">                within Astra DB. With this parameter one can supply an API Key</span>
+<span class="sd">                that will be passed to Astra DB with each data request.</span>
+<span class="sd">                This parameter can be either a string or a subclass of</span>
+<span class="sd">                ``astrapy.authentication.RerankingHeadersProvider``.</span>
+<span class="sd">                This is useful when the service is configured for the collection,</span>
+<span class="sd">                but no corresponding secret is stored within</span>
+<span class="sd">                Astra's key management system.</span>
 <span class="sd">        """</span>
         <span class="n">copy</span> <span class="o">=</span> <span class="n">AstraDBVectorStore</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="s2">"moot"</span><span class="p">,</span>
@@ -1069,7 +1356,7 @@
             <span class="n">environment</span><span class="o">=</span><span class="n">Environment</span><span class="o">.</span><span class="n">OTHER</span><span class="p">,</span>
             <span class="n">namespace</span><span class="o">=</span><span class="s2">"moot"</span><span class="p">,</span>
             <span class="n">setup_mode</span><span class="o">=</span><span class="n">SetupMode</span><span class="o">.</span><span class="n">OFF</span><span class="p">,</span>
-            <span class="n">collection_vector_service_options</span><span class="o">=</span><span class="n">CollectionVectorServiceOptions</span><span class="p">(</span>
+            <span class="n">collection_vector_service_options</span><span class="o">=</span><span class="n">VectorServiceOptions</span><span class="p">(</span>
                 <span class="n">provider</span><span class="o">=</span><span class="s2">"moot"</span><span class="p">,</span>
                 <span class="n">model_name</span><span class="o">=</span><span class="s2">"moot"</span><span class="p">,</span>
             <span class="p">),</span>
@@ -1089,8 +1376,16 @@
             <span class="k">if</span> <span class="n">collection_embedding_api_key</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">collection_embedding_api_key</span>
         <span class="p">)</span>
+        <span class="n">copy</span><span class="o">.</span><span class="n">collection_reranking_api_key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span>
+            <span class="k">if</span> <span class="n">collection_reranking_api_key</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">collection_reranking_api_key</span>
+        <span class="p">)</span>
         <span class="n">copy</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span>
         <span class="n">copy</span><span class="o">.</span><span class="n">document_codec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span>
+        <span class="n">copy</span><span class="o">.</span><span class="n">has_lexical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lexical</span>
+        <span class="n">copy</span><span class="o">.</span><span class="n">has_hybrid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span>
+        <span class="n">copy</span><span class="o">.</span><span class="n">hybrid_limit_factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_limit_factor</span>
         <span class="n">copy</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
         <span class="n">copy</span><span class="o">.</span><span class="n">bulk_insert_batch_concurrency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bulk_insert_batch_concurrency</span>
         <span class="n">copy</span><span class="o">.</span><span class="n">bulk_insert_overwrite_concurrency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bulk_insert_overwrite_concurrency</span>
@@ -1101,6 +1396,7 @@
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">component_name</span><span class="p">,</span>
             <span class="n">collection_embedding_api_key</span><span class="o">=</span><span class="n">collection_embedding_api_key</span><span class="p">,</span>
+            <span class="n">collection_reranking_api_key</span><span class="o">=</span><span class="n">collection_reranking_api_key</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">copy</span></div>
@@ -1399,11 +1695,11 @@
 <span class="sd">            **kwargs: Additional arguments are ignored.</span>
 
 <span class="sd">        Note:</span>
-<span class="sd">            There are constraints on the allowed field names</span>
-<span class="sd">            in the metadata dictionaries, coming from the underlying Astra DB API.</span>
-<span class="sd">            For instance, the ``$`` (dollar sign) cannot be used in the dict keys.</span>
-<span class="sd">            See this document for details:</span>
-<span class="sd">            https://docs.datastax.com/en/astra-db-serverless/api-reference/overview.html#limits</span>
+<span class="sd">            The allowed field names for the metadata document attributes must</span>
+<span class="sd">            obey certain rules (such as: keys cannot start with a dollar sign</span>
+<span class="sd">            and cannot be empty).</span>
+<span class="sd">            See `Naming Conventions &lt;https://docs.datastax.com/en/astra-db-serverless/api-reference/dataapiclient.html#naming-conventions&gt;`_</span>
+<span class="sd">            for details.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of ids of the added texts.</span>
@@ -1438,11 +1734,22 @@
             <span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">insert_many_result</span><span class="o">.</span><span class="n">inserted_ids</span>
-        <span class="k">except</span> <span class="n">InsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">CollectionInsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
             <span class="c1"># check that the error is solely due to already-existing documents</span>
-            <span class="n">error_codes</span> <span class="o">=</span> <span class="p">{</span><span class="n">err_desc</span><span class="o">.</span><span class="n">error_code</span> <span class="k">for</span> <span class="n">err_desc</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">error_descriptors</span><span class="p">}</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_err</span><span class="p">,</span> <span class="n">DataAPIResponseException</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">in_err</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">exceptions</span>
+            <span class="p">):</span>
+                <span class="n">full_err_message</span> <span class="o">=</span> <span class="n">_insertmany_error_message</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">full_err_message</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+            <span class="c1"># here, assume all in err.exceptions is a DataAPIResponseException:</span>
+            <span class="n">error_codes</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">err_desc</span><span class="o">.</span><span class="n">error_code</span>
+                <span class="k">for</span> <span class="n">in_err</span> <span class="ow">in</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="n">DataAPIResponseException</span><span class="p">],</span> <span class="n">err</span><span class="o">.</span><span class="n">exceptions</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">err_desc</span> <span class="ow">in</span> <span class="n">in_err</span><span class="o">.</span><span class="n">error_descriptors</span>
+            <span class="p">}</span>
             <span class="k">if</span> <span class="n">error_codes</span> <span class="o">==</span> <span class="p">{</span><span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span><span class="p">}:</span>
-                <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">partial_result</span><span class="o">.</span><span class="n">inserted_ids</span>
+                <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">inserted_ids</span>
                 <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inserted_ids</span><span class="p">)</span>
                 <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">doc_id</span>
@@ -1471,7 +1778,7 @@
 
                 <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
                     <span class="n">document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
-                <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">UpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+                <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CollectionUpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
                     <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
                     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">replace_one</span><span class="p">(</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="p">[</span><span class="n">doc_id</span><span class="p">]),</span>
@@ -1532,11 +1839,11 @@
 <span class="sd">            **kwargs: Additional arguments are ignored.</span>
 
 <span class="sd">        Note:</span>
-<span class="sd">            There are constraints on the allowed field names</span>
-<span class="sd">            in the metadata dictionaries, coming from the underlying Astra DB API.</span>
-<span class="sd">            For instance, the ``$`` (dollar sign) cannot be used in the dict keys.</span>
-<span class="sd">            See this document for details:</span>
-<span class="sd">            https://docs.datastax.com/en/astra-db-serverless/api-reference/overview.html#limits</span>
+<span class="sd">            The allowed field names for the metadata document attributes must</span>
+<span class="sd">            obey certain rules (such as: keys cannot start with a dollar sign</span>
+<span class="sd">            and cannot be empty).</span>
+<span class="sd">            See `Naming Conventions &lt;https://docs.datastax.com/en/astra-db-serverless/api-reference/dataapiclient.html#naming-conventions&gt;`_</span>
+<span class="sd">            for details.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of ids of the added texts.</span>
@@ -1573,11 +1880,22 @@
             <span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">insert_many_result</span><span class="o">.</span><span class="n">inserted_ids</span>
-        <span class="k">except</span> <span class="n">InsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">CollectionInsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
             <span class="c1"># check that the error is solely due to already-existing documents</span>
-            <span class="n">error_codes</span> <span class="o">=</span> <span class="p">{</span><span class="n">err_desc</span><span class="o">.</span><span class="n">error_code</span> <span class="k">for</span> <span class="n">err_desc</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">error_descriptors</span><span class="p">}</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_err</span><span class="p">,</span> <span class="n">DataAPIResponseException</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">in_err</span> <span class="ow">in</span> <span class="n">err</span><span class="o">.</span><span class="n">exceptions</span>
+            <span class="p">):</span>
+                <span class="n">full_err_message</span> <span class="o">=</span> <span class="n">_insertmany_error_message</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">full_err_message</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">err</span>
+            <span class="c1"># here, assume all in err.exceptions is a DataAPIResponseException:</span>
+            <span class="n">error_codes</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">err_desc</span><span class="o">.</span><span class="n">error_code</span>
+                <span class="k">for</span> <span class="n">in_err</span> <span class="ow">in</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="n">DataAPIResponseException</span><span class="p">],</span> <span class="n">err</span><span class="o">.</span><span class="n">exceptions</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">err_desc</span> <span class="ow">in</span> <span class="n">in_err</span><span class="o">.</span><span class="n">error_descriptors</span>
+            <span class="p">}</span>
             <span class="k">if</span> <span class="n">error_codes</span> <span class="o">==</span> <span class="p">{</span><span class="n">DOCUMENT_ALREADY_EXISTS_API_ERROR_CODE</span><span class="p">}:</span>
-                <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">partial_result</span><span class="o">.</span><span class="n">inserted_ids</span>
+                <span class="n">inserted_ids</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">inserted_ids</span>
                 <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">inserted_ids</span><span class="p">)</span>
                 <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">doc_id</span>
@@ -1605,7 +1923,7 @@
 
             <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
                 <span class="n">document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">UpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CollectionUpdateResult</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
                 <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
                     <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
                     <span class="k">return</span> <span class="k">await</span> <span class="n">_async_collection</span><span class="o">.</span><span class="n">replace_one</span><span class="p">(</span>
@@ -1669,7 +1987,7 @@
 
             <span class="k">def</span><span class="w"> </span><span class="nf">_update_document</span><span class="p">(</span>
                 <span class="n">id_md_pair</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
-            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UpdateResult</span><span class="p">:</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionUpdateResult</span><span class="p">:</span>
                 <span class="n">document_id</span><span class="p">,</span> <span class="n">update_metadata</span> <span class="o">=</span> <span class="n">id_md_pair</span>
                 <span class="n">encoded_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="n">update_metadata</span><span class="p">)</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">update_one</span><span class="p">(</span>
@@ -1724,7 +2042,7 @@
 
         <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_update_document</span><span class="p">(</span>
             <span class="n">id_md_pair</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
-        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UpdateResult</span><span class="p">:</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionUpdateResult</span><span class="p">:</span>
             <span class="n">document_id</span><span class="p">,</span> <span class="n">update_metadata</span> <span class="o">=</span> <span class="n">id_md_pair</span>
             <span class="n">encoded_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_to_query</span><span class="p">(</span><span class="n">update_metadata</span><span class="p">)</span>
             <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
@@ -1743,9 +2061,9 @@
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">u_res</span><span class="o">.</span><span class="n">update_info</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="k">for</span> <span class="n">u_res</span> <span class="ow">in</span> <span class="n">update_results</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="AstraDBVectorStore.full_decode_astra_db_document">
-<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.full_decode_astra_db_document">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">full_decode_astra_db_document</span><span class="p">(</span>
+<div class="viewcode-block" id="AstraDBVectorStore.full_decode_astra_db_found_document">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.full_decode_astra_db_found_document">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_decode_astra_db_found_document</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">astra_db_document</span><span class="p">:</span> <span class="n">DocDict</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AstraDBQueryResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -1776,6 +2094,51 @@
             <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
             <span class="n">doc_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode_vector</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
             <span class="n">doc_similarity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_similarity</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">AstraDBQueryResult</span><span class="p">(</span>
+                <span class="n">document</span><span class="o">=</span><span class="n">decoded</span><span class="p">,</span>
+                <span class="nb">id</span><span class="o">=</span><span class="n">doc_id</span><span class="p">,</span>
+                <span class="n">embedding</span><span class="o">=</span><span class="n">doc_embedding</span><span class="p">,</span>
+                <span class="n">similarity</span><span class="o">=</span><span class="n">doc_similarity</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="AstraDBVectorStore.full_decode_astra_db_reranked_result">
+<a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.full_decode_astra_db_reranked_result">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_decode_astra_db_reranked_result</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">astra_db_reranked_result</span><span class="p">:</span> <span class="n">RerankedResult</span><span class="p">[</span><span class="n">DocDict</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AstraDBQueryResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Full-decode an Astra DB find-and-rerank hit (Document+embedding/similarity).</span>
+
+<span class="sd">        This operation returns a representation that is independent of the codec</span>
+<span class="sd">        being used in the collection (whereas the 'document' part of the input,</span>
+<span class="sd">        a 'raw' Astra DB response from a find-and-rerank hybrid search, is</span>
+<span class="sd">        codec-dependent).</span>
+
+<span class="sd">        The input raw document is what the find_and_rerank Astrapy method returns,</span>
+<span class="sd">        i.e. an iterable over RerankedResult objects. Missing entries (such as</span>
+<span class="sd">        the embedding) are  set to None in the resulf if not found.</span>
+
+<span class="sd">        The whole method can return a None, to signal that the codec has refused</span>
+<span class="sd">        the conversion (e.g. because the input document is deemed faulty).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            astra_db_reranked_result: a RerankedResult obtained by a `find_and_rerank`</span>
+<span class="sd">                method call on the collection.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            a AstraDBQueryResult named tuple with Document, id, embedding</span>
+<span class="sd">                (where applicable) and similarity (where applicable),</span>
+<span class="sd">                or an overall None if the decoding is refused by the codec.</span>
+<span class="sd">        """</span>
+        <span class="n">astra_db_document</span> <span class="o">=</span> <span class="n">astra_db_reranked_result</span><span class="o">.</span><span class="n">document</span>
+        <span class="n">astra_db_scores</span> <span class="o">=</span> <span class="n">astra_db_reranked_result</span><span class="o">.</span><span class="n">scores</span>
+        <span class="n">decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">decoded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doc_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="n">doc_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">decode_vector</span><span class="p">(</span><span class="n">astra_db_document</span><span class="p">)</span>
+            <span class="n">doc_similarity</span> <span class="o">=</span> <span class="n">astra_db_scores</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">RERANK_SCORE_KEY</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">AstraDBQueryResult</span><span class="p">(</span>
                 <span class="n">document</span><span class="o">=</span><span class="n">decoded</span><span class="p">,</span>
                 <span class="nb">id</span><span class="o">=</span><span class="n">doc_id</span><span class="p">,</span>
@@ -1900,8 +2263,10 @@
         <span class="c1"># stripping down the Astra DB cursor details into a plain iterator:</span>
         <span class="n">final_doc_iterator</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">find_raw_iterator</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
-            <span class="n">sort_vector</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span> <span class="k">if</span> <span class="n">include_sort_vector</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="c1"># the codec option in the AstraDBEnv class disables DataAPIVectors here:</span>
+            <span class="n">sort_vector</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+                <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+                <span class="p">(</span><span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span> <span class="k">if</span> <span class="n">include_sort_vector</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">sort_vector</span><span class="p">,</span> <span class="n">final_doc_iterator</span>
         <span class="k">return</span> <span class="n">final_doc_iterator</span></div>
@@ -2014,8 +2379,8 @@
                     <span class="n">decoded_tuple</span>
                     <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
                     <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span>
-                            <span class="n">astra_db_doc</span>
+                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_found_document</span><span class="p">(</span>
+                            <span class="n">astra_db_doc</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                     <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2033,7 +2398,11 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">decoded_tuple</span>
             <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span><span class="n">astra_db_doc</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_found_document</span><span class="p">(</span>
+                    <span class="n">astra_db_doc</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
             <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">)</span></div>
 
@@ -2154,10 +2523,14 @@
         <span class="c1"># stripping down the Astra DB cursor details into a plain iterator:</span>
         <span class="n">final_doc_iterator</span> <span class="o">=</span> <span class="p">(</span><span class="n">doc</span> <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">find_raw_iterator</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">include_sort_vector</span><span class="p">:</span>
-            <span class="n">sort_vector</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="k">await</span> <span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">include_sort_vector</span>
-                <span class="k">else</span> <span class="kc">None</span>
+            <span class="c1"># the codec option in the AstraDBEnv class disables DataAPIVectors here:</span>
+            <span class="n">sort_vector</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+                <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+                <span class="p">(</span>
+                    <span class="k">await</span> <span class="n">find_raw_iterator</span><span class="o">.</span><span class="n">get_sort_vector</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">include_sort_vector</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">sort_vector</span><span class="p">,</span> <span class="n">final_doc_iterator</span>
         <span class="k">return</span> <span class="n">final_doc_iterator</span></div>
@@ -2269,8 +2642,8 @@
                     <span class="n">decoded_tuple</span>
                     <span class="k">async</span> <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
                     <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span>
-                            <span class="n">astra_db_doc</span>
+                        <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_found_document</span><span class="p">(</span>
+                            <span class="n">astra_db_doc</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                     <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2288,7 +2661,11 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">decoded_tuple</span>
             <span class="k">async</span> <span class="k">for</span> <span class="n">astra_db_doc</span> <span class="ow">in</span> <span class="n">astra_docs_ite</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_document</span><span class="p">(</span><span class="n">astra_db_doc</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_found_document</span><span class="p">(</span>
+                    <span class="n">astra_db_doc</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
             <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">)</span></div>
 
@@ -2379,6 +2756,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query.</span>
@@ -2387,6 +2765,9 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 <span class="sd">            **kwargs: Additional arguments are ignored.</span>
 
 <span class="sd">        Returns:</span>
@@ -2398,6 +2779,7 @@
                 <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">lexical_query</span><span class="o">=</span><span class="n">lexical_query</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">]</span></div>
 
@@ -2410,6 +2792,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query with score.</span>
 
@@ -2417,6 +2800,9 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of (Document, score), the most similar to the query vector.</span>
@@ -2427,6 +2813,7 @@
                 <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">lexical_query</span><span class="o">=</span><span class="n">lexical_query</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">]</span></div>
 
@@ -2438,6 +2825,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to the query with score and id.</span>
 
@@ -2445,23 +2833,54 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of (Document, score, id), the most similar to the query.</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">rerank_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">rerank_on</span>
+            <span class="n">rerank_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
+                <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_hybrid_sort</span><span class="p">(</span>
+                    <span class="n">vector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">vectorize</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+                    <span class="n">lexical</span><span class="o">=</span><span class="n">lexical_query</span> <span class="ow">or</span> <span class="n">query</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">rerank_query</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">embedding_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+                <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_hybrid_sort</span><span class="p">(</span>
+                    <span class="n">vector</span><span class="o">=</span><span class="n">embedding_vector</span><span class="p">,</span>
+                    <span class="n">vectorize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">lexical</span><span class="o">=</span><span class="n">lexical_query</span> <span class="ow">or</span> <span class="n">query</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">rerank_query</span> <span class="o">=</span> <span class="n">query</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hybrid_search_with_score_id_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">rerank_on</span><span class="o">=</span><span class="n">rerank_on</span><span class="p">,</span>
+                <span class="n">rerank_query</span><span class="o">=</span><span class="n">rerank_query</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">embedding_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_with_score_id_by_vector</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">embedding_vector</span><span class="p">,</span>
+        <span class="k">if</span> <span class="n">lexical_query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">ERROR_LEXICAL_QUERY_ON_NONHYBRID_SEARCH</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding_vector</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_find_with_score_id_by_sort</span><span class="p">(</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -2549,23 +2968,23 @@
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_find_with_score_id_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_with_score_id_by_sort</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_find_with_score_id_by_sort</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">filter_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause."""</span>
         <span class="n">hits_ite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_query</span><span class="p">(</span>
             <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">filter_dict</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
@@ -2573,6 +2992,46 @@
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">did</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sim</span> <span class="ow">in</span> <span class="n">hits_ite</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_hybrid_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">filter_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rerank_on</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rerank_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Run a hybrid search with a provided sort clause."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">ensure_db_setup</span><span class="p">()</span>
+        <span class="n">encoded_filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">filter_dict</span><span class="o">=</span><span class="n">filter_dict</span><span class="p">)</span>
+        <span class="n">hybrid_limits</span> <span class="o">=</span> <span class="n">_make_hybrid_limits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hybrid_limit_factor</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">hybrid_reranked_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">find_and_rerank</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">encoded_filter</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">hybrid_limits</span><span class="o">=</span><span class="n">hybrid_limits</span><span class="p">,</span>
+            <span class="n">include_scores</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">rerank_on</span><span class="o">=</span><span class="n">rerank_on</span><span class="p">,</span>
+            <span class="n">rerank_query</span><span class="o">=</span><span class="n">rerank_query</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">cast</span><span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                <span class="p">(</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">document</span><span class="p">,</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">rrk_result</span> <span class="ow">in</span> <span class="n">hybrid_reranked_results</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_reranked_result</span><span class="p">(</span>
+                    <span class="n">rrk_result</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">]</span>
 
 <div class="viewcode-block" id="AstraDBVectorStore.asimilarity_search">
@@ -2583,6 +3042,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query.</span>
@@ -2591,6 +3051,9 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 <span class="sd">            **kwargs: Additional arguments are ignored.</span>
 
 <span class="sd">        Returns:</span>
@@ -2602,6 +3065,7 @@
                 <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">lexical_query</span><span class="o">=</span><span class="n">lexical_query</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">]</span></div>
 
@@ -2614,6 +3078,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query with score.</span>
 
@@ -2621,6 +3086,9 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of (Document, score), the most similar to the query vector.</span>
@@ -2631,6 +3099,7 @@
                 <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">lexical_query</span><span class="o">=</span><span class="n">lexical_query</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">]</span></div>
 
@@ -2642,6 +3111,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
+        <span class="n">lexical_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to the query with score and id.</span>
 
@@ -2649,23 +3119,54 @@
 <span class="sd">            query: Query to look up documents similar to.</span>
 <span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
 <span class="sd">            filter: Filter on the metadata to apply.</span>
+<span class="sd">            lexical_query: for hybrid search, a specific query for the lexical</span>
+<span class="sd">                portion of the retrieval. If omitted or empty, defaults to the same</span>
+<span class="sd">                as 'query'. If passed on a non-hybrid search, an error is raised.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of (Document, score, id), the most similar to the query.</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
-            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-            <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">rerank_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">rerank_on</span>
+            <span class="n">rerank_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
+                <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_hybrid_sort</span><span class="p">(</span>
+                    <span class="n">vector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">vectorize</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+                    <span class="n">lexical</span><span class="o">=</span><span class="n">lexical_query</span> <span class="ow">or</span> <span class="n">query</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">rerank_query</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">embedding_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+                <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_hybrid_sort</span><span class="p">(</span>
+                    <span class="n">vector</span><span class="o">=</span><span class="n">embedding_vector</span><span class="p">,</span>
+                    <span class="n">vectorize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">lexical</span><span class="o">=</span><span class="n">lexical_query</span> <span class="ow">or</span> <span class="n">query</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">rerank_query</span> <span class="o">=</span> <span class="n">query</span>
+
+            <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ahybrid_search_with_score_id_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+                <span class="n">rerank_on</span><span class="o">=</span><span class="n">rerank_on</span><span class="p">,</span>
+                <span class="n">rerank_query</span><span class="o">=</span><span class="n">rerank_query</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">embedding_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">asimilarity_search_with_score_id_by_vector</span><span class="p">(</span>
-            <span class="n">embedding</span><span class="o">=</span><span class="n">embedding_vector</span><span class="p">,</span>
+        <span class="k">if</span> <span class="n">lexical_query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">ERROR_LEXICAL_QUERY_ON_NONHYBRID_SEARCH</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">embedding_vector</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_safe_embedding</span><span class="p">()</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding_vector</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_find_with_score_id_by_sort</span><span class="p">(</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -2753,12 +3254,71 @@
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_find_with_score_id_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">filter_dict</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asimilarity_find_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">filter_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause."""</span>
+        <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">filter_dict</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># doc is a Document and sim is a float:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">))</span>
+            <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">did</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sim</span> <span class="ow">in</span> <span class="n">hits_ite</span>
+        <span class="p">]</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_ahybrid_search_with_score_id_by_sort</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">filter_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rerank_on</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rerank_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Run a hybrid search with a provided sort clause."""</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">aensure_db_setup</span><span class="p">()</span>
+        <span class="n">encoded_filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">filter_dict</span><span class="o">=</span><span class="n">filter_dict</span><span class="p">)</span>
+        <span class="n">hybrid_limits</span> <span class="o">=</span> <span class="n">_make_hybrid_limits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hybrid_limit_factor</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">hybrid_reranked_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span><span class="o">.</span><span class="n">find_and_rerank</span><span class="p">(</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">encoded_filter</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">base_projection</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">hybrid_limits</span><span class="o">=</span><span class="n">hybrid_limits</span><span class="p">,</span>
+            <span class="n">include_scores</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">rerank_on</span><span class="o">=</span><span class="n">rerank_on</span><span class="p">,</span>
+            <span class="n">rerank_query</span><span class="o">=</span><span class="n">rerank_query</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">cast</span><span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                <span class="p">(</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">document</span><span class="p">,</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">similarity</span><span class="p">,</span>
+                    <span class="n">decoded_tuple</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">async</span> <span class="k">for</span> <span class="n">rrk_result</span> <span class="ow">in</span> <span class="n">hybrid_reranked_results</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">decoded_tuple</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_decode_astra_db_reranked_result</span><span class="p">(</span>
+                    <span class="n">rrk_result</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">]</span>
 
 <div class="viewcode-block" id="AstraDBVectorStore.similarity_search_with_embedding_by_vector">
 <a class="viewcode-back" href="../../astradb/vectorstores/langchain_astradb.vectorstores.AstraDBVectorStore.html#langchain_astradb.vectorstores.AstraDBVectorStore.similarity_search_with_embedding_by_vector">[docs]</a>
@@ -2780,7 +3340,7 @@
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
         <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">doc_emb_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_embedding_by_sort</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">doc_emb_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_find_with_embedding_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">doc_emb_list</span></div>
@@ -2806,7 +3366,7 @@
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
         <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">doc_emb_list</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_embedding_by_sort</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">doc_emb_list</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_find_with_embedding_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">doc_emb_list</span></div>
@@ -2833,6 +3393,18 @@
 <span class="sd">            (The query embedding vector, The list of (Document, embedding),</span>
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">"Method `similarity_search_with_embedding` was called on a vector "</span>
+                    <span class="s2">"store equipped with Hybrid capabilities. Since this method cannot "</span>
+                    <span class="s2">"make use of Hybrid search, the vector store will fall back to "</span>
+                    <span class="s2">"regular vector ANN similarity search."</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
             <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2842,7 +3414,7 @@
                 <span class="k">return</span> <span class="p">(</span><span class="n">query_embedding</span><span class="p">,</span> <span class="p">[])</span>
             <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">vector</span><span class="o">=</span><span class="n">query_embedding</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_search_with_embedding_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_similarity_find_with_embedding_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span>
         <span class="p">)</span></div>
 
@@ -2868,6 +3440,18 @@
 <span class="sd">            (The query embedding vector, The list of (Document, embedding),</span>
 <span class="sd">            the most similar to the query vector.).</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">"Method `asimilarity_search_with_embedding` was called on a vector "</span>
+                    <span class="s2">"store equipped with Hybrid capabilities. Since this method cannot "</span>
+                    <span class="s2">"make use of Hybrid search, the vector store will fall back to "</span>
+                    <span class="s2">"regular vector ANN similarity search."</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
             <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2877,42 +3461,12 @@
                 <span class="k">return</span> <span class="p">(</span><span class="n">query_embedding</span><span class="p">,</span> <span class="p">[])</span>
             <span class="n">sort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">vector</span><span class="o">=</span><span class="n">query_embedding</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_search_with_embedding_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asimilarity_find_with_embedding_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span>
         <span class="p">)</span></div>
 
 
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asimilarity_search_with_embedding_by_sort</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-        <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]]:</span>
-<span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            (query_embedding, List of (Document, embedding) most similar to the query).</span>
-<span class="sd">        """</span>
-        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
-            <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
-            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
-            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
-            <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="c1"># doc is a Document and emb is a list[float]:</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">sort_vec</span><span class="p">,</span>
-            <span class="p">[</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">))</span>
-                <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_search_with_embedding_by_sort</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_similarity_find_with_embedding_by_sort</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -2942,26 +3496,37 @@
             <span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asimilarity_search_with_score_id_by_sort</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asimilarity_find_with_embedding_by_sort</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause."""</span>
-        <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]]:</span>
+<span class="w">        </span><span class="sd">"""Run ANN search with a provided sort clause.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (query_embedding, List of (Document, embedding) most similar to the query).</span>
+<span class="sd">        """</span>
+        <span class="n">sort_vec</span><span class="p">,</span> <span class="n">hits_ite</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">arun_query</span><span class="p">(</span>
             <span class="n">n</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
             <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
-            <span class="n">include_similarity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_sort_vector</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="c1"># doc is a Document and sim is a float:</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">did</span><span class="p">))</span>
-            <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">did</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">sim</span> <span class="ow">in</span> <span class="n">hits_ite</span>
-        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">sort_vec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unable to retrieve the server-side embedding of the query."</span>
+            <span class="k">raise</span> <span class="n">AstraDBVectorStoreError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="c1"># doc is a Document and emb is a list[float]:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">sort_vec</span><span class="p">,</span>
+            <span class="p">[</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">emb</span><span class="p">))</span>
+                <span class="k">async</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hits_ite</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_run_mmr_query_by_sort</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_mmr_find_by_sort</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -2991,7 +3556,7 @@
             <span class="n">prefetch_hit_pairs</span><span class="o">=</span><span class="n">prefetch_hit_pairs</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun_mmr_query_by_sort</span><span class="p">(</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arun_mmr_find_by_sort</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sort</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -3070,7 +3635,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_query_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_find_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">),</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
@@ -3109,7 +3674,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_query_by_sort</span><span class="p">(</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_find_by_sort</span><span class="p">(</span>
             <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vector_sort</span><span class="p">(</span><span class="n">embedding</span><span class="p">),</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
@@ -3148,11 +3713,23 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">"Method `max_marginal_relevance_search` was called on a vector "</span>
+                    <span class="s2">"store equipped with Hybrid capabilities. Since this method cannot "</span>
+                    <span class="s2">"make use of Hybrid search, the vector store will fall back to "</span>
+                    <span class="s2">"regular vector ANN similarity search."</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
             <span class="c1"># this case goes directly to the "_by_sort" method</span>
             <span class="c1"># (and does its own filter normalization, as it cannot</span>
             <span class="c1">#  use the path for the with-embedding mmr querying)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_query_by_sort</span><span class="p">(</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_mmr_find_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">),</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
@@ -3201,11 +3778,23 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            The list of Documents selected by maximal marginal relevance.</span>
 <span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s2">"Method `amax_marginal_relevance_search` was called on a vector "</span>
+                    <span class="s2">"store equipped with Hybrid capabilities. Since this method cannot "</span>
+                    <span class="s2">"make use of Hybrid search, the vector store will fall back to "</span>
+                    <span class="s2">"regular vector ANN similarity search."</span>
+                <span class="p">),</span>
+                <span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">server_side_embeddings</span><span class="p">:</span>
             <span class="c1"># this case goes directly to the "_by_sort" method</span>
             <span class="c1"># (and does its own filter normalization, as it cannot</span>
             <span class="c1">#  use the path for the with-embedding mmr querying)</span>
-            <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_query_by_sort</span><span class="p">(</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_arun_mmr_find_by_sort</span><span class="p">(</span>
                 <span class="n">sort</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">document_codec</span><span class="o">.</span><span class="n">encode_vectorize_sort</span><span class="p">(</span><span class="n">query</span><span class="p">),</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>

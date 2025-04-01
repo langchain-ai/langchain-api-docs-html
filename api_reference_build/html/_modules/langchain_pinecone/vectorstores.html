@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,6 +222,7 @@
 <h1>Source code for langchain_pinecone.vectorstores</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
@@ -242,12 +243,15 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.embeddings</span><span class="w"> </span><span class="kn">import</span> <span class="n">Embeddings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.iter</span><span class="w"> </span><span class="kn">import</span> <span class="n">batch_iterate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.vectorstores</span><span class="w"> </span><span class="kn">import</span> <span class="n">VectorStore</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pinecone</span> <span class="k">as</span> <span class="n">PineconeClient</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pinecone</span> <span class="k">as</span> <span class="n">PineconeClient</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">PineconeAsyncio</span> <span class="k">as</span> <span class="n">PineconeAsyncioClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">_Index</span><span class="p">,</span> <span class="n">_IndexAsyncio</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pinecone.data.index</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApplyResult</span>  <span class="c1"># type: ignore[import-untyped]</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_pinecone._utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistanceStrategy</span><span class="p">,</span> <span class="n">maximal_marginal_relevance</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">pinecone</span><span class="w"> </span><span class="kn">import</span> <span class="n">Index</span>
+    <span class="k">pass</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -393,6 +397,9 @@
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
+    <span class="n">_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_Index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_async_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_IndexAsyncio</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="PineconeVectorStore.__init__">
 <a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -422,7 +429,12 @@
 
         <span class="k">if</span> <span class="n">index</span><span class="p">:</span>
             <span class="c1"># supports old way of initializing externally</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">_IndexAsyncio</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_async_index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_index_host</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">host</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pinecone_api_key</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">api_key</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># all internal initialization</span>
             <span class="n">_pinecone_api_key</span> <span class="o">=</span> <span class="p">(</span>
@@ -433,6 +445,7 @@
                     <span class="s2">"Pinecone API key must be provided in either `pinecone_api_key` "</span>
                     <span class="s2">"or `PINECONE_API_KEY` environment variable"</span>
                 <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pinecone_api_key</span> <span class="o">=</span> <span class="n">_pinecone_api_key</span>
 
             <span class="n">_index_name</span> <span class="o">=</span> <span class="n">index_name</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"PINECONE_INDEX_NAME"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">_index_name</span><span class="p">:</span>
@@ -440,11 +453,35 @@
                     <span class="s2">"Pinecone index name must be provided in either `index_name` "</span>
                     <span class="s2">"or `PINECONE_INDEX_NAME` environment variable"</span>
                 <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pinecone_api_key</span> <span class="o">=</span> <span class="n">_pinecone_api_key</span>
 
-            <span class="c1"># needs</span>
             <span class="n">client</span> <span class="o">=</span> <span class="n">PineconeClient</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">_pinecone_api_key</span><span class="p">,</span> <span class="n">source_tag</span><span class="o">=</span><span class="s2">"langchain"</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">_index_name</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">_index_name</span><span class="p">)</span></div>
 
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Index</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Get synchronous index instance."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_pinecone_api_key"</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No Pinecone API key available"</span><span class="p">)</span>
+            <span class="n">client</span> <span class="o">=</span> <span class="n">PineconeClient</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pinecone_api_key</span><span class="p">,</span> <span class="n">source_tag</span><span class="o">=</span><span class="s2">"langchain"</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_index_host</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">async_index</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_IndexAsyncio</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Get asynchronous index instance."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_index_host"</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No index host available"</span><span class="p">)</span>
+            <span class="n">client</span> <span class="o">=</span> <span class="n">PineconeAsyncioClient</span><span class="p">(</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pinecone_api_key</span><span class="p">,</span> <span class="n">source_tag</span><span class="o">=</span><span class="s2">"langchain"</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_async_index</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">IndexAsyncio</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">host</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_index</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Embeddings</span><span class="p">]:</span>
@@ -462,7 +499,6 @@
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
         <span class="n">embedding_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">async_req</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -479,7 +515,6 @@
 <span class="sd">            namespace: Optional pinecone namespace to add the texts to.</span>
 <span class="sd">            batch_size: Batch size to use when adding the texts to the vectorstore.</span>
 <span class="sd">            embedding_chunk_size: Chunk size to use when embedding the texts.</span>
-<span class="sd">            async_req: Whether runs asynchronously.</span>
 <span class="sd">            id_prefix: Optional string to use as an ID prefix when upserting vectors.</span>
 
 <span class="sd">        Returns:</span>
@@ -501,32 +536,88 @@
 
         <span class="c1"># For loops to avoid memory issues and optimize when using HTTP based embeddings</span>
         <span class="c1"># The first loop runs the embeddings, it benefits when using OpenAI embeddings</span>
-        <span class="c1"># The second loops runs the pinecone upsert asynchronously.</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">texts</span><span class="p">),</span> <span class="n">embedding_chunk_size</span><span class="p">):</span>
             <span class="n">chunk_texts</span> <span class="o">=</span> <span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">chunk_ids</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">chunk_metadatas</span> <span class="o">=</span> <span class="n">metadatas</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span><span class="n">chunk_texts</span><span class="p">)</span>
+            <span class="n">vector_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">chunk_ids</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">,</span> <span class="n">chunk_metadatas</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
+                <span class="n">vectors</span><span class="o">=</span><span class="n">vector_tuples</span><span class="p">,</span>
+                <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.aadd_texts">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.aadd_texts">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aadd_texts</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">embedding_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Asynchronously run more texts through the embeddings and add to the vectorstore.</span>
+
+<span class="sd">        Upsert optimization is done by chunking the embeddings and upserting them.</span>
+<span class="sd">        This is done to avoid memory issues and optimize using HTTP based embeddings.</span>
+<span class="sd">        For OpenAI embeddings, use pool_threads&gt;4 when constructing the pinecone.Index,</span>
+<span class="sd">        embedding_chunk_size&gt;1000 and batch_size~64 for best performance.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            texts: Iterable of strings to add to the vectorstore.</span>
+<span class="sd">            metadatas: Optional list of metadatas associated with the texts.</span>
+<span class="sd">            ids: Optional list of ids to associate with the texts.</span>
+<span class="sd">            namespace: Optional pinecone namespace to add the texts to.</span>
+<span class="sd">            batch_size: Batch size to use when adding the texts to the vectorstore.</span>
+<span class="sd">            embedding_chunk_size: Chunk size to use when embedding the texts.</span>
+<span class="sd">            id_prefix: Optional string to use as an ID prefix when upserting vectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of ids from adding the texts into the vectorstore.</span>
+
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
+
+        <span class="n">texts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">ids</span> <span class="ow">or</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">id_prefix</span><span class="p">:</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">id_prefix</span> <span class="o">+</span> <span class="s2">"#"</span> <span class="o">+</span> <span class="nb">id</span> <span class="k">if</span> <span class="n">id_prefix</span> <span class="o">+</span> <span class="s2">"#"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">id</span> <span class="k">else</span> <span class="nb">id</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span>
+            <span class="p">]</span>
+        <span class="n">metadatas</span> <span class="o">=</span> <span class="n">metadatas</span> <span class="ow">or</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">metadatas</span><span class="p">,</span> <span class="n">texts</span><span class="p">):</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+
+        <span class="c1"># For loops to avoid memory issues and optimize when using HTTP based embeddings</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">texts</span><span class="p">),</span> <span class="n">embedding_chunk_size</span><span class="p">):</span>
+            <span class="n">chunk_texts</span> <span class="o">=</span> <span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
+            <span class="n">chunk_ids</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
+            <span class="n">chunk_metadatas</span> <span class="o">=</span> <span class="n">metadatas</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">aembed_documents</span><span class="p">(</span><span class="n">chunk_texts</span><span class="p">)</span>
             <span class="n">vector_tuples</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chunk_ids</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">,</span> <span class="n">chunk_metadatas</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">async_req</span><span class="p">:</span>
-                <span class="c1"># Runs the pinecone upsert asynchronously.</span>
-                <span class="n">async_res</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
+
+            <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="c1"># Split into batches and upsert asynchronously</span>
+                <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">batch_vector_tuples</span> <span class="ow">in</span> <span class="n">batch_iterate</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">vector_tuples</span><span class="p">):</span>
+                    <span class="n">task</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
                         <span class="n">vectors</span><span class="o">=</span><span class="n">batch_vector_tuples</span><span class="p">,</span>
                         <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
-                        <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
                         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">batch_vector_tuples</span> <span class="ow">in</span> <span class="n">batch_iterate</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">vector_tuples</span><span class="p">)</span>
-                <span class="p">]</span>
-                <span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">async_res</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
-                    <span class="n">vectors</span><span class="o">=</span><span class="n">vector_tuples</span><span class="p">,</span>
-                    <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
-                    <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-                <span class="p">)</span>
+                    <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
+                <span class="c1"># Wait for all upserts to complete</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ids</span></div>
 
@@ -556,6 +647,34 @@
         <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="PineconeVectorStore.asimilarity_search_with_score">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.asimilarity_search_with_score">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_with_score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Asynchronously return pinecone documents most similar to query, along with scores.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query: Text to look up documents similar to.</span>
+<span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
+<span class="sd">            filter: Dictionary of argument(s) to filter on metadata</span>
+<span class="sd">            namespace: Namespace to search in. Default will search in '' namespace.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of Documents most similar to the query and score for each</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">asimilarity_search_by_vector_with_score</span><span class="p">(</span>
+            <span class="p">(</span><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)),</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="PineconeVectorStore.similarity_search_by_vector_with_score">
 <a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.similarity_search_by_vector_with_score">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">similarity_search_by_vector_with_score</span><span class="p">(</span>
@@ -571,13 +690,56 @@
         <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
             <span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
             <span class="n">top_k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">include_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
             <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">ApplyResult</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Received asynchronous result from synchronous call."</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">]:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"metadata"</span><span class="p">]</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="p">)</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"score"</span><span class="p">]</span>
+                <span class="n">docs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">Document</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span> <span class="n">page_content</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">),</span> <span class="n">score</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Found document with no `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="si">}</span><span class="s2">` key. Skipping."</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">docs</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.asimilarity_search_by_vector_with_score">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.asimilarity_search_by_vector_with_score">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search_by_vector_with_score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Return pinecone documents most similar to embedding, along with scores asynchronously."""</span>
+        <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
+
+        <span class="n">docs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">idx</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+                <span class="n">top_k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">include_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">]:</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"metadata"</span><span class="p">]</span>
             <span class="nb">id</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span>
@@ -616,6 +778,22 @@
 <span class="sd">            List of Documents most similar to the query and score for each</span>
 <span class="sd">        """</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_with_score</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_and_scores</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.asimilarity_search">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.asimilarity_search">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">asimilarity_search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+        <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">asimilarity_search_with_score</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_and_scores</span><span class="p">]</span></div>
@@ -681,14 +859,16 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">vector</span><span class="o">=</span><span class="p">[</span><span class="n">embedding</span><span class="p">],</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
             <span class="n">top_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
             <span class="n">include_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">include_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
             <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">ApplyResult</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Received asynchronous result from synchronous call."</span><span class="p">)</span>
         <span class="n">mmr_selected</span> <span class="o">=</span> <span class="n">maximal_marginal_relevance</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">embedding</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">]],</span>
@@ -698,6 +878,63 @@
         <span class="n">selected</span> <span class="o">=</span> <span class="p">[</span><span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s2">"metadata"</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mmr_selected</span><span class="p">]</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="p">)),</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">selected</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.amax_marginal_relevance_search_by_vector">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.amax_marginal_relevance_search_by_vector">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amax_marginal_relevance_search_by_vector</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">fetch_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return docs selected using the maximal marginal relevance asynchronously.</span>
+
+<span class="sd">        Maximal marginal relevance optimizes for similarity to query AND diversity</span>
+<span class="sd">        among selected documents.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            embedding: Embedding to look up documents similar to.</span>
+<span class="sd">            k: Number of Documents to return. Defaults to 4.</span>
+<span class="sd">            fetch_k: Number of Documents to fetch to pass to MMR algorithm.</span>
+<span class="sd">            lambda_mult: Number between 0 and 1 that determines the degree</span>
+<span class="sd">                        of diversity among the results with 0 corresponding</span>
+<span class="sd">                        to maximum diversity and 1 to minimum diversity.</span>
+<span class="sd">                        Defaults to 0.5.</span>
+<span class="sd">            filter: Dictionary of argument(s) to filter on metadata</span>
+<span class="sd">            namespace: Namespace to search in. Default will search in '' namespace.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of Documents selected by maximal marginal relevance.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
+
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">idx</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">vector</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+                <span class="n">top_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
+                <span class="n">include_values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">include_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">mmr_selected</span> <span class="o">=</span> <span class="n">maximal_marginal_relevance</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">embedding</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">]],</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[</span><span class="n">results</span><span class="p">[</span><span class="s2">"matches"</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s2">"metadata"</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mmr_selected</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_key</span><span class="p">),</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">metadata</span> <span class="ow">in</span> <span class="n">selected</span>
         <span class="p">]</span></div>
 
@@ -739,6 +976,29 @@
         <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="PineconeVectorStore.amax_marginal_relevance_search">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.amax_marginal_relevance_search">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">amax_marginal_relevance_search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">fetch_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+        <span class="n">embedding</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">aembed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">amax_marginal_relevance_search_by_vector</span><span class="p">(</span>
+            <span class="n">embedding</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
+            <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="PineconeVectorStore.get_pinecone_index">
 <a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.get_pinecone_index">[docs]</a>
     <span class="nd">@classmethod</span>
@@ -748,7 +1008,7 @@
         <span class="n">pool_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">pinecone_api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Index</span><span class="p">:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Index</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Return a Pinecone Index instance.</span>
 
 <span class="sd">        Args:</span>
@@ -764,7 +1024,7 @@
         <span class="n">indexes</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">list_indexes</span><span class="p">()</span>
         <span class="n">index_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indexes</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="s2">"indexes"</span><span class="p">]]</span>
 
-        <span class="k">if</span> <span class="n">index_name</span> <span class="ow">in</span> <span class="n">index_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">index_name</span> <span class="ow">and</span> <span class="n">index_name</span> <span class="ow">in</span> <span class="n">index_names</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">index_name</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">index_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -796,7 +1056,6 @@
         <span class="n">upsert_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pool_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">embeddings_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
-        <span class="n">async_req</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -838,10 +1097,50 @@
             <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="n">embedding_chunk_size</span><span class="o">=</span><span class="n">embeddings_chunk_size</span><span class="p">,</span>
-            <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
             <span class="n">id_prefix</span><span class="o">=</span><span class="n">id_prefix</span><span class="p">,</span>
             <span class="o">**</span><span class="p">(</span><span class="n">upsert_kwargs</span> <span class="ow">or</span> <span class="p">{}),</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="n">pinecone</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.afrom_texts">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.afrom_texts">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">afrom_texts</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PineconeVectorStore</span><span class="p">],</span>
+        <span class="n">texts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">embedding</span><span class="p">:</span> <span class="n">Embeddings</span><span class="p">,</span>
+        <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">text_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">index_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">upsert_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">embeddings_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PineconeVectorStore</span><span class="p">:</span>
+        <span class="n">pinecone</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">index_name</span><span class="o">=</span><span class="n">index_name</span><span class="p">,</span>
+            <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+            <span class="n">text_key</span><span class="o">=</span><span class="n">text_key</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">pinecone</span><span class="o">.</span><span class="n">aadd_texts</span><span class="p">(</span>
+            <span class="n">texts</span><span class="p">,</span>
+            <span class="n">metadatas</span><span class="o">=</span><span class="n">metadatas</span><span class="p">,</span>
+            <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+            <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">embedding_chunk_size</span><span class="o">=</span><span class="n">embeddings_chunk_size</span><span class="p">,</span>
+            <span class="n">id_prefix</span><span class="o">=</span><span class="n">id_prefix</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">(</span><span class="n">upsert_kwargs</span> <span class="ow">or</span> <span class="p">{}),</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">pinecone</span></div>
 
 
@@ -883,14 +1182,47 @@
             <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
 
         <span class="k">if</span> <span class="n">delete_all</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">delete_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">delete_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">chunk_size</span> <span class="o">=</span> <span class="mi">1000</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">):</span>
                 <span class="n">chunk</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Either ids, delete_all, or filter must be provided."</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="PineconeVectorStore.adelete">
+<a class="viewcode-back" href="../../pinecone/vectorstores/langchain_pinecone.vectorstores.PineconeVectorStore.html#langchain_pinecone.vectorstores.PineconeVectorStore.adelete">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adelete</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">delete_all</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">namespace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">namespace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">namespace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_namespace</span>
+
+        <span class="k">if</span> <span class="n">delete_all</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">idx</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">delete_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="mi">1000</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">):</span>
+                    <span class="n">chunk</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">]</span>
+                    <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">chunk</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_index</span> <span class="k">as</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">idx</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Either ids, delete_all, or filter must be provided."</span><span class="p">)</span>
 

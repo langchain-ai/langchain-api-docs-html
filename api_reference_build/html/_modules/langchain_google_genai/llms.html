@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,6 +222,8 @@
 <h1>Source code for langchain_google_genai.llms</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">difflib</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_close_matches</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -238,6 +240,8 @@
     <span class="n">_BaseGoogleGenerativeAI</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_genai.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGoogleGenerativeAI</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="GoogleGenerativeAI">
@@ -256,6 +260,28 @@
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
         <span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Needed for arg validation."""</span>
+        <span class="c1"># Get all valid field names, including aliases</span>
+        <span class="n">valid_fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">valid_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field_info</span><span class="p">,</span> <span class="s2">"alias"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field_info</span><span class="o">.</span><span class="n">alias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">valid_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">field_info</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span>
+
+        <span class="c1"># Check for unrecognized arguments</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_fields</span><span class="p">:</span>
+                <span class="n">suggestions</span> <span class="o">=</span> <span class="n">get_close_matches</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">valid_fields</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">suggestion</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">" Did you mean: '</span><span class="si">{</span><span class="n">suggestions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">'?"</span> <span class="k">if</span> <span class="n">suggestions</span> <span class="k">else</span> <span class="s2">""</span>
+                <span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Unexpected argument '</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">' "</span>
+                    <span class="sa">f</span><span class="s2">"provided to GoogleGenerativeAI.</span><span class="si">{</span><span class="n">suggestion</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -238,7 +238,7 @@
     <span class="n">TypeVar</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">InsertManyException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionInsertManyException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.stores</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseStore</span><span class="p">,</span> <span class="n">ByteStore</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
@@ -253,8 +253,7 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="n">TokenProvider</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDB</span><span class="p">,</span> <span class="n">AsyncAstraDB</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.results</span><span class="w"> </span><span class="kn">import</span> <span class="n">UpdateResult</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.results</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionUpdateResult</span>
 
 <span class="n">V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"V"</span><span class="p">)</span>
 
@@ -345,8 +344,8 @@
                 <span class="n">concurrency</span><span class="o">=</span><span class="n">MAX_CONCURRENT_DOCUMENT_INSERTIONS</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">except</span> <span class="n">InsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-            <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">partial_result</span><span class="o">.</span><span class="n">inserted_ids</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">CollectionInsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">inserted_ids</span><span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">document</span><span class="p">[</span><span class="s2">"_id"</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">document</span> <span class="ow">in</span> <span class="n">documents_to_insert</span>
@@ -365,7 +364,9 @@
                 <span class="n">max_workers</span><span class="o">=</span><span class="n">MAX_CONCURRENT_DOCUMENT_REPLACEMENTS</span>
             <span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
 
-                <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span><span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">UpdateResult</span><span class="p">:</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
+                    <span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionUpdateResult</span><span class="p">:</span>
                     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">replace_one</span><span class="p">(</span>
                         <span class="p">{</span><span class="s2">"_id"</span><span class="p">:</span> <span class="n">document</span><span class="p">[</span><span class="s2">"_id"</span><span class="p">]},</span>
                         <span class="n">document</span><span class="p">,</span>
@@ -404,8 +405,8 @@
                 <span class="n">ordered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">except</span> <span class="n">InsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-            <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">partial_result</span><span class="o">.</span><span class="n">inserted_ids</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">CollectionInsertManyException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">inserted_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">inserted_ids</span><span class="p">)</span>
             <span class="n">ids_to_replace</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">document</span><span class="p">[</span><span class="s2">"_id"</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">document</span> <span class="ow">in</span> <span class="n">documents_to_insert</span>
@@ -424,7 +425,9 @@
 
             <span class="n">_async_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_collection</span>
 
-            <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span><span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">UpdateResult</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_replace_document</span><span class="p">(</span>
+                <span class="n">document</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CollectionUpdateResult</span><span class="p">:</span>
                 <span class="k">async</span> <span class="k">with</span> <span class="n">sem</span><span class="p">:</span>
                     <span class="k">return</span> <span class="k">await</span> <span class="n">_async_collection</span><span class="o">.</span><span class="n">replace_one</span><span class="p">(</span>
                         <span class="p">{</span><span class="s2">"_id"</span><span class="p">:</span> <span class="n">document</span><span class="p">[</span><span class="s2">"_id"</span><span class="p">]},</span>
@@ -505,8 +508,6 @@
         <span class="n">pre_delete_collection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">setup_mode</span><span class="p">:</span> <span class="n">SetupMode</span> <span class="o">=</span> <span class="n">SetupMode</span><span class="o">.</span><span class="n">SYNC</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""BaseStore implementation using DataStax AstraDB as the underlying store.</span>
 
@@ -547,16 +548,6 @@
 <span class="sd">                or just strings if no version info is provided, which, if supplied,</span>
 <span class="sd">                becomes the leading part of the User-Agent string in all API requests</span>
 <span class="sd">                related to this component.</span>
-<span class="sd">            astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
-<span class="sd">            async_astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AsyncAstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
@@ -568,8 +559,6 @@
             <span class="n">pre_delete_collection</span><span class="o">=</span><span class="n">pre_delete_collection</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">COMPONENT_NAME_STORE</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -605,8 +594,6 @@
         <span class="n">pre_delete_collection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">setup_mode</span><span class="p">:</span> <span class="n">SetupMode</span> <span class="o">=</span> <span class="n">SetupMode</span><span class="o">.</span><span class="n">SYNC</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""ByteStore implementation using DataStax AstraDB as the underlying store.</span>
 
@@ -644,16 +631,6 @@
 <span class="sd">                or just strings if no version info is provided, which, if supplied,</span>
 <span class="sd">                becomes the leading part of the User-Agent string in all API requests</span>
 <span class="sd">                related to this component.</span>
-<span class="sd">            astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
-<span class="sd">            async_astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AsyncAstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
 <span class="sd">        """</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
@@ -665,8 +642,6 @@
             <span class="n">pre_delete_collection</span><span class="o">=</span><span class="n">pre_delete_collection</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">COMPONENT_NAME_BYTESTORE</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 

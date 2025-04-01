@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -227,6 +227,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">difflib</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_close_matches</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
@@ -1117,6 +1118,28 @@
 <span class="sd">    (e.g. what content to cache) and enjoy guaranteed cost savings. Format: </span>
 <span class="sd">    ``cachedContents/{cachedContent}``.</span>
 <span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Needed for arg validation."""</span>
+        <span class="c1"># Get all valid field names, including aliases</span>
+        <span class="n">valid_fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">valid_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">field_info</span><span class="p">,</span> <span class="s2">"alias"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field_info</span><span class="o">.</span><span class="n">alias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">valid_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">field_info</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span>
+
+        <span class="c1"># Check for unrecognized arguments</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_fields</span><span class="p">:</span>
+                <span class="n">suggestions</span> <span class="o">=</span> <span class="n">get_close_matches</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">valid_fields</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">suggestion</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">" Did you mean: '</span><span class="si">{</span><span class="n">suggestions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">'?"</span> <span class="k">if</span> <span class="n">suggestions</span> <span class="k">else</span> <span class="s2">""</span>
+                <span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Unexpected argument '</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">' "</span>
+                    <span class="sa">f</span><span class="s2">"provided to ChatGoogleGenerativeAI.</span><span class="si">{</span><span class="n">suggestion</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
         <span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

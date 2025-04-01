@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1503,8 +1503,21 @@
                 <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">batch_insert_list</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="n">pks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">primary_keys</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">MilvusException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">first_entity</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="n">batch_insert_list</span><span class="p">:</span>
+                    <span class="n">first_entity</span> <span class="o">=</span> <span class="n">batch_insert_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">log_entity</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">first_entity</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                        <span class="n">log_entity</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">v</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span><span class="si">}</span><span class="s2">... (truncated, total len: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">log_entity</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-                    <span class="s2">"Failed to insert batch starting at entity: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">total_count</span>
+                    <span class="s2">"Failed to insert batch starting at entity: </span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">. "</span>
+                    <span class="s2">"First entity data: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">i</span><span class="p">,</span>
+                    <span class="n">total_count</span><span class="p">,</span>
+                    <span class="n">log_entity</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">raise</span> <span class="n">e</span>
         <span class="k">return</span> <span class="n">pks</span></div>

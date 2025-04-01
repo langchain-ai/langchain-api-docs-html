@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -238,13 +238,26 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">langchain_core</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncDatabase</span><span class="p">,</span> <span class="n">DataAPIClient</span><span class="p">,</span> <span class="n">Database</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.admin</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_api_endpoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.api_options</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIOptions</span><span class="p">,</span> <span class="n">SerdesOptions</span><span class="p">,</span> <span class="n">TimeoutOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EmbeddingAPIKeyHeaderProvider</span><span class="p">,</span>
+    <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span>
+    <span class="n">RerankingAPIKeyHeaderProvider</span><span class="p">,</span>
+    <span class="n">RerankingHeadersProvider</span><span class="p">,</span>
+    <span class="n">StaticTokenProvider</span><span class="p">,</span>
+    <span class="n">TokenProvider</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataAPIException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataAPIException</span><span class="p">,</span> <span class="n">DataAPIResponseException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CollectionDefinition</span><span class="p">,</span>
+    <span class="n">CollectionLexicalOptions</span><span class="p">,</span>
+    <span class="n">CollectionRerankOptions</span><span class="p">,</span>
+    <span class="n">RerankServiceOptions</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.authentication</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmbeddingHeadersProvider</span><span class="p">,</span> <span class="n">TokenProvider</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDB</span><span class="p">,</span> <span class="n">AsyncAstraDB</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionDescriptor</span><span class="p">,</span> <span class="n">CollectionVectorServiceOptions</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.info</span><span class="w"> </span><span class="kn">import</span> <span class="n">CollectionDescriptor</span><span class="p">,</span> <span class="n">VectorServiceOptions</span>
 
 <span class="n">TOKEN_ENV_VAR</span> <span class="o">=</span> <span class="s2">"ASTRA_DB_APPLICATION_TOKEN"</span>  <span class="c1"># noqa: S105</span>
 <span class="n">API_ENDPOINT_ENV_VAR</span> <span class="o">=</span> <span class="s2">"ASTRA_DB_API_ENDPOINT"</span>
@@ -282,8 +295,26 @@
 <span class="c1"># Thread/coroutine count for one-doc-at-a-time deletes:</span>
 <span class="n">MAX_CONCURRENT_DOCUMENT_DELETIONS</span> <span class="o">=</span> <span class="mi">20</span>
 
+<span class="c1"># Hardcoded here for the time being</span>
+<span class="n">ASTRA_DB_REQUEST_TIMEOUT_MS</span> <span class="o">=</span> <span class="mi">30000</span>
+
 <span class="c1"># Amount of (max) number of documents for surveying a collection</span>
 <span class="n">SURVEY_NUMBER_OF_DOCUMENTS</span> <span class="o">=</span> <span class="mi">15</span>
+
+<span class="c1"># Data API error code for 'collection exists and it's different'</span>
+<span class="n">EXISTING_COLLECTION_ERROR_CODE</span> <span class="o">=</span> <span class="s2">"EXISTING_COLLECTION_DIFFERENT_SETTINGS"</span>
+
+<span class="n">COLLECTION_DEFAULTS_MISMATCH_ERROR_MESSAGE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"Astra DB collection '</span><span class="si">{collection_name}</span><span class="s2">' was "</span>
+    <span class="s2">"found to be configured differently than requested "</span>
+    <span class="s2">"by the vector store creation. This is resulting "</span>
+    <span class="s2">"in a hard exception from the Data API (accessible as "</span>
+    <span class="s2">"`&lt;this-exception&gt;.__cause__`). Please see "</span>
+    <span class="s2">"https://github.com/langchain-ai/langchain-datastax"</span>
+    <span class="s2">"/blob/main/libs/astradb/README.md#collection-"</span>
+    <span class="s2">"defaults-mismatch for more context about this "</span>
+    <span class="s2">"issue and possible mitigations."</span>
+<span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 
@@ -299,6 +330,35 @@
 
 
 
+<div class="viewcode-block" id="HybridSearchMode">
+<a class="viewcode-back" href="../../../astradb/utils/langchain_astradb.utils.astradb.HybridSearchMode.html#langchain_astradb.utils.astradb.HybridSearchMode">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HybridSearchMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Hybrid Search mode for a Vector Store collection."""</span>
+
+    <span class="n">DEFAULT</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">ON</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">OFF</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unpack_indexing_policy</span><span class="p">(</span>
+    <span class="n">indexing_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""{} or None =&gt; (None, None); {"a": "b"} =&gt; ("a", "b"); multikey =&gt; error."""</span>
+    <span class="k">if</span> <span class="n">indexing_dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indexing_dict</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Unexpected indexing policy provided: "</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">indexing_dict</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">indexing_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_api_exception_error_codes</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="n">DataAPIException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">DataAPIResponseException</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">ed</span><span class="o">.</span><span class="n">error_code</span> <span class="k">for</span> <span class="n">ed</span> <span class="ow">in</span> <span class="n">exc</span><span class="o">.</span><span class="n">error_descriptors</span><span class="p">}</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_survey_collection</span><span class="p">(</span>
     <span class="n">collection_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -308,8 +368,6 @@
     <span class="n">environment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">component_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CollectionDescriptor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">    </span><span class="sd">"""Return the collection descriptor (if found) and a sample of documents."""</span>
     <span class="n">_astra_db_env</span> <span class="o">=</span> <span class="n">_AstraDBEnvironment</span><span class="p">(</span>
@@ -319,8 +377,6 @@
         <span class="n">environment</span><span class="o">=</span><span class="n">environment</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
         <span class="n">component_name</span><span class="o">=</span><span class="n">component_name</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">descriptors</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">coll_d</span>
@@ -361,6 +417,18 @@
     <span class="k">return</span> <span class="n">parsed_endpoint</span><span class="o">.</span><span class="n">environment</span>
 
 
+<div class="viewcode-block" id="AstraDBError">
+<a class="viewcode-back" href="../../../astradb/utils/langchain_astradb.utils.astradb.AstraDBError.html#langchain_astradb.utils.astradb.AstraDBError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AstraDBError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""An exception during Astra DB- (Data API-) related operations.</span>
+
+<span class="sd">    This exception represents any operational exception occurring while</span>
+<span class="sd">    working with the generic set-up and/or provisioning of components backed</span>
+<span class="sd">    by Astra DB (in particular, collection creation and inspection).</span>
+<span class="sd">    """</span></div>
+
+
+
 <span class="k">class</span><span class="w"> </span><span class="nc">_AstraDBEnvironment</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -371,10 +439,8 @@
         <span class="n">environment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">component_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">TokenProvider</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">:</span> <span class="n">TokenProvider</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">keyspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">environment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
@@ -383,109 +449,34 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">:</span> <span class="n">Database</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">async_database</span><span class="p">:</span> <span class="n">AsyncDatabase</span>
 
-        <span class="k">if</span> <span class="n">astra_db_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">async_astra_db_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">api_endpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">environment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"You cannot pass 'astra_db_client' or 'async_astra_db_client' "</span>
-                    <span class="s2">"to AstraDBEnvironment if passing 'token', 'api_endpoint' or "</span>
-                    <span class="s2">"'environment'."</span>
-                <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="n">_astra_db</span> <span class="o">=</span> <span class="n">astra_db_client</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">astra_db_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="n">_async_astra_db</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">async_astra_db_client</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">async_astra_db_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">"Attempting to fetch token from environment "</span> <span class="s2">"variable '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
+                <span class="n">TOKEN_ENV_VAR</span><span class="p">,</span>
             <span class="p">)</span>
-
-            <span class="c1"># deprecation of the 'core classes' in constructor and conversion</span>
-            <span class="c1"># to token/endpoint(-environment) based init, with checks</span>
-            <span class="c1"># at least one of the two (core) clients is not None:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="s2">"Initializing Astra DB LangChain classes by passing "</span>
-                    <span class="s2">"AstraDB/AsyncAstraDB ready clients is deprecated starting "</span>
-                    <span class="s2">"with langchain-astradb==0.3.5. Please switch to passing "</span>
-                    <span class="s2">"'token', 'api_endpoint' (and optionally 'environment') "</span>
-                    <span class="s2">"instead."</span>
-                <span class="p">),</span>
-                <span class="ne">DeprecationWarning</span><span class="p">,</span>
-                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">_tokens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="n">klient</span><span class="o">.</span><span class="n">token</span>
-                    <span class="k">for</span> <span class="n">klient</span> <span class="ow">in</span> <span class="p">[</span><span class="n">astra_db_client</span><span class="p">,</span> <span class="n">async_astra_db_client</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">klient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
-            <span class="n">_api_endpoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="n">klient</span><span class="o">.</span><span class="n">api_endpoint</span>
-                    <span class="k">for</span> <span class="n">klient</span> <span class="ow">in</span> <span class="p">[</span><span class="n">astra_db_client</span><span class="p">,</span> <span class="n">async_astra_db_client</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">klient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
-            <span class="n">_keyspaces</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="n">klient</span><span class="o">.</span><span class="n">namespace</span>
-                    <span class="k">for</span> <span class="n">klient</span> <span class="ow">in</span> <span class="p">[</span><span class="n">astra_db_client</span><span class="p">,</span> <span class="n">async_astra_db_client</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">klient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="p">}</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_tokens</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"Conflicting tokens found in the sync and async AstraDB "</span>
-                    <span class="s2">"constructor parameters. Please check the tokens and "</span>
-                    <span class="s2">"ensure they match."</span>
-                <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_api_endpoints</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"Conflicting API endpoints found in the sync and async "</span>
-                    <span class="s2">"AstraDB constructor parameters. Please check the tokens "</span>
-                    <span class="s2">"and ensure they match."</span>
-                <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_keyspaces</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"Conflicting keyspaces found in the sync and async "</span>
-                    <span class="s2">"AstraDB constructor parameters' 'namespace' attributes. "</span>
-                    <span class="s2">"Please check the keyspaces and ensure they match."</span>
-                <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="c1"># all good: these are 1-element lists here</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span> <span class="o">=</span> <span class="n">_api_endpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">keyspace</span> <span class="o">=</span> <span class="n">_keyspaces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">StaticTokenProvider</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">TOKEN_ENV_VAR</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">TokenProvider</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">TokenProvider</span> <span class="o">|</span> <span class="kc">None</span>
-            <span class="c1"># secrets-based initialization</span>
-            <span class="k">if</span> <span class="n">token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">"Attempting to fetch token from environment "</span> <span class="s2">"variable '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
-                    <span class="n">TOKEN_ENV_VAR</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">_token</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">TOKEN_ENV_VAR</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">_token</span> <span class="o">=</span> <span class="n">token</span>
-            <span class="k">if</span> <span class="n">api_endpoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">"Attempting to fetch API endpoint from environment "</span>
-                    <span class="s2">"variable '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
-                    <span class="n">API_ENDPOINT_ENV_VAR</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">_api_endpoint</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">API_ENDPOINT_ENV_VAR</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">_api_endpoint</span> <span class="o">=</span> <span class="n">api_endpoint</span>
-            <span class="k">if</span> <span class="n">keyspace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">_keyspace</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">KEYSPACE_ENV_VAR</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">_keyspace</span> <span class="o">=</span> <span class="n">keyspace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">StaticTokenProvider</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">token</span> <span class="o">=</span> <span class="n">_token</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span> <span class="o">=</span> <span class="n">_api_endpoint</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">keyspace</span> <span class="o">=</span> <span class="n">_keyspace</span>
+        <span class="k">if</span> <span class="n">api_endpoint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">"Attempting to fetch API endpoint from environment "</span> <span class="s2">"variable '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
+                <span class="n">API_ENDPOINT_ENV_VAR</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">API_ENDPOINT_ENV_VAR</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span> <span class="o">=</span> <span class="n">api_endpoint</span>
+
+        <span class="k">if</span> <span class="n">keyspace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">"Attempting to fetch keyspace from environment "</span> <span class="s2">"variable '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
+                <span class="n">KEYSPACE_ENV_VAR</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">keyspace</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="n">KEYSPACE_ENV_VAR</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">keyspace</span> <span class="o">=</span> <span class="n">keyspace</span>
 
         <span class="c1"># init parameters are normalized to self.{token, api_endpoint, keyspace}.</span>
         <span class="c1"># Proceed. Keyspace and token can be None (resp. on Astra DB and non-Astra)</span>
@@ -518,17 +509,23 @@
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">cpair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">cpair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">]</span>
-        <span class="n">full_callers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_callers</span> <span class="o">=</span> <span class="p">[</span>
             <span class="o">*</span><span class="n">norm_ext_callers</span><span class="p">,</span>
             <span class="n">LC_CORE_CALLER</span><span class="p">,</span>
             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_name</span><span class="p">,</span> <span class="n">LC_ASTRADB_VERSION</span><span class="p">),</span>
         <span class="p">]</span>
-
-        <span class="c1"># create the callers</span>
+        <span class="c1"># create the client (set to return plain lists for vectors)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data_api_client</span> <span class="o">=</span> <span class="n">DataAPIClient</span><span class="p">(</span>
             <span class="n">environment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">environment</span><span class="p">,</span>
-            <span class="n">callers</span><span class="o">=</span><span class="n">full_callers</span><span class="p">,</span>
+            <span class="n">api_options</span><span class="o">=</span><span class="n">APIOptions</span><span class="p">(</span>
+                <span class="n">callers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_callers</span><span class="p">,</span>
+                <span class="n">serdes_options</span><span class="o">=</span><span class="n">SerdesOptions</span><span class="p">(</span><span class="n">custom_datatypes_in_reading</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">timeout_options</span><span class="o">=</span><span class="n">TimeoutOptions</span><span class="p">(</span>
+                    <span class="n">request_timeout_ms</span><span class="o">=</span><span class="n">ASTRA_DB_REQUEST_TIMEOUT_MS</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
         <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_api_client</span><span class="o">.</span><span class="n">get_database</span><span class="p">(</span>
             <span class="n">api_endpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_endpoint</span><span class="p">,</span>
             <span class="n">token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">token</span><span class="p">,</span>
@@ -554,10 +551,17 @@
         <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">requested_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">default_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">CollectionVectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">VectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_embedding_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EmbeddingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_rerank</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="o">|</span> <span class="n">CollectionRerankOptions</span>
+        <span class="o">|</span> <span class="n">RerankServiceOptions</span>
+        <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_reranking_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RerankingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_lexical</span><span class="p">:</span> <span class="nb">str</span>
+        <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">CollectionLexicalOptions</span>
+        <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">,</span>
@@ -566,16 +570,33 @@
             <span class="n">environment</span><span class="o">=</span><span class="n">environment</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">component_name</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span> <span class="o">=</span> <span class="n">collection_name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span> <span class="o">=</span> <span class="n">collection_embedding_api_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">collection_embedding_api_key</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collection_embedding_api_key</span><span class="p">,</span> <span class="n">EmbeddingHeadersProvider</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">EmbeddingAPIKeyHeaderProvider</span><span class="p">(</span><span class="n">collection_embedding_api_key</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">collection_reranking_api_key</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collection_reranking_api_key</span><span class="p">,</span> <span class="n">RerankingHeadersProvider</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">RerankingAPIKeyHeaderProvider</span><span class="p">(</span><span class="n">collection_reranking_api_key</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
             <span class="n">embedding_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span><span class="p">,</span>
+            <span class="n">reranking_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">async_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">to_async</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_rerank</span> <span class="o">=</span> <span class="n">collection_rerank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_lexical</span> <span class="o">=</span> <span class="n">collection_lexical</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span> <span class="o">=</span> <span class="n">embedding_dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requested_indexing_policy</span> <span class="o">=</span> <span class="n">requested_indexing_policy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_indexing_policy</span> <span class="o">=</span> <span class="n">default_indexing_policy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span> <span class="o">=</span> <span class="n">collection_vector_service_options</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">async_setup_db_task</span><span class="p">:</span> <span class="n">Task</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">setup_mode</span> <span class="o">==</span> <span class="n">SetupMode</span><span class="o">.</span><span class="n">ASYNC</span><span class="p">:</span>
@@ -599,29 +620,50 @@
                 <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
+                <span class="n">_idx_mode</span><span class="p">,</span> <span class="n">_idx_target</span> <span class="o">=</span> <span class="n">_unpack_indexing_policy</span><span class="p">(</span>
+                    <span class="n">requested_indexing_policy</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">collection_definition</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">CollectionDefinition</span><span class="o">.</span><span class="n">builder</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">set_vector_dimension</span><span class="p">(</span><span class="n">embedding_dimension</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                    <span class="o">.</span><span class="n">set_vector_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">set_indexing</span><span class="p">(</span>
+                        <span class="n">indexing_mode</span><span class="o">=</span><span class="n">_idx_mode</span><span class="p">,</span>
+                        <span class="n">indexing_target</span><span class="o">=</span><span class="n">_idx_target</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">set_vector_service</span><span class="p">(</span><span class="n">collection_vector_service_options</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">set_lexical</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_lexical</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">set_rerank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_rerank</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+                <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">create_collection</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
-                    <span class="n">dimension</span><span class="o">=</span><span class="n">embedding_dimension</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
-                    <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
-                    <span class="n">indexing</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
-                    <span class="c1"># Used for enabling $vectorize on the collection</span>
-                    <span class="n">service</span><span class="o">=</span><span class="n">collection_vector_service_options</span><span class="p">,</span>
-                    <span class="n">check_exists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">definition</span><span class="o">=</span><span class="n">collection_definition</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">except</span> <span class="n">DataAPIException</span> <span class="k">as</span> <span class="n">data_api_exception</span><span class="p">:</span>
                 <span class="c1"># possibly the collection is preexisting and may have legacy,</span>
-                <span class="c1"># or custom, indexing settings: verify</span>
-                <span class="n">collection_descriptors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">list_collections</span><span class="p">())</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_indexing_policy</span><span class="p">(</span>
-                        <span class="n">collection_descriptors</span><span class="o">=</span><span class="n">collection_descriptors</span><span class="p">,</span>
-                        <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                        <span class="n">requested_indexing_policy</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
-                        <span class="n">default_indexing_policy</span><span class="o">=</span><span class="n">default_indexing_policy</span><span class="p">,</span>
-                    <span class="p">):</span>
-                        <span class="k">raise</span> <span class="n">data_api_exception</span>  <span class="c1"># noqa: TRY201</span>
-                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">validation_error</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="n">validation_error</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+                <span class="c1"># or custom, indexing settings: verify if it's that error,</span>
+                <span class="c1"># and if so check for index mismatches - to raise the right error.</span>
+                <span class="n">data_api_error_codes</span> <span class="o">=</span> <span class="n">_api_exception_error_codes</span><span class="p">(</span><span class="n">data_api_exception</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">EXISTING_COLLECTION_ERROR_CODE</span> <span class="ow">in</span> <span class="n">data_api_error_codes</span><span class="p">:</span>
+                    <span class="n">collection_descriptors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">list_collections</span><span class="p">())</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_indexing_policy</span><span class="p">(</span>
+                            <span class="n">collection_descriptors</span><span class="o">=</span><span class="n">collection_descriptors</span><span class="p">,</span>
+                            <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                            <span class="n">requested_indexing_policy</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
+                            <span class="n">default_indexing_policy</span><span class="o">=</span><span class="n">default_indexing_policy</span><span class="p">,</span>
+                        <span class="p">):</span>
+                            <span class="c1"># mismatch is not due to indexing</span>
+                            <span class="n">msg</span> <span class="o">=</span> <span class="n">COLLECTION_DEFAULTS_MISMATCH_ERROR_MESSAGE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="k">raise</span> <span class="n">AstraDBError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">validation_error</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">validation_error</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -630,6 +672,7 @@
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">component_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">collection_embedding_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">EmbeddingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_reranking_api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RerankingHeadersProvider</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_AstraDBCollectionEnvironment</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Create a copy, possibly with changed attributes.</span>
 
@@ -654,9 +697,14 @@
 <span class="sd">                identifying the originator of the Data API requests.</span>
 <span class="sd">            collection_embedding_api_key: the API Key to supply in each Data API</span>
 <span class="sd">                request if necessary. This is necessary if using the Vectorize</span>
-<span class="sd">                feature and no secret is stored with the database.</span>
+<span class="sd">                feature and a required secret is not stored with the database.</span>
 <span class="sd">                In order to suppress the API Key in the copy, explicitly pass</span>
 <span class="sd">                ``astrapy.authentication.EmbeddingAPIKeyHeaderProvider(None)``.</span>
+<span class="sd">            collection_reranking_api_key: the API Key to supply in each Data API</span>
+<span class="sd">                request if necessary. This is necessary if using the Rerank</span>
+<span class="sd">                feature and a required secret is not stored with the database.</span>
+<span class="sd">                In order to suppress the API Key in the copy, explicitly pass</span>
+<span class="sd">                ``astrapy.authentication.RerankingAPIKeyHeaderProvider(None)``.</span>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="n">_AstraDBCollectionEnvironment</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
@@ -670,8 +718,18 @@
             <span class="k">else</span> <span class="n">component_name</span><span class="p">,</span>
             <span class="n">setup_mode</span><span class="o">=</span><span class="n">SetupMode</span><span class="o">.</span><span class="n">OFF</span><span class="p">,</span>
             <span class="n">collection_embedding_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_embedding_api_key</span>
-            <span class="k">if</span> <span class="n">collection_embedding_api_key</span>
+            <span class="k">if</span> <span class="n">collection_embedding_api_key</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">collection_embedding_api_key</span><span class="p">,</span>
+            <span class="n">collection_rerank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_rerank</span><span class="p">,</span>
+            <span class="n">collection_reranking_api_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_reranking_api_key</span>
+            <span class="k">if</span> <span class="n">collection_reranking_api_key</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">collection_reranking_api_key</span><span class="p">,</span>
+            <span class="n">collection_lexical</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_lexical</span><span class="p">,</span>
+            <span class="n">embedding_dimension</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_dimension</span><span class="p">,</span>
+            <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span>
+            <span class="n">requested_indexing_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
+            <span class="n">default_indexing_policy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_indexing_policy</span><span class="p">,</span>
+            <span class="n">collection_vector_service_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_vector_service_options</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_asetup_db</span><span class="p">(</span>
@@ -682,7 +740,7 @@
         <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">requested_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">default_indexing_policy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">CollectionVectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">collection_vector_service_options</span><span class="p">:</span> <span class="n">VectorServiceOptions</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pre_delete_collection</span><span class="p">:</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_database</span><span class="o">.</span><span class="n">drop_collection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">)</span>
@@ -692,32 +750,49 @@
             <span class="n">dimension</span> <span class="o">=</span> <span class="n">embedding_dimension</span>
 
         <span class="k">try</span><span class="p">:</span>
+            <span class="n">_idx_mode</span><span class="p">,</span> <span class="n">_idx_target</span> <span class="o">=</span> <span class="n">_unpack_indexing_policy</span><span class="p">(</span><span class="n">requested_indexing_policy</span><span class="p">)</span>
+            <span class="n">collection_definition</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">CollectionDefinition</span><span class="o">.</span><span class="n">builder</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">set_vector_dimension</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">set_vector_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">set_indexing</span><span class="p">(</span>
+                    <span class="n">indexing_mode</span><span class="o">=</span><span class="n">_idx_mode</span><span class="p">,</span>
+                    <span class="n">indexing_target</span><span class="o">=</span><span class="n">_idx_target</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">set_vector_service</span><span class="p">(</span><span class="n">collection_vector_service_options</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">set_lexical</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_lexical</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">set_rerank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_rerank</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+            <span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_database</span><span class="o">.</span><span class="n">create_collection</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                <span class="n">dimension</span><span class="o">=</span><span class="n">dimension</span><span class="p">,</span>
-                <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
-                <span class="n">indexing</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
-                <span class="c1"># Used for enabling $vectorize on the collection</span>
-                <span class="n">service</span><span class="o">=</span><span class="n">collection_vector_service_options</span><span class="p">,</span>
-                <span class="n">check_exists</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">definition</span><span class="o">=</span><span class="n">collection_definition</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="n">DataAPIException</span> <span class="k">as</span> <span class="n">data_api_exception</span><span class="p">:</span>
             <span class="c1"># possibly the collection is preexisting and may have legacy,</span>
-            <span class="c1"># or custom, indexing settings: verify</span>
-            <span class="n">collection_descriptors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">to_thread</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">list_collections</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_indexing_policy</span><span class="p">(</span>
-                    <span class="n">collection_descriptors</span><span class="o">=</span><span class="n">collection_descriptors</span><span class="p">,</span>
-                    <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
-                    <span class="n">requested_indexing_policy</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
-                    <span class="n">default_indexing_policy</span><span class="o">=</span><span class="n">default_indexing_policy</span><span class="p">,</span>
-                <span class="p">):</span>
-                    <span class="c1"># other reasons for the exception</span>
-                    <span class="k">raise</span> <span class="n">data_api_exception</span>  <span class="c1"># noqa: TRY201</span>
-            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">validation_error</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">validation_error</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+            <span class="c1"># or custom, indexing settings: verify if it's that error,</span>
+            <span class="c1"># and if so check for index mismatches - to raise the right error.</span>
+            <span class="n">data_api_error_codes</span> <span class="o">=</span> <span class="n">_api_exception_error_codes</span><span class="p">(</span><span class="n">data_api_exception</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">EXISTING_COLLECTION_ERROR_CODE</span> <span class="ow">in</span> <span class="n">data_api_error_codes</span><span class="p">:</span>
+                <span class="n">collection_descriptors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">to_thread</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">list_collections</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_indexing_policy</span><span class="p">(</span>
+                        <span class="n">collection_descriptors</span><span class="o">=</span><span class="n">collection_descriptors</span><span class="p">,</span>
+                        <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                        <span class="n">requested_indexing_policy</span><span class="o">=</span><span class="n">requested_indexing_policy</span><span class="p">,</span>
+                        <span class="n">default_indexing_policy</span><span class="o">=</span><span class="n">default_indexing_policy</span><span class="p">,</span>
+                    <span class="p">):</span>
+                        <span class="c1"># mismatch is not due to indexing</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="n">COLLECTION_DEFAULTS_MISMATCH_ERROR_MESSAGE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">collection_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">collection_name</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">raise</span> <span class="n">AstraDBError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">validation_error</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">validation_error</span> <span class="kn">from</span><span class="w"> </span><span class="nn">data_api_exception</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate_indexing_policy</span><span class="p">(</span>
@@ -776,8 +851,8 @@
 
         <span class="n">pre_collection</span> <span class="o">=</span> <span class="n">preexisting</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="c1"># if it has no "indexing", it is a legacy collection</span>
-        <span class="n">pre_col_options</span> <span class="o">=</span> <span class="n">pre_collection</span><span class="o">.</span><span class="n">options</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">pre_col_options</span><span class="o">.</span><span class="n">indexing</span><span class="p">:</span>
+        <span class="n">pre_col_definition</span> <span class="o">=</span> <span class="n">pre_collection</span><span class="o">.</span><span class="n">definition</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pre_col_definition</span><span class="o">.</span><span class="n">indexing</span><span class="p">:</span>
             <span class="c1"># legacy collection on DB</span>
             <span class="k">if</span> <span class="n">requested_indexing_policy</span> <span class="o">!=</span> <span class="n">default_indexing_policy</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
@@ -812,12 +887,12 @@
             <span class="c1"># the original exception, related to indexing, was handled here</span>
             <span class="k">return</span> <span class="kc">True</span>
 
-        <span class="k">if</span> <span class="n">pre_col_options</span><span class="o">.</span><span class="n">indexing</span> <span class="o">!=</span> <span class="n">requested_indexing_policy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pre_col_definition</span><span class="o">.</span><span class="n">indexing</span> <span class="o">!=</span> <span class="n">requested_indexing_policy</span><span class="p">:</span>
             <span class="c1"># collection on DB has indexing settings, but different</span>
-            <span class="n">options_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pre_col_options</span><span class="o">.</span><span class="n">indexing</span><span class="p">)</span>
+            <span class="n">options_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">pre_col_definition</span><span class="o">.</span><span class="n">indexing</span><span class="p">)</span>
             <span class="n">default_desc</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">" (default setting)"</span>
-                <span class="k">if</span> <span class="n">pre_col_options</span><span class="o">.</span><span class="n">indexing</span> <span class="o">==</span> <span class="n">default_indexing_policy</span>
+                <span class="k">if</span> <span class="n">pre_col_definition</span><span class="o">.</span><span class="n">indexing</span> <span class="o">==</span> <span class="n">default_indexing_policy</span>
                 <span class="k">else</span> <span class="s2">""</span>
             <span class="p">)</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>

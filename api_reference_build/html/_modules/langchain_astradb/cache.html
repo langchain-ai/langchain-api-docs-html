@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -226,10 +226,10 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span><span class="p">,</span> <span class="n">wraps</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Generator</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">astrapy.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">AstraDB</span><span class="p">,</span> <span class="n">AsyncAstraDB</span><span class="p">,</span> <span class="n">logger</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.caches</span><span class="w"> </span><span class="kn">import</span> <span class="n">RETURN_VAL_TYPE</span><span class="p">,</span> <span class="n">BaseCache</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.llms</span><span class="w"> </span><span class="kn">import</span> <span class="n">aget_prompts</span><span class="p">,</span> <span class="n">get_prompts</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load.dump</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
@@ -253,6 +253,8 @@
 <span class="n">ASTRA_DB_SEMANTIC_CACHE_DEFAULT_COLLECTION_NAME</span> <span class="o">=</span> <span class="s2">"langchain_astradb_semantic_cache"</span>
 <span class="n">ASTRA_DB_SEMANTIC_CACHE_DEFAULT_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.85</span>
 <span class="n">ASTRA_DB_SEMANTIC_CACHE_EMBEDDING_CACHE_SIZE</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_hash</span><span class="p">(</span><span class="n">_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -308,13 +310,15 @@
         <span class="c1"># not relying on `_load_generations_from_json` (which could disappear):</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Malformed/unparsable cached blob encountered: '</span><span class="si">{</span><span class="n">generations_str</span><span class="si">}</span><span class="s2">'"</span>
+            <span class="s2">"Malformed/unparsable cached blob encountered: '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
+            <span class="n">generations_str</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">generations</span> <span class="o">=</span> <span class="p">[</span><span class="n">Generation</span><span class="p">(</span><span class="o">**</span><span class="n">generation_dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">generation_dict</span> <span class="ow">in</span> <span class="n">gen_dicts</span><span class="p">]</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Legacy 'Generation' cached blob encountered: '</span><span class="si">{</span><span class="n">generations_str</span><span class="si">}</span><span class="s2">'"</span>
+            <span class="s2">"Legacy 'Generation' cached blob encountered: '</span><span class="si">%s</span><span class="s2">'"</span><span class="p">,</span>
+            <span class="n">generations_str</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">generations</span>
 
@@ -339,8 +343,6 @@
         <span class="n">pre_delete_collection</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">setup_mode</span><span class="p">:</span> <span class="n">SetupMode</span> <span class="o">=</span> <span class="n">SetupMode</span><span class="o">.</span><span class="n">SYNC</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Cache that uses Astra DB as a backend.</span>
 
@@ -375,16 +377,6 @@
 <span class="sd">                or just strings if no version info is provided, which, if supplied,</span>
 <span class="sd">                becomes the leading part of the User-Agent string in all API requests</span>
 <span class="sd">                related to this component.</span>
-<span class="sd">            astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
-<span class="sd">            async_astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AsyncAstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span> <span class="o">=</span> <span class="n">_AstraDBCollectionEnvironment</span><span class="p">(</span>
             <span class="n">collection_name</span><span class="o">=</span><span class="n">collection_name</span><span class="p">,</span>
@@ -396,8 +388,6 @@
             <span class="n">pre_delete_collection</span><span class="o">=</span><span class="n">pre_delete_collection</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">COMPONENT_NAME_CACHE</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">async_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span></div>
@@ -600,8 +590,6 @@
         <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">similarity_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">ASTRA_DB_SEMANTIC_CACHE_DEFAULT_THRESHOLD</span><span class="p">,</span>
         <span class="n">ext_callers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">astra_db_client</span><span class="p">:</span> <span class="n">AstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">async_astra_db_client</span><span class="p">:</span> <span class="n">AsyncAstraDB</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Astra DB semantic cache.</span>
 
@@ -646,16 +634,6 @@
 <span class="sd">                or just strings if no version info is provided, which, if supplied,</span>
 <span class="sd">                becomes the leading part of the User-Agent string in all API requests</span>
 <span class="sd">                related to this component.</span>
-<span class="sd">            astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
-<span class="sd">            async_astra_db_client:</span>
-<span class="sd">                *DEPRECATED starting from version 0.3.5.*</span>
-<span class="sd">                *Please use 'token', 'api_endpoint' and optionally 'environment'.*</span>
-<span class="sd">                you can pass an already-created 'astrapy.db.AsyncAstraDB' instance</span>
-<span class="sd">                (alternatively to 'token', 'api_endpoint' and 'environment').</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
@@ -697,8 +675,6 @@
             <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
             <span class="n">ext_callers</span><span class="o">=</span><span class="n">ext_callers</span><span class="p">,</span>
             <span class="n">component_name</span><span class="o">=</span><span class="n">COMPONENT_NAME_SEMANTICCACHE</span><span class="p">,</span>
-            <span class="n">astra_db_client</span><span class="o">=</span><span class="n">astra_db_client</span><span class="p">,</span>
-            <span class="n">async_astra_db_client</span><span class="o">=</span><span class="n">async_astra_db_client</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">collection</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">async_collection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">astra_env</span><span class="o">.</span><span class="n">async_collection</span></div>

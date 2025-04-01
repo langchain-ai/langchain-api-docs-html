@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Mar 31, 2025" name="docbuild:last-update"/>
+<meta content="Apr 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -226,6 +226,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForToolRun</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_community.utilities.brave_search</span><span class="w"> </span><span class="kn">import</span> <span class="n">BraveSearchWrapper</span>
 
@@ -233,7 +234,32 @@
 <div class="viewcode-block" id="BraveSearch">
 <a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.brave_search.tool.BraveSearch.html#langchain_community.tools.brave_search.tool.BraveSearch">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BraveSearch</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-<span class="w">    </span><span class="sd">"""Tool that queries the BraveSearch."""</span>
+<span class="w">    </span><span class="sd">"""Tool that queries the BraveSearch.</span>
+
+<span class="sd">    Api key can be provided as an environment variable BRAVE_SEARCH_API_KEY</span>
+<span class="sd">    or as a parameter.</span>
+
+
+<span class="sd">    Example usages:</span>
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        # uses BRAVE_SEARCH_API_KEY from environment</span>
+<span class="sd">        tool = BraveSearch()</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        # uses the provided api key</span>
+<span class="sd">        tool = BraveSearch.from_api_key("your-api-key")</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        # uses the provided api key and search kwargs</span>
+<span class="sd">        tool = BraveSearch.from_api_key(</span>
+<span class="sd">                                api_key = "your-api-key",</span>
+<span class="sd">                                search_kwargs={"max_results": 5}</span>
+<span class="sd">                                )</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        # uses BRAVE_SEARCH_API_KEY from environment</span>
+<span class="sd">        tool = BraveSearch.from_search_kwargs({"max_results": 5})</span>
+<span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"brave_search"</span>
     <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span>
@@ -241,7 +267,7 @@
         <span class="s2">"useful for when you need to answer questions about current events."</span>
         <span class="s2">" input should be a search query."</span>
     <span class="p">)</span>
-    <span class="n">search_wrapper</span><span class="p">:</span> <span class="n">BraveSearchWrapper</span>
+    <span class="n">search_wrapper</span><span class="p">:</span> <span class="n">BraveSearchWrapper</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">BraveSearchWrapper</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BraveSearch.from_api_key">
 <a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.brave_search.tool.BraveSearch.html#langchain_community.tools.brave_search.tool.BraveSearch.from_api_key">[docs]</a>
@@ -259,7 +285,31 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            A tool.</span>
 <span class="sd">        """</span>
-        <span class="n">wrapper</span> <span class="o">=</span> <span class="n">BraveSearchWrapper</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="o">=</span><span class="n">search_kwargs</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">wrapper</span> <span class="o">=</span> <span class="n">BraveSearchWrapper</span><span class="p">(</span>
+            <span class="n">api_key</span><span class="o">=</span><span class="n">SecretStr</span><span class="p">(</span><span class="n">api_key</span><span class="p">),</span> <span class="n">search_kwargs</span><span class="o">=</span><span class="n">search_kwargs</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">search_wrapper</span><span class="o">=</span><span class="n">wrapper</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BraveSearch.from_search_kwargs">
+<a class="viewcode-back" href="../../../../community/tools/langchain_community.tools.brave_search.tool.BraveSearch.html#langchain_community.tools.brave_search.tool.BraveSearch.from_search_kwargs">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_search_kwargs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BraveSearch</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Create a tool from search kwargs.</span>
+
+<span class="sd">        Uses the environment variable BRAVE_SEARCH_API_KEY for api key.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            search_kwargs: Any additional kwargs to pass to the search wrapper.</span>
+<span class="sd">            **kwargs: Any additional kwargs to pass to the tool.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tool.</span>
+<span class="sd">        """</span>
+        <span class="c1"># we can not provide api key because it's calculated in the wrapper,</span>
+        <span class="c1"># so the ignore is needed for linter</span>
+        <span class="c1"># not ideal but needed to keep the tool code changes non-breaking</span>
+        <span class="n">wrapper</span> <span class="o">=</span> <span class="n">BraveSearchWrapper</span><span class="p">(</span><span class="n">search_kwargs</span><span class="o">=</span><span class="n">search_kwargs</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">search_wrapper</span><span class="o">=</span><span class="n">wrapper</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
