@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 03, 2025" name="docbuild:last-update"/>
+<meta content="Apr 04, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -515,9 +515,20 @@
 
         <span class="k">return</span> <span class="n">llm_run</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_errored_llm_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Run</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_errored_llm_run</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LLMResult</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Run</span><span class="p">:</span>
         <span class="n">llm_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_run</span><span class="p">(</span><span class="n">run_id</span><span class="p">,</span> <span class="n">run_type</span><span class="o">=</span><span class="p">{</span><span class="s2">"llm"</span><span class="p">,</span> <span class="s2">"chat_model"</span><span class="p">})</span>
         <span class="n">llm_run</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stacktrace</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span><span class="p">:</span>
+            <span class="n">llm_run</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">generations</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">generations</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">generation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">generations</span><span class="p">):</span>
+                    <span class="n">output_generation</span> <span class="o">=</span> <span class="n">llm_run</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">"generations"</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s2">"message"</span> <span class="ow">in</span> <span class="n">output_generation</span><span class="p">:</span>
+                        <span class="n">output_generation</span><span class="p">[</span><span class="s2">"message"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dumpd</span><span class="p">(</span>
+                            <span class="n">cast</span><span class="p">(</span><span class="s2">"ChatGeneration"</span><span class="p">,</span> <span class="n">generation</span><span class="p">)</span><span class="o">.</span><span class="n">message</span>
+                        <span class="p">)</span>
         <span class="n">llm_run</span><span class="o">.</span><span class="n">end_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
         <span class="n">llm_run</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"error"</span><span class="p">,</span> <span class="s2">"time"</span><span class="p">:</span> <span class="n">llm_run</span><span class="o">.</span><span class="n">end_time</span><span class="p">})</span>
 

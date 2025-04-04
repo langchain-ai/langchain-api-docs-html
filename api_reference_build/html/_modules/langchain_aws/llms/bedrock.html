@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 03, 2025" name="docbuild:last-update"/>
+<meta content="Apr 04, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -449,10 +449,17 @@
     <span class="k">if</span> <span class="n">metrics</span> <span class="o">:=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"amazon-bedrock-invocationMetrics"</span><span class="p">):</span>
         <span class="n">input_tokens</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"inputTokenCount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">output_tokens</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"outputTokenCount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">cache_read_input_tokens</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cacheReadInputTokenCount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">cache_write_input_tokens</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cacheWriteInputTokenCount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">generation_info</span><span class="p">[</span><span class="s2">"usage_metadata"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"input_tokens"</span><span class="p">:</span> <span class="n">input_tokens</span><span class="p">,</span>
             <span class="s2">"output_tokens"</span><span class="p">:</span> <span class="n">output_tokens</span><span class="p">,</span>
             <span class="s2">"total_tokens"</span><span class="p">:</span> <span class="n">input_tokens</span> <span class="o">+</span> <span class="n">output_tokens</span><span class="p">,</span>
+            <span class="s2">"input_token_details"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"cache_creation"</span><span class="p">:</span> <span class="n">cache_write_input_tokens</span><span class="p">,</span>
+                <span class="s2">"cache_read"</span><span class="p">:</span> <span class="n">cache_read_input_tokens</span><span class="p">,</span>
+            <span class="p">}</span>
+
         <span class="p">}</span>
     <span class="k">return</span> <span class="n">GenerationChunk</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span> <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">)</span>
 
@@ -673,6 +680,8 @@
         <span class="n">headers</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ResponseMetadata"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"HTTPHeaders"</span><span class="p">,</span> <span class="p">{})</span>
         <span class="n">prompt_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-amzn-bedrock-input-token-count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="n">completion_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-amzn-bedrock-output-token-count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">cache_read_input_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-amzn-bedrock-cache-read-input-token-count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">cache_write_input_tokens</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-amzn-bedrock-cache-write-input-token-count"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"text"</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
             <span class="s2">"thinking"</span><span class="p">:</span> <span class="n">thinking</span><span class="p">,</span>
@@ -681,7 +690,9 @@
             <span class="s2">"usage"</span><span class="p">:</span> <span class="p">{</span>
                 <span class="s2">"prompt_tokens"</span><span class="p">:</span> <span class="n">prompt_tokens</span><span class="p">,</span>
                 <span class="s2">"completion_tokens"</span><span class="p">:</span> <span class="n">completion_tokens</span><span class="p">,</span>
-                <span class="s2">"total_tokens"</span><span class="p">:</span> <span class="n">prompt_tokens</span> <span class="o">+</span> <span class="n">completion_tokens</span><span class="p">,</span>
+                <span class="s2">"cache_read_input_tokens"</span><span class="p">:</span> <span class="n">cache_read_input_tokens</span><span class="p">,</span>
+                <span class="s2">"cache_write_input_tokens"</span><span class="p">:</span> <span class="n">cache_write_input_tokens</span><span class="p">,</span>
+                <span class="s2">"total_tokens"</span><span class="p">:</span> <span class="n">prompt_tokens</span> <span class="o">+</span> <span class="n">cache_read_input_tokens</span> <span class="o">+</span> <span class="n">completion_tokens</span><span class="p">,</span>
             <span class="p">},</span>
             <span class="s2">"stop_reason"</span><span class="p">:</span> <span class="n">response_body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">),</span>
         <span class="p">}</span></div>
@@ -836,38 +847,38 @@
     <span class="n">aws_access_key_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_ACCESS_KEY_ID"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="p">)</span>
-<span class="w">    </span><span class="sd">"""AWS access key id. </span>
-<span class="sd">    </span>
+<span class="w">    </span><span class="sd">"""AWS access key id.</span>
+
 <span class="sd">    If provided, aws_secret_access_key must also be provided.</span>
 <span class="sd">    If not specified, the default credential profile or, if on an EC2 instance,</span>
 <span class="sd">    credentials from IMDS will be used.</span>
 <span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
-<span class="sd">    </span>
+
 <span class="sd">    If not provided, will be read from 'AWS_ACCESS_KEY_ID' environment variable.</span>
 <span class="sd">    """</span>
 
     <span class="n">aws_secret_access_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SECRET_ACCESS_KEY"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="p">)</span>
-<span class="w">    </span><span class="sd">"""AWS secret_access_key. </span>
-<span class="sd">    </span>
+<span class="w">    </span><span class="sd">"""AWS secret_access_key.</span>
+
 <span class="sd">    If provided, aws_access_key_id must also be provided.</span>
 <span class="sd">    If not specified, the default credential profile or, if on an EC2 instance,</span>
 <span class="sd">    credentials from IMDS will be used.</span>
 <span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
-<span class="sd">    </span>
+
 <span class="sd">    If not provided, will be read from 'AWS_SECRET_ACCESS_KEY' environment variable.</span>
 <span class="sd">    """</span>
 
     <span class="n">aws_session_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SecretStr</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="n">secret_from_env</span><span class="p">(</span><span class="s2">"AWS_SESSION_TOKEN"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="p">)</span>
-<span class="w">    </span><span class="sd">"""AWS session token. </span>
-<span class="sd">    </span>
+<span class="w">    </span><span class="sd">"""AWS session token.</span>
+
 <span class="sd">    If provided, aws_access_key_id and aws_secret_access_key must also be provided.</span>
 <span class="sd">    Not required unless using temporary credentials.</span>
 <span class="sd">    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html</span>
-<span class="sd">    </span>
+
 <span class="sd">    If not provided, will be read from 'AWS_SESSION_TOKEN' environment variable.</span>
 <span class="sd">    """</span>
 
@@ -876,7 +887,7 @@
 
     <span class="n">provider</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""The model provider, e.g., amazon, cohere, ai21, etc. When not supplied, provider</span>
-<span class="sd">    is extracted from the first part of the model_id e.g. 'amazon' in </span>
+<span class="sd">    is extracted from the first part of the model_id e.g. 'amazon' in</span>
 <span class="sd">    'amazon.titan-text-express-v1'. This value should be provided for model ids that do</span>
 <span class="sd">    not have the provider in them, e.g., custom and provisioned models that have an ARN</span>
 <span class="sd">    associated with them."""</span>
@@ -1032,7 +1043,7 @@
         <span class="n">parts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"eu"</span><span class="p">,</span> <span class="s2">"us"</span><span class="p">,</span> <span class="s2">"ap"</span><span class="p">,</span> <span class="s2">"sa"</span><span class="p">})</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"eu"</span><span class="p">,</span> <span class="s2">"us"</span><span class="p">,</span> <span class="s2">"us-gov"</span><span class="p">,</span> <span class="s2">"apac"</span><span class="p">,</span> <span class="s2">"sa"</span><span class="p">})</span>
             <span class="k">else</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
