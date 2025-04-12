@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 11, 2025" name="docbuild:last-update"/>
+<meta content="Apr 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -252,6 +252,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span><span class="p">,</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">override</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callbacks</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Runnable</span><span class="p">,</span>
@@ -265,7 +266,6 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">AsyncCallbackManagerForRetrieverRun</span><span class="p">,</span>
         <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
-        <span class="n">Callbacks</span><span class="p">,</span>
     <span class="p">)</span>
 
 <span class="n">RetrieverInput</span> <span class="o">=</span> <span class="nb">str</span>
@@ -317,17 +317,16 @@
 
 <span class="sd">            from langchain_core.documents import Document</span>
 <span class="sd">            from langchain_core.retrievers import BaseRetriever</span>
-<span class="sd">            from typing import List</span>
 
 <span class="sd">            class SimpleRetriever(BaseRetriever):</span>
-<span class="sd">                docs: List[Document]</span>
+<span class="sd">                docs: list[Document]</span>
 <span class="sd">                k: int = 5</span>
 
-<span class="sd">                def _get_relevant_documents(self, query: str) -&gt; List[Document]:</span>
+<span class="sd">                def _get_relevant_documents(self, query: str) -&gt; list[Document]:</span>
 <span class="sd">                    \"\"\"Return the first k documents from the list of documents\"\"\"</span>
 <span class="sd">                    return self.docs[:self.k]</span>
 
-<span class="sd">                async def _aget_relevant_documents(self, query: str) -&gt; List[Document]:</span>
+<span class="sd">                async def _aget_relevant_documents(self, query: str) -&gt; list[Document]:</span>
 <span class="sd">                    \"\"\"(Optional) async native implementation.\"\"\"</span>
 <span class="sd">                    return self.docs[:self.k]</span>
 
@@ -339,14 +338,14 @@
 
 <span class="sd">            class TFIDFRetriever(BaseRetriever, BaseModel):</span>
 <span class="sd">                vectorizer: Any</span>
-<span class="sd">                docs: List[Document]</span>
+<span class="sd">                docs: list[Document]</span>
 <span class="sd">                tfidf_array: Any</span>
 <span class="sd">                k: int = 4</span>
 
 <span class="sd">                class Config:</span>
 <span class="sd">                    arbitrary_types_allowed = True</span>
 
-<span class="sd">                def _get_relevant_documents(self, query: str) -&gt; List[Document]:</span>
+<span class="sd">                def _get_relevant_documents(self, query: str) -&gt; list[Document]:</span>
 <span class="sd">                    # Ip -- (n_docs,x), Op -- (n_docs,n_Feats)</span>
 <span class="sd">                    query_vec = self.vectorizer.transform([query])</span>
 <span class="sd">                    # Op -- (n_docs,1) -- Cosine Sim with each doc</span>
@@ -388,10 +387,10 @@
                 <span class="n">stacklevel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">swap</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_relevant_documents</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">get_relevant_documents</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">get_relevant_documents</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[method-assign]</span>
                 <span class="n">BaseRetriever</span><span class="o">.</span><span class="n">get_relevant_documents</span>
             <span class="p">)</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_relevant_documents</span> <span class="o">=</span> <span class="n">swap</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_relevant_documents</span> <span class="o">=</span> <span class="n">swap</span>  <span class="c1"># type: ignore[method-assign]</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">"aget_relevant_documents"</span><span class="p">)</span>
             <span class="ow">and</span> <span class="bp">cls</span><span class="o">.</span><span class="n">aget_relevant_documents</span> <span class="o">!=</span> <span class="n">BaseRetriever</span><span class="o">.</span><span class="n">aget_relevant_documents</span>
@@ -403,10 +402,10 @@
                 <span class="n">stacklevel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">aswap</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">aget_relevant_documents</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">aget_relevant_documents</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">aget_relevant_documents</span> <span class="o">=</span> <span class="p">(</span>  <span class="c1"># type: ignore[method-assign]</span>
                 <span class="n">BaseRetriever</span><span class="o">.</span><span class="n">aget_relevant_documents</span>
             <span class="p">)</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">_aget_relevant_documents</span> <span class="o">=</span> <span class="n">aswap</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_aget_relevant_documents</span> <span class="o">=</span> <span class="n">aswap</span>  <span class="c1"># type: ignore[method-assign]</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_get_relevant_documents</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_new_arg_supported</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_manager"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="p">(</span>

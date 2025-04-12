@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 11, 2025" name="docbuild:last-update"/>
+<meta content="Apr 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -225,6 +225,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">atexit</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
@@ -303,16 +304,16 @@
 <span class="sd">        group_name (str): The name of the chain group.</span>
 <span class="sd">        callback_manager (CallbackManager, optional): The callback manager to use.</span>
 <span class="sd">            Defaults to None.</span>
-<span class="sd">        inputs (Dict[str, Any], optional): The inputs to the chain group.</span>
+<span class="sd">        inputs (dict[str, Any], optional): The inputs to the chain group.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        project_name (str, optional): The name of the project.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        example_id (str or UUID, optional): The ID of the example.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        run_id (UUID, optional): The ID of the run.</span>
-<span class="sd">        tags (List[str], optional): The inheritable tags to apply to all runs.</span>
+<span class="sd">        tags (list[str], optional): The inheritable tags to apply to all runs.</span>
 <span class="sd">            Defaults to None.</span>
-<span class="sd">        metadata (Dict[str, Any], optional): The metadata to apply to all runs.</span>
+<span class="sd">        metadata (dict[str, Any], optional): The metadata to apply to all runs.</span>
 <span class="sd">            Defaults to None.</span>
 
 <span class="sd">    Note: must have LANGCHAIN_TRACING_V2 env var set to true to see the trace in LangSmith.</span>
@@ -387,16 +388,16 @@
 <span class="sd">        group_name (str): The name of the chain group.</span>
 <span class="sd">        callback_manager (AsyncCallbackManager, optional): The async callback manager to use,</span>
 <span class="sd">            which manages tracing and other callback behavior. Defaults to None.</span>
-<span class="sd">        inputs (Dict[str, Any], optional): The inputs to the chain group.</span>
+<span class="sd">        inputs (dict[str, Any], optional): The inputs to the chain group.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        project_name (str, optional): The name of the project.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        example_id (str or UUID, optional): The ID of the example.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        run_id (UUID, optional): The ID of the run.</span>
-<span class="sd">        tags (List[str], optional): The inheritable tags to apply to all runs.</span>
+<span class="sd">        tags (list[str], optional): The inheritable tags to apply to all runs.</span>
 <span class="sd">            Defaults to None.</span>
-<span class="sd">        metadata (Dict[str, Any], optional): The metadata to apply to all runs.</span>
+<span class="sd">        metadata (dict[str, Any], optional): The metadata to apply to all runs.</span>
 <span class="sd">            Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
@@ -547,12 +548,13 @@
                 <span class="c1"># If we try to submit this coroutine to the running loop</span>
                 <span class="c1"># we end up in a deadlock, as we'd have gotten here from a</span>
                 <span class="c1"># running coroutine, which we cannot interrupt to run this one.</span>
-                <span class="c1"># The solution is to create a new loop in a new thread.</span>
-                <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-                    <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-                        <span class="n">cast</span><span class="p">(</span><span class="s2">"Callable"</span><span class="p">,</span> <span class="n">copy_context</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">),</span> <span class="n">_run_coros</span><span class="p">,</span> <span class="n">coros</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="c1"># The solution is to run the synchronous function on the globally shared</span>
+                <span class="c1"># thread pool executor to avoid blocking the main event loop.</span>
+                <span class="n">_executor</span><span class="p">()</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                    <span class="n">cast</span><span class="p">(</span><span class="s2">"Callable"</span><span class="p">,</span> <span class="n">copy_context</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">),</span> <span class="n">_run_coros</span><span class="p">,</span> <span class="n">coros</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If there's no running loop, we can run the coroutines directly.</span>
                 <span class="n">_run_coros</span><span class="p">(</span><span class="n">coros</span><span class="p">)</span></div>
 
 
@@ -702,17 +704,17 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            run_id (UUID): The ID of the run.</span>
-<span class="sd">            handlers (List[BaseCallbackHandler]): The list of handlers.</span>
-<span class="sd">            inheritable_handlers (List[BaseCallbackHandler]):</span>
+<span class="sd">            handlers (list[BaseCallbackHandler]): The list of handlers.</span>
+<span class="sd">            inheritable_handlers (list[BaseCallbackHandler]):</span>
 <span class="sd">                The list of inheritable handlers.</span>
 <span class="sd">            parent_run_id (UUID, optional): The ID of the parent run.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            tags (Optional[List[str]]): The list of tags. Defaults to None.</span>
-<span class="sd">            inheritable_tags (Optional[List[str]]): The list of inheritable tags.</span>
+<span class="sd">            tags (Optional[list[str]]): The list of tags. Defaults to None.</span>
+<span class="sd">            inheritable_tags (Optional[list[str]]): The list of inheritable tags.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            metadata (Optional[Dict[str, Any]]): The metadata.</span>
+<span class="sd">            metadata (Optional[dict[str, Any]]): The metadata.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            inheritable_metadata (Optional[Dict[str, Any]]): The inheritable metadata.</span>
+<span class="sd">            inheritable_metadata (Optional[dict[str, Any]]): The inheritable metadata.</span>
 <span class="sd">                Defaults to None.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">run_id</span> <span class="o">=</span> <span class="n">run_id</span>
@@ -1141,7 +1143,7 @@
 <span class="w">        </span><span class="sd">"""Run when chain ends running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            outputs (Union[Dict[str, Any], Any]): The outputs of the chain.</span>
+<span class="sd">            outputs (Union[dict[str, Any], Any]): The outputs of the chain.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 <span class="sd">        """</span>
         <span class="n">handle_event</span><span class="p">(</span>
@@ -1265,7 +1267,7 @@
 <span class="w">        </span><span class="sd">"""Run when a chain ends running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            outputs (Union[Dict[str, Any], Any]): The outputs of the chain.</span>
+<span class="sd">            outputs (Union[dict[str, Any], Any]): The outputs of the chain.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 <span class="sd">        """</span>
         <span class="k">await</span> <span class="n">ahandle_event</span><span class="p">(</span>
@@ -1644,13 +1646,13 @@
 <span class="w">        </span><span class="sd">"""Run when LLM starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Dict[str, Any]): The serialized LLM.</span>
-<span class="sd">            prompts (List[str]): The list of prompts.</span>
+<span class="sd">            serialized (dict[str, Any]): The serialized LLM.</span>
+<span class="sd">            prompts (list[str]): The list of prompts.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[CallbackManagerForLLMRun]: A callback manager for each</span>
+<span class="sd">            list[CallbackManagerForLLMRun]: A callback manager for each</span>
 <span class="sd">                prompt as an LLM run.</span>
 <span class="sd">        """</span>
         <span class="n">managers</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1698,13 +1700,13 @@
 <span class="w">        </span><span class="sd">"""Run when chat model starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Dict[str, Any]): The serialized LLM.</span>
-<span class="sd">            messages (List[List[BaseMessage]]): The list of messages.</span>
+<span class="sd">            serialized (dict[str, Any]): The serialized LLM.</span>
+<span class="sd">            messages (list[list[BaseMessage]]): The list of messages.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[CallbackManagerForLLMRun]: A callback manager for each</span>
+<span class="sd">            list[CallbackManagerForLLMRun]: A callback manager for each</span>
 <span class="sd">                list of messages as an LLM run.</span>
 <span class="sd">        """</span>
         <span class="n">managers</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1755,8 +1757,8 @@
 <span class="w">        </span><span class="sd">"""Run when chain starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Optional[Dict[str, Any]]): The serialized chain.</span>
-<span class="sd">            inputs (Union[Dict[str, Any], Any]): The inputs to the chain.</span>
+<span class="sd">            serialized (Optional[dict[str, Any]]): The serialized chain.</span>
+<span class="sd">            inputs (Union[dict[str, Any], Any]): The inputs to the chain.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
@@ -1863,7 +1865,7 @@
 <span class="w">        </span><span class="sd">"""Run when the retriever starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Optional[Dict[str, Any]]): The serialized retriever.</span>
+<span class="sd">            serialized (Optional[dict[str, Any]]): The serialized retriever.</span>
 <span class="sd">            query (str): The query.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            parent_run_id (UUID, optional): The ID of the parent run. Defaults to None.</span>
@@ -1948,7 +1950,7 @@
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">inheritable_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># noqa: FBT001,FBT002</span>
         <span class="n">inheritable_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">inheritable_metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1962,13 +1964,13 @@
 <span class="sd">            local_callbacks (Optional[Callbacks], optional): The local callbacks.</span>
 <span class="sd">                Defaults to None.</span>
 <span class="sd">            verbose (bool, optional): Whether to enable verbose mode. Defaults to False.</span>
-<span class="sd">            inheritable_tags (Optional[List[str]], optional): The inheritable tags.</span>
+<span class="sd">            inheritable_tags (Optional[list[str]], optional): The inheritable tags.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            local_tags (Optional[List[str]], optional): The local tags.</span>
+<span class="sd">            local_tags (Optional[list[str]], optional): The local tags.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            inheritable_metadata (Optional[Dict[str, Any]], optional): The inheritable</span>
+<span class="sd">            inheritable_metadata (Optional[dict[str, Any]], optional): The inheritable</span>
 <span class="sd">                metadata. Defaults to None.</span>
-<span class="sd">            local_metadata (Optional[Dict[str, Any]], optional): The local metadata.</span>
+<span class="sd">            local_metadata (Optional[dict[str, Any]], optional): The local metadata.</span>
 <span class="sd">                Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
@@ -2007,8 +2009,8 @@
 <span class="w">        </span><span class="sd">"""Initialize the callback manager.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            handlers (List[BaseCallbackHandler]): The list of handlers.</span>
-<span class="sd">            inheritable_handlers (Optional[List[BaseCallbackHandler]]): The list of</span>
+<span class="sd">            handlers (list[BaseCallbackHandler]): The list of handlers.</span>
+<span class="sd">            inheritable_handlers (Optional[list[BaseCallbackHandler]]): The list of</span>
 <span class="sd">                inheritable handlers. Defaults to None.</span>
 <span class="sd">            parent_run_id (Optional[UUID]): The ID of the parent run. Defaults to None.</span>
 <span class="sd">            parent_run_manager (CallbackManagerForChainRun): The parent run manager.</span>
@@ -2108,7 +2110,7 @@
 <span class="w">        </span><span class="sd">"""Run when traced chain group ends.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            outputs (Union[Dict[str, Any], Any]): The outputs of the chain.</span>
+<span class="sd">            outputs (Union[dict[str, Any], Any]): The outputs of the chain.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ended</span> <span class="o">=</span> <span class="kc">True</span>
@@ -2156,13 +2158,13 @@
 <span class="w">        </span><span class="sd">"""Run when LLM starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Dict[str, Any]): The serialized LLM.</span>
-<span class="sd">            prompts (List[str]): The list of prompts.</span>
+<span class="sd">            serialized (dict[str, Any]): The serialized LLM.</span>
+<span class="sd">            prompts (list[str]): The list of prompts.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[AsyncCallbackManagerForLLMRun]: The list of async</span>
+<span class="sd">            list[AsyncCallbackManagerForLLMRun]: The list of async</span>
 <span class="sd">                callback managers, one for each LLM Run corresponding</span>
 <span class="sd">                to each prompt.</span>
 <span class="sd">        """</span>
@@ -2248,13 +2250,13 @@
 <span class="w">        </span><span class="sd">"""Async run when LLM starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Dict[str, Any]): The serialized LLM.</span>
-<span class="sd">            messages (List[List[BaseMessage]]): The list of messages.</span>
+<span class="sd">            serialized (dict[str, Any]): The serialized LLM.</span>
+<span class="sd">            messages (list[list[BaseMessage]]): The list of messages.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[AsyncCallbackManagerForLLMRun]: The list of</span>
+<span class="sd">            list[AsyncCallbackManagerForLLMRun]: The list of</span>
 <span class="sd">                async callback managers, one for each LLM Run</span>
 <span class="sd">                corresponding to each inner  message list.</span>
 <span class="sd">        """</span>
@@ -2323,8 +2325,8 @@
 <span class="w">        </span><span class="sd">"""Async run when chain starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Optional[Dict[str, Any]]): The serialized chain.</span>
-<span class="sd">            inputs (Union[Dict[str, Any], Any]): The inputs to the chain.</span>
+<span class="sd">            serialized (Optional[dict[str, Any]]): The serialized chain.</span>
+<span class="sd">            inputs (Union[dict[str, Any], Any]): The inputs to the chain.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 
@@ -2374,7 +2376,7 @@
 <span class="w">        </span><span class="sd">"""Run when the tool starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Optional[Dict[str, Any]]): The serialized tool.</span>
+<span class="sd">            serialized (Optional[dict[str, Any]]): The serialized tool.</span>
 <span class="sd">            input_str (str): The input to the tool.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            parent_run_id (UUID, optional): The ID of the parent run.</span>
@@ -2471,7 +2473,7 @@
 <span class="w">        </span><span class="sd">"""Run when the retriever starts running.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            serialized (Optional[Dict[str, Any]]): The serialized retriever.</span>
+<span class="sd">            serialized (Optional[dict[str, Any]]): The serialized retriever.</span>
 <span class="sd">            query (str): The query.</span>
 <span class="sd">            run_id (UUID, optional): The ID of the run. Defaults to None.</span>
 <span class="sd">            parent_run_id (UUID, optional): The ID of the parent run. Defaults to None.</span>
@@ -2516,7 +2518,7 @@
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">inheritable_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_callbacks</span><span class="p">:</span> <span class="n">Callbacks</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># noqa: FBT001,FBT002</span>
         <span class="n">inheritable_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">local_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">inheritable_metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2530,13 +2532,13 @@
 <span class="sd">            local_callbacks (Optional[Callbacks], optional): The local callbacks.</span>
 <span class="sd">                Defaults to None.</span>
 <span class="sd">            verbose (bool, optional): Whether to enable verbose mode. Defaults to False.</span>
-<span class="sd">            inheritable_tags (Optional[List[str]], optional): The inheritable tags.</span>
+<span class="sd">            inheritable_tags (Optional[list[str]], optional): The inheritable tags.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            local_tags (Optional[List[str]], optional): The local tags.</span>
+<span class="sd">            local_tags (Optional[list[str]], optional): The local tags.</span>
 <span class="sd">                Defaults to None.</span>
-<span class="sd">            inheritable_metadata (Optional[Dict[str, Any]], optional): The inheritable</span>
+<span class="sd">            inheritable_metadata (Optional[dict[str, Any]], optional): The inheritable</span>
 <span class="sd">                metadata. Defaults to None.</span>
-<span class="sd">            local_metadata (Optional[Dict[str, Any]], optional): The local metadata.</span>
+<span class="sd">            local_metadata (Optional[dict[str, Any]], optional): The local metadata.</span>
 <span class="sd">                Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
@@ -2575,8 +2577,8 @@
 <span class="w">        </span><span class="sd">"""Initialize the async callback manager.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            handlers (List[BaseCallbackHandler]): The list of handlers.</span>
-<span class="sd">            inheritable_handlers (Optional[List[BaseCallbackHandler]]): The list of</span>
+<span class="sd">            handlers (list[BaseCallbackHandler]): The list of handlers.</span>
+<span class="sd">            inheritable_handlers (Optional[list[BaseCallbackHandler]]): The list of</span>
 <span class="sd">                inheritable handlers. Defaults to None.</span>
 <span class="sd">            parent_run_id (Optional[UUID]): The ID of the parent run. Defaults to None.</span>
 <span class="sd">            parent_run_manager (AsyncCallbackManagerForChainRun):</span>
@@ -2679,7 +2681,7 @@
 <span class="w">        </span><span class="sd">"""Run when traced chain group ends.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            outputs (Union[Dict[str, Any], Any]): The outputs of the chain.</span>
+<span class="sd">            outputs (Union[dict[str, Any], Any]): The outputs of the chain.</span>
 <span class="sd">            **kwargs (Any): Additional keyword arguments.</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ended</span> <span class="o">=</span> <span class="kc">True</span>
@@ -2728,12 +2730,12 @@
 <span class="sd">        local_callbacks (Optional[Callbacks], optional): The local callbacks.</span>
 <span class="sd">            Defaults to None.</span>
 <span class="sd">        verbose (bool, optional): Whether to enable verbose mode. Defaults to False.</span>
-<span class="sd">        inheritable_tags (Optional[List[str]], optional): The inheritable tags.</span>
+<span class="sd">        inheritable_tags (Optional[list[str]], optional): The inheritable tags.</span>
 <span class="sd">            Defaults to None.</span>
-<span class="sd">        local_tags (Optional[List[str]], optional): The local tags. Defaults to None.</span>
-<span class="sd">        inheritable_metadata (Optional[Dict[str, Any]], optional): The inheritable</span>
+<span class="sd">        local_tags (Optional[list[str]], optional): The local tags. Defaults to None.</span>
+<span class="sd">        inheritable_metadata (Optional[dict[str, Any]], optional): The inheritable</span>
 <span class="sd">            metadata. Defaults to None.</span>
-<span class="sd">        local_metadata (Optional[Dict[str, Any]], optional): The local metadata.</span>
+<span class="sd">        local_metadata (Optional[dict[str, Any]], optional): The local metadata.</span>
 <span class="sd">            Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
@@ -2871,7 +2873,7 @@
                         <span class="n">run_tree</span><span class="o">.</span><span class="n">trace_id</span><span class="p">,</span>
                         <span class="n">run_tree</span><span class="o">.</span><span class="n">dotted_order</span><span class="p">,</span>
                     <span class="p">)</span>
-                    <span class="n">handler</span><span class="o">.</span><span class="n">run_map</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">run_tree</span><span class="o">.</span><span class="n">id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"Run"</span><span class="p">,</span> <span class="n">run_tree</span><span class="p">)</span>
+                    <span class="n">handler</span><span class="o">.</span><span class="n">run_map</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">run_tree</span><span class="o">.</span><span class="n">id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">run_tree</span>
     <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">inheritable</span><span class="p">,</span> <span class="n">handler_class</span><span class="p">,</span> <span class="n">env_var</span> <span class="ow">in</span> <span class="n">_configure_hooks</span><span class="p">:</span>
         <span class="n">create_one</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">env_var</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2927,8 +2929,8 @@
 <span class="sd">                    data: Any,</span>
 <span class="sd">                    *,</span>
 <span class="sd">                    run_id: UUID,</span>
-<span class="sd">                    tags: Optional[List[str]] = None,</span>
-<span class="sd">                    metadata: Optional[Dict[str, Any]] = None,</span>
+<span class="sd">                    tags: Optional[list[str]] = None,</span>
+<span class="sd">                    metadata: Optional[dict[str, Any]] = None,</span>
 <span class="sd">                    **kwargs: Any,</span>
 <span class="sd">                ) -&gt; None:</span>
 <span class="sd">                    print(f"Received custom event: {name} with data: {data}")</span>
@@ -2959,8 +2961,8 @@
 <span class="sd">                    data: Any,</span>
 <span class="sd">                    *,</span>
 <span class="sd">                    run_id: UUID,</span>
-<span class="sd">                    tags: Optional[List[str]] = None,</span>
-<span class="sd">                    metadata: Optional[Dict[str, Any]] = None,</span>
+<span class="sd">                    tags: Optional[list[str]] = None,</span>
+<span class="sd">                    metadata: Optional[dict[str, Any]] = None,</span>
 <span class="sd">                    **kwargs: Any,</span>
 <span class="sd">                ) -&gt; None:</span>
 <span class="sd">                    print(f"Received custom event: {name} with data: {data}")</span>
@@ -3048,8 +3050,8 @@
 <span class="sd">                    data: Any,</span>
 <span class="sd">                    *,</span>
 <span class="sd">                    run_id: UUID,</span>
-<span class="sd">                    tags: Optional[List[str]] = None,</span>
-<span class="sd">                    metadata: Optional[Dict[str, Any]] = None,</span>
+<span class="sd">                    tags: Optional[list[str]] = None,</span>
+<span class="sd">                    metadata: Optional[dict[str, Any]] = None,</span>
 <span class="sd">                    **kwargs: Any,</span>
 <span class="sd">                ) -&gt; None:</span>
 <span class="sd">                    print(f"Received custom event: {name} with data: {data}")</span>
@@ -3089,6 +3091,22 @@
         <span class="n">run_id</span><span class="o">=</span><span class="n">callback_manager</span><span class="o">.</span><span class="n">parent_run_id</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
+
+<span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_executor</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ThreadPoolExecutor</span><span class="p">:</span>
+    <span class="c1"># If the user is specifying ASYNC callback handlers to be run from a</span>
+    <span class="c1"># SYNC context, and an event loop is already running,</span>
+    <span class="c1"># we cannot submit the coroutine to the running loop, because it</span>
+    <span class="c1"># would result in a deadlock. Instead we have to schedule them</span>
+    <span class="c1"># on a background thread. To avoid creating &amp; shutting down</span>
+    <span class="c1"># a new executor every time, we use a lazily-created, shared</span>
+    <span class="c1"># executor. If you're using regular langgchain parallelism (batch, etc.)</span>
+    <span class="c1"># you'd only ever need 1 worker, but we permit more for now to reduce the chance</span>
+    <span class="c1"># of slowdown if you are mixing with your own executor.</span>
+    <span class="n">cutie</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">cutie</span><span class="o">.</span><span class="n">shutdown</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cutie</span>
 </pre></div>
 </article>
 </div>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 11, 2025" name="docbuild:last-update"/>
+<meta content="Apr 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -221,7 +221,8 @@
 <article class="bd-article">
 <h1>Source code for langchain.agents.structured_chat.base</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentAction</span>
@@ -273,7 +274,7 @@
         <span class="k">return</span> <span class="s2">"Thought:"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_construct_scratchpad</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">intermediate_steps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">AgentAction</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">intermediate_steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">AgentAction</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">agent_scratchpad</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_construct_scratchpad</span><span class="p">(</span><span class="n">intermediate_steps</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">agent_scratchpad</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -298,7 +299,7 @@
         <span class="k">return</span> <span class="n">StructuredChatOutputParserWithRetries</span><span class="o">.</span><span class="n">from_llm</span><span class="p">(</span><span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">"Observation:"</span><span class="p">]</span>
 
 <div class="viewcode-block" id="StructuredChatAgent.create_prompt">
@@ -311,8 +312,8 @@
         <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">SUFFIX</span><span class="p">,</span>
         <span class="n">human_message_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">HUMAN_MESSAGE_TEMPLATE</span><span class="p">,</span>
         <span class="n">format_instructions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FORMAT_INSTRUCTIONS</span><span class="p">,</span>
-        <span class="n">input_variables</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">memory_prompts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BasePromptTemplate</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_variables</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">memory_prompts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BasePromptTemplate</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BasePromptTemplate</span><span class="p">:</span>
         <span class="n">tool_strings</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">:</span>
@@ -346,8 +347,8 @@
         <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">SUFFIX</span><span class="p">,</span>
         <span class="n">human_message_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">HUMAN_MESSAGE_TEMPLATE</span><span class="p">,</span>
         <span class="n">format_instructions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FORMAT_INSTRUCTIONS</span><span class="p">,</span>
-        <span class="n">input_variables</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">memory_prompts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">BasePromptTemplate</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_variables</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">memory_prompts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">BasePromptTemplate</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Agent</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Construct an agent from an LLM and tools."""</span>
@@ -390,7 +391,7 @@
     <span class="n">prompt</span><span class="p">:</span> <span class="n">ChatPromptTemplate</span><span class="p">,</span>
     <span class="n">tools_renderer</span><span class="p">:</span> <span class="n">ToolsRenderer</span> <span class="o">=</span> <span class="n">render_text_description_and_args</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">stop_sequence</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">stop_sequence</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Create an agent aimed at supporting tools with multiple inputs.</span>
 
