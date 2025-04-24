@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 20, 2025" name="docbuild:last-update"/>
+<meta content="Apr 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -225,14 +225,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.load</span><span class="w"> </span><span class="kn">import</span> <span class="n">Serializable</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">convert_to_messages</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.string</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DEFAULT_FORMATTER_MAPPING</span><span class="p">,</span>
-    <span class="n">get_template_variables</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.interactive_env</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_interactive_env</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -335,92 +331,6 @@
         <span class="n">prompt</span> <span class="o">=</span> <span class="n">ChatPromptTemplate</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">prompt</span> <span class="o">+</span> <span class="n">other</span></div>
 
-
-
-<span class="k">class</span><span class="w"> </span><span class="nc">_DictMessagePromptTemplate</span><span class="p">(</span><span class="n">BaseMessagePromptTemplate</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Template represented by a dict that recursively fills input vars in string vals.</span>
-
-<span class="sd">    Special handling of image_url dicts to load local paths. These look like:</span>
-<span class="sd">    ``{"type": "image_url", "image_url": {"path": "..."}}``</span>
-<span class="sd">    """</span>
-
-    <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-    <span class="n">template_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"f-string"</span><span class="p">,</span> <span class="s2">"mustache"</span><span class="p">]</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">format_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]:</span>
-        <span class="n">msg_dict</span> <span class="o">=</span> <span class="n">_insert_input_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_format</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">convert_to_messages</span><span class="p">([</span><span class="n">msg_dict</span><span class="p">])</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">input_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">_get_input_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_format</span><span class="p">)</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_prompt_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">"message-dict-prompt"</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_lc_namespace</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="s2">"langchain_core"</span><span class="p">,</span> <span class="s2">"prompts"</span><span class="p">,</span> <span class="s2">"message"</span><span class="p">]</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">format</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""Format the prompt with the inputs."""</span>
-        <span class="k">return</span> <span class="n">_insert_input_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_format</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_input_variables</span><span class="p">(</span>
-    <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">template_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"f-string"</span><span class="p">,</span> <span class="s2">"mustache"</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="n">input_variables</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">input_variables</span> <span class="o">+=</span> <span class="n">get_template_variables</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">input_variables</span> <span class="o">+=</span> <span class="n">_get_input_variables</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">input_variables</span> <span class="o">+=</span> <span class="n">get_template_variables</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">input_variables</span> <span class="o">+=</span> <span class="n">_get_input_variables</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">input_variables</span><span class="p">))</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_insert_input_variables</span><span class="p">(</span>
-    <span class="n">template</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">template_format</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"f-string"</span><span class="p">,</span> <span class="s2">"mustache"</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-    <span class="n">formatted</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">formatter</span> <span class="o">=</span> <span class="n">DEFAULT_FORMATTER_MAPPING</span><span class="p">[</span><span class="n">template_format</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">formatted</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">formatter</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="c1"># No longer support loading local images.</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">"image_url"</span> <span class="ow">and</span> <span class="s2">"path"</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"Specifying image inputs via file path in environments with "</span>
-                    <span class="s2">"user-input paths is a security vulnerability. Out of an abundance "</span>
-                    <span class="s2">"of caution, the utility has been removed to prevent possible "</span>
-                    <span class="s2">"misuse."</span>
-                <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-            <span class="n">formatted</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_insert_input_variables</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-            <span class="n">formatted_v</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">formatted_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">inputs</span><span class="p">))</span>
-                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">formatted_v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">_insert_input_variables</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">template_format</span><span class="p">)</span>
-                    <span class="p">)</span>
-            <span class="n">formatted</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)(</span><span class="n">formatted_v</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">formatted</span>
 </pre></div>
 </article>
 </div>
@@ -439,7 +349,7 @@
 <div class="footer-item">
 <p class="copyright">
     
-      © Copyright 2023, LangChain Inc.
+      © Copyright 2025, LangChain Inc.
       <br/>
 </p>
 </div>

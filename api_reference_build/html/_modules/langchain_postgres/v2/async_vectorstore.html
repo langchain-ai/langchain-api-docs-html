@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 20, 2025" name="docbuild:last-update"/>
+<meta content="Apr 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -809,10 +809,12 @@
         <span class="n">inline_embed_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_service</span><span class="p">,</span> <span class="s2">"embed_query_inline"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">embedding</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">inline_embed_func</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"query"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="n">query_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_service</span><span class="o">.</span><span class="n">embed_query_inline</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">"query"</span><span class="p">])</span>  <span class="c1"># type: ignore</span>
+            <span class="n">embedding_data_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">query_embedding</span><span class="si">}</span><span class="s2">"</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query_embedding</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">dimension</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">embedding</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""SELECT </span><span class="si">{</span><span class="n">column_names</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">search_function</span><span class="si">}</span><span class="s2">("</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_column</span><span class="si">}</span><span class="s2">", :query_embedding) as distance</span>
-<span class="s2">        FROM "</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span><span class="si">}</span><span class="s2">"."</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">" </span><span class="si">{</span><span class="n">param_filter</span><span class="si">}</span><span class="s2"> ORDER BY "</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_column</span><span class="si">}</span><span class="s2">" </span><span class="si">{</span><span class="n">operator</span><span class="si">}</span><span class="s2"> :query_embedding LIMIT :k;</span>
+            <span class="n">embedding_data_string</span> <span class="o">=</span> <span class="s2">":query_embedding"</span>
+        <span class="n">stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""SELECT </span><span class="si">{</span><span class="n">column_names</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">search_function</span><span class="si">}</span><span class="s2">("</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_column</span><span class="si">}</span><span class="s2">", </span><span class="si">{</span><span class="n">embedding_data_string</span><span class="si">}</span><span class="s2">) as distance</span>
+<span class="s2">        FROM "</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span><span class="si">}</span><span class="s2">"."</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">" </span><span class="si">{</span><span class="n">param_filter</span><span class="si">}</span><span class="s2"> ORDER BY "</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_column</span><span class="si">}</span><span class="s2">" </span><span class="si">{</span><span class="n">operator</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">embedding_data_string</span><span class="si">}</span><span class="s2"> LIMIT :k;</span>
 <span class="s2">        """</span>
         <span class="n">param_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"query_embedding"</span><span class="p">:</span> <span class="n">query_embedding</span><span class="p">,</span> <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">}</span>
         <span class="k">if</span> <span class="n">filter_dict</span><span class="p">:</span>
@@ -1608,7 +1610,7 @@
 <div class="footer-item">
 <p class="copyright">
     
-      © Copyright 2023, LangChain Inc.
+      © Copyright 2025, LangChain Inc.
       <br/>
 </p>
 </div>

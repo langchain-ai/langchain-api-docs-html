@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 20, 2025" name="docbuild:last-update"/>
+<meta content="Apr 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,6 +224,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONDecodeError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
@@ -237,6 +238,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGeneration</span><span class="p">,</span> <span class="n">Generation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.json</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_partial_json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeBaseModel</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="parse_tool_call">
@@ -496,6 +499,14 @@
 
 
 
+<span class="c1"># Common cause of ValidationError is truncated output due to max_tokens.</span>
+<span class="n">_MAX_TOKENS_ERROR</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"Output parser received a `max_tokens` stop reason. "</span>
+    <span class="s2">"The output is likely incomplete—please increase `max_tokens` "</span>
+    <span class="s2">"or shorten your prompt."</span>
+<span class="p">)</span>
+
+
 <div class="viewcode-block" id="PydanticToolsParser">
 <a class="viewcode-back" href="../../../core/output_parsers/langchain_core.output_parsers.openai_tools.PydanticToolsParser.html#langchain_core.output_parsers.openai_tools.PydanticToolsParser">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PydanticToolsParser</span><span class="p">(</span><span class="n">JsonOutputToolsParser</span><span class="p">):</span>
@@ -546,6 +557,14 @@
             <span class="k">except</span> <span class="p">(</span><span class="n">ValidationError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">partial</span><span class="p">:</span>
                     <span class="k">continue</span>
+                <span class="n">has_max_tokens_stop_reason</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+                    <span class="n">generation</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">response_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stop_reason"</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="s2">"max_tokens"</span>
+                    <span class="k">for</span> <span class="n">generation</span> <span class="ow">in</span> <span class="n">result</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">generation</span><span class="p">,</span> <span class="n">ChatGeneration</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">has_max_tokens_stop_reason</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">_MAX_TOKENS_ERROR</span><span class="p">)</span>
                 <span class="k">raise</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_tool_only</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">pydantic_objects</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">pydantic_objects</span> <span class="k">else</span> <span class="kc">None</span>
@@ -570,7 +589,7 @@
 <div class="footer-item">
 <p class="copyright">
     
-      © Copyright 2023, LangChain Inc.
+      © Copyright 2025, LangChain Inc.
       <br/>
 </p>
 </div>

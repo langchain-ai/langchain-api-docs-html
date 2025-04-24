@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 20, 2025" name="docbuild:last-update"/>
+<meta content="Apr 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,6 +222,7 @@
 <h1>Source code for langchain_core.messages.content_blocks</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Types for content blocks."""</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeAdapter</span><span class="p">,</span> <span class="n">ValidationError</span>
@@ -351,6 +352,53 @@
     <span class="n">error_message</span> <span class="o">=</span> <span class="s2">"Unsupported source type. Only 'url' and 'base64' are supported."</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_message</span><span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="convert_to_openai_data_block">
+<a class="viewcode-back" href="../../../core/messages/langchain_core.messages.content_blocks.convert_to_openai_data_block.html#langchain_core.messages.content_blocks.convert_to_openai_data_block">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_to_openai_data_block</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Format standard data content block to format expected by OpenAI."""</span>
+    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image"</span><span class="p">:</span>
+        <span class="n">formatted_block</span> <span class="o">=</span> <span class="n">convert_to_openai_image_block</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"file"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"base64"</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"file_data"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"data:</span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="s1">'mime_type'</span><span class="p">]</span><span class="si">}</span><span class="s2">;base64,</span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="s1">'data'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">filename</span> <span class="o">:=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"filename"</span><span class="p">):</span>
+                <span class="n">file</span><span class="p">[</span><span class="s2">"filename"</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">metadata</span> <span class="o">:=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">))</span> <span class="ow">and</span> <span class="p">(</span><span class="s2">"filename"</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">):</span>
+                <span class="n">file</span><span class="p">[</span><span class="s2">"filename"</span><span class="p">]</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">"filename"</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">"OpenAI may require a filename for file inputs. Specify a filename "</span>
+                    <span class="s2">"in the content block: {'type': 'file', 'source_type': 'base64', "</span>
+                    <span class="s2">"'mime_type': 'application/pdf', 'data': '...', "</span>
+                    <span class="s2">"'filename': 'my-pdf'}"</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">formatted_block</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span> <span class="s2">"file"</span><span class="p">:</span> <span class="n">file</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"id"</span><span class="p">:</span>
+            <span class="n">formatted_block</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span> <span class="s2">"file"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"file_id"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]}}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">"source_type base64 or id is required for file blocks."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"audio"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"base64"</span><span class="p">:</span>
+            <span class="nb">format</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">formatted_block</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_audio"</span><span class="p">,</span>
+                <span class="s2">"input_audio"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"data"</span><span class="p">],</span> <span class="s2">"format"</span><span class="p">:</span> <span class="nb">format</span><span class="p">},</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">"source_type base64 is required for audio blocks."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Block of type </span><span class="si">{</span><span class="n">block</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2"> is not supported."</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">formatted_block</span></div>
+
 </pre></div>
 </article>
 </div>
@@ -369,7 +417,7 @@
 <div class="footer-item">
 <p class="copyright">
     
-      © Copyright 2023, LangChain Inc.
+      © Copyright 2025, LangChain Inc.
       <br/>
 </p>
 </div>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 20, 2025" name="docbuild:last-update"/>
+<meta content="Apr 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -259,10 +259,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_msg_title_repr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompt_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatPromptValue</span><span class="p">,</span> <span class="n">ImageURL</span><span class="p">,</span> <span class="n">PromptValue</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePromptTemplate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.dict</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictPromptTemplate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.image</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImagePromptTemplate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.message</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BaseMessagePromptTemplate</span><span class="p">,</span>
-    <span class="n">_DictMessagePromptTemplate</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.prompt</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptTemplate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.prompts.string</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -660,9 +660,7 @@
 
     <span class="n">prompt</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">StringPromptTemplate</span><span class="p">,</span>
-        <span class="nb">list</span><span class="p">[</span>
-            <span class="n">Union</span><span class="p">[</span><span class="n">StringPromptTemplate</span><span class="p">,</span> <span class="n">ImagePromptTemplate</span><span class="p">,</span> <span class="n">_DictMessagePromptTemplate</span><span class="p">]</span>
-        <span class="p">],</span>
+        <span class="nb">list</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">StringPromptTemplate</span><span class="p">,</span> <span class="n">ImagePromptTemplate</span><span class="p">,</span> <span class="n">DictPromptTemplate</span><span class="p">]],</span>
     <span class="p">]</span>
 <span class="w">    </span><span class="sd">"""Prompt template."""</span>
     <span class="n">additional_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
@@ -711,7 +709,12 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">prompt</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">tmpl</span> <span class="ow">in</span> <span class="n">template</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">tmpl</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">tmpl</span>
+                    <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">tmpl</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">}</span>
+                <span class="p">):</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
                         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">tmpl</span>
                     <span class="k">else</span><span class="p">:</span>
@@ -721,7 +724,15 @@
                             <span class="n">text</span><span class="p">,</span> <span class="n">template_format</span><span class="o">=</span><span class="n">template_format</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
-                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"image_url"</span> <span class="ow">in</span> <span class="n">tmpl</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="p">(</span>
+                    <span class="nb">isinstance</span><span class="p">(</span><span class="n">tmpl</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="s2">"image_url"</span> <span class="ow">in</span> <span class="n">tmpl</span>
+                    <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">tmpl</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                    <span class="o">&lt;=</span> <span class="p">{</span>
+                        <span class="s2">"type"</span><span class="p">,</span>
+                        <span class="s2">"image_url"</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">):</span>
                     <span class="n">img_template</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"_ImageTemplateParam"</span><span class="p">,</span> <span class="n">tmpl</span><span class="p">)[</span><span class="s2">"image_url"</span><span class="p">]</span>
                     <span class="n">input_variables</span> <span class="o">=</span> <span class="p">[]</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img_template</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -767,7 +778,7 @@
                             <span class="s2">"format."</span>
                         <span class="p">)</span>
                         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-                    <span class="n">data_template_obj</span> <span class="o">=</span> <span class="n">_DictMessagePromptTemplate</span><span class="p">(</span>
+                    <span class="n">data_template_obj</span> <span class="o">=</span> <span class="n">DictPromptTemplate</span><span class="p">(</span>
                         <span class="n">template</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"dict[str, Any]"</span><span class="p">,</span> <span class="n">tmpl</span><span class="p">),</span>
                         <span class="n">template_format</span><span class="o">=</span><span class="n">template_format</span><span class="p">,</span>
                     <span class="p">)</span>
@@ -856,7 +867,7 @@
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">ImagePromptTemplate</span><span class="p">):</span>
                 <span class="n">formatted</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
                 <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"image_url"</span><span class="p">,</span> <span class="s2">"image_url"</span><span class="p">:</span> <span class="n">formatted</span><span class="p">})</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">_DictMessagePromptTemplate</span><span class="p">):</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">DictPromptTemplate</span><span class="p">):</span>
                 <span class="n">formatted</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
                 <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formatted</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_msg_class</span><span class="p">(</span>
@@ -888,7 +899,7 @@
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">ImagePromptTemplate</span><span class="p">):</span>
                 <span class="n">formatted</span> <span class="o">=</span> <span class="k">await</span> <span class="n">prompt</span><span class="o">.</span><span class="n">aformat</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
                 <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"image_url"</span><span class="p">,</span> <span class="s2">"image_url"</span><span class="p">:</span> <span class="n">formatted</span><span class="p">})</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">_DictMessagePromptTemplate</span><span class="p">):</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">DictPromptTemplate</span><span class="p">):</span>
                 <span class="n">formatted</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">inputs</span><span class="p">)</span>
                 <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formatted</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_msg_class</span><span class="p">(</span>
@@ -1800,7 +1811,7 @@
 <div class="footer-item">
 <p class="copyright">
     
-      © Copyright 2023, LangChain Inc.
+      © Copyright 2025, LangChain Inc.
       <br/>
 </p>
 </div>
