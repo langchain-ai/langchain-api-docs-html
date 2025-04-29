@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Apr 28, 2025" name="docbuild:last-update"/>
+<meta content="Apr 29, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -265,6 +265,8 @@
     <span class="n">db</span><span class="p">:</span> <span class="n">SQLDatabase</span><span class="p">,</span>
     <span class="n">prompt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BasePromptTemplate</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">get_col_comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">SQLInput</span><span class="p">,</span> <span class="n">SQLInputWithTables</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Create a chain that generates SQL queries.</span>
 
@@ -289,6 +291,8 @@
 <span class="sd">        prompt: The prompt to use. If none is provided, will choose one</span>
 <span class="sd">            based on dialect. Defaults to None. See Prompt section below for more.</span>
 <span class="sd">        k: The number of results per select statement to return. Defaults to 5.</span>
+<span class="sd">        get_col_comments: Whether to retrieve column comments along with table info.</span>
+<span class="sd">            Defaults to False.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A chain that takes in a question and generates a SQL query that answers</span>
@@ -357,10 +361,22 @@
     <span class="k">if</span> <span class="s2">"dialect"</span> <span class="ow">in</span> <span class="n">prompt_to_use</span><span class="o">.</span><span class="n">input_variables</span><span class="p">:</span>
         <span class="n">prompt_to_use</span> <span class="o">=</span> <span class="n">prompt_to_use</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">dialect</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">dialect</span><span class="p">)</span>
 
+    <span class="n">table_info_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">get_col_comments</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">dialect</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"postgresql"</span><span class="p">,</span> <span class="s2">"mysql"</span><span class="p">,</span> <span class="s2">"oracle"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"get_col_comments=True is only supported for dialects "</span>
+                <span class="sa">f</span><span class="s2">"'postgresql', 'mysql', and 'oracle'. Received dialect: "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">db</span><span class="o">.</span><span class="n">dialect</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table_info_kwargs</span><span class="p">[</span><span class="s2">"get_col_comments"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"input"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">"question"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">SQLQuery: "</span><span class="p">,</span>
         <span class="s2">"table_info"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">db</span><span class="o">.</span><span class="n">get_table_info</span><span class="p">(</span>
-            <span class="n">table_names</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"table_names_to_use"</span><span class="p">)</span>
+            <span class="n">table_names</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"table_names_to_use"</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">table_info_kwargs</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="p">(</span>
