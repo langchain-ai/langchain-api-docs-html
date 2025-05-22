@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="May 21, 2025" name="docbuild:last-update"/>
+<meta content="May 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -278,14 +278,17 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.tool</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool_call_chunk</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonOutputParser</span><span class="p">,</span> <span class="n">PydanticOutputParser</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.openai_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_invalid_tool_call</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.output_parsers.openai_tools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">make_invalid_tool_call</span><span class="p">,</span>
+    <span class="n">parse_tool_call</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">ChatResult</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.runnables</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runnable</span><span class="p">,</span> <span class="n">RunnableMap</span><span class="p">,</span> <span class="n">RunnablePassthrough</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_from_dict_or_env</span><span class="p">,</span> <span class="n">pre_init</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_to_openai_tool</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_basemodel_subclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">PrivateAttr</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">PrivateAttr</span><span class="p">,</span> <span class="n">model_validator</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_azure_ai.utils.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_endpoint_from_project</span>
 
@@ -367,19 +370,15 @@
     <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"user"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">HumanMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span><span class="p">:</span>
-        <span class="n">tool_calls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ToolCall</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tool_calls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">invalid_tool_calls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">InvalidToolCall</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">additional_kwargs</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                        <span class="n">ToolCall</span><span class="p">(</span>
-                            <span class="nb">id</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"id"</span><span class="p">),</span>
-                            <span class="n">name</span><span class="o">=</span><span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                            <span class="n">args</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">arguments</span><span class="p">),</span>
-                        <span class="p">)</span>
-                    <span class="p">)</span>
+                    <span class="n">raw_tool_call</span> <span class="o">=</span> <span class="n">parse_tool_call</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span> <span class="n">return_id</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">raw_tool_call</span><span class="p">:</span>
+                        <span class="n">tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">raw_tool_call</span><span class="p">)</span>
                 <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="n">invalid_tool_calls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="n">make_invalid_tool_call</span><span class="p">(</span><span class="n">tool_call</span><span class="o">.</span><span class="n">as_dict</span><span class="p">(),</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -554,20 +553,19 @@
 <span class="sd">            model = AzureAIChatCompletionsModel(</span>
 <span class="sd">                endpoint="https://[your-service].services.ai.azure.com/models",</span>
 <span class="sd">                credential="your-api-key",</span>
-<span class="sd">                model_name="mistral-large-2407",</span>
+<span class="sd">                model="mistral-large-2407",</span>
 <span class="sd">                temperature=0.5,</span>
 <span class="sd">                top_p=0.9,</span>
 <span class="sd">            )</span>
 
-<span class="sd">        Certain models may require to pass the `api_version` parameter. When</span>
+<span class="sd">        Azure OpenAI models may require to pass the `api_version` parameter. When</span>
 <span class="sd">        not indicate, the default version of the Azure AI Inference SDK is used.</span>
 <span class="sd">        Check the model documentation to know which api version to use.</span>
 
 <span class="sd">        .. code-block:: python</span>
 <span class="sd">            model = AzureAIChatCompletionsModel(</span>
-<span class="sd">                endpoint="https://[your-service].services.ai.azure.com/models",</span>
+<span class="sd">                endpoint="https://[your-service].services.ai.azure.com/openai/deployments/gpt-4o",</span>
 <span class="sd">                credential="your-api-key",</span>
-<span class="sd">                model_name="gpt-4o",</span>
 <span class="sd">                api_version="2024-05-01-preview",</span>
 <span class="sd">            )</span>
 
@@ -590,7 +588,7 @@
 <span class="sd">            model = AzureAIChatCompletionsModel(</span>
 <span class="sd">                endpoint="https://[your-service].services.ai.azure.com/models",</span>
 <span class="sd">                credential="your-api-key",</span>
-<span class="sd">                model_name="mistral-large-2407",</span>
+<span class="sd">                model="mistral-large-2407",</span>
 <span class="sd">                client_kwargs={ "logging_enable": True }</span>
 <span class="sd">            )</span>
 <span class="sd">    """</span>
@@ -611,7 +609,7 @@
 <span class="w">    </span><span class="sd">"""The API version to use for the Azure AI model inference API. If None, the</span>
 <span class="sd">    default version is used."""</span>
 
-    <span class="n">model_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"model"</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""The name of the model to use for inference, if the endpoint is running more</span>
 <span class="sd">    than one model. If</span>
 <span class="sd">    not, this parameter is ignored."""</span>
@@ -947,6 +945,7 @@
         <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"json_mode"</span><span class="p">,</span> <span class="s2">"json_schema"</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_mode"</span><span class="p">:</span>
                 <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">response_format</span><span class="o">=</span><span class="s2">"json_object"</span><span class="p">)</span>
+                <span class="n">output_parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
             <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_schema"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">json_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
