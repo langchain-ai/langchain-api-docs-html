@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 09, 2025" name="docbuild:last-update"/>
+<meta content="Jun 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -278,6 +278,18 @@
 
 
 
+<div class="viewcode-block" id="CosmosDBVectorSearchCompression">
+<a class="viewcode-back" href="../../../azure_ai/vectorstores/langchain_azure_ai.vectorstores.azure_cosmos_db_mongo_vcore.CosmosDBVectorSearchCompression.html#langchain_azure_ai.vectorstores.azure_cosmos_db_mongo_vcore.CosmosDBVectorSearchCompression">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CosmosDBVectorSearchCompression</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Cosmos DB Vector Search Compression as enumerator."""</span>
+
+    <span class="n">PQ</span> <span class="o">=</span> <span class="s2">"pq"</span>
+<span class="w">    </span><span class="sd">"""Product Quantization compression"""</span>
+    <span class="n">HALF</span> <span class="o">=</span> <span class="s2">"half"</span>
+<span class="w">    </span><span class="sd">"""Half precision compression"""</span></div>
+
+
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">DEFAULT_INSERT_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">128</span>
@@ -435,6 +447,9 @@
         <span class="n">ef_construction</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
         <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
         <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CosmosDBVectorSearchCompression</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_compressed_dims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_sample_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Creates an index using the index name specified at instance construction.</span>
 
@@ -466,9 +481,8 @@
 <span class="sd">            kind: Type of vector index to create.</span>
 <span class="sd">                Possible options are:</span>
 <span class="sd">                    - vector-ivf</span>
-<span class="sd">                    - vector-hnsw: available as a preview feature only,</span>
-<span class="sd">                                   to enable visit https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/preview-features</span>
-<span class="sd">                    - vector-diskann: available as a preview feature only</span>
+<span class="sd">                    - vector-hnsw</span>
+<span class="sd">                    - vector-diskann</span>
 <span class="sd">            num_lists: This integer is the number of clusters that the</span>
 <span class="sd">                inverted file (IVF) index uses to group the vector data.</span>
 <span class="sd">                We recommend that numLists is set to documentCount/1000</span>
@@ -499,6 +513,13 @@
 <span class="sd">            l_build: l value for index building.</span>
 <span class="sd">                Default value is 50, range from 10 to 500.</span>
 <span class="sd">                Only vector-diskann search supports this for now.</span>
+<span class="sd">            compression: compression type for vector indexes.</span>
+<span class="sd">                Product quantization compression is only supported for DISKANN and</span>
+<span class="sd">                half precision compression is only supported for IVF and HNSW for now.</span>
+<span class="sd">            pq_compressed_dims: Number of dimensions after compression for product quantization.</span>
+<span class="sd">                Must be less than original dimensions. Automatically calculated if omitted. Range: 1-8000.</span>
+<span class="sd">            pq_sample_size: Number of samples for PQ centroid training.</span>
+<span class="sd">                Higher value means better quality but longer build time. Default: 1000. Range: 1000-100000.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            An object describing the created index</span>
@@ -509,15 +530,31 @@
         <span class="n">create_index_commands</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_IVF</span><span class="p">:</span>
             <span class="n">create_index_commands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_vector_index_ivf</span><span class="p">(</span>
-                <span class="n">kind</span><span class="p">,</span> <span class="n">num_lists</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">dimensions</span>
+                <span class="n">kind</span><span class="p">,</span>
+                <span class="n">num_lists</span><span class="p">,</span>
+                <span class="n">similarity</span><span class="p">,</span>
+                <span class="n">dimensions</span><span class="p">,</span>
+                <span class="n">compression</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_HNSW</span><span class="p">:</span>
             <span class="n">create_index_commands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_vector_index_hnsw</span><span class="p">(</span>
-                <span class="n">kind</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">ef_construction</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">dimensions</span>
+                <span class="n">kind</span><span class="p">,</span>
+                <span class="n">m</span><span class="p">,</span>
+                <span class="n">ef_construction</span><span class="p">,</span>
+                <span class="n">similarity</span><span class="p">,</span>
+                <span class="n">dimensions</span><span class="p">,</span>
+                <span class="n">compression</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">CosmosDBVectorSearchType</span><span class="o">.</span><span class="n">VECTOR_DISKANN</span><span class="p">:</span>
             <span class="n">create_index_commands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_vector_index_diskann</span><span class="p">(</span>
-                <span class="n">kind</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">,</span> <span class="n">l_build</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">dimensions</span>
+                <span class="n">kind</span><span class="p">,</span>
+                <span class="n">max_degree</span><span class="p">,</span>
+                <span class="n">l_build</span><span class="p">,</span>
+                <span class="n">similarity</span><span class="p">,</span>
+                <span class="n">dimensions</span><span class="p">,</span>
+                <span class="n">compression</span><span class="p">,</span>
+                <span class="n">pq_compressed_dims</span><span class="p">,</span>
+                <span class="n">pq_sample_size</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="c1"># retrieve the database object</span>
@@ -532,62 +569,96 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_vector_index_ivf</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_lists</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">num_lists</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CosmosDBVectorSearchCompression</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">cosmos_search_options</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+            <span class="s2">"numLists"</span><span class="p">:</span> <span class="n">num_lists</span><span class="p">,</span>
+            <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
+            <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">compression</span><span class="p">:</span>
+            <span class="n">cosmos_search_options</span><span class="p">[</span><span class="s2">"compression"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compression</span>
+
         <span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"createIndexes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s2">"indexes"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_name</span><span class="p">,</span>
                     <span class="s2">"key"</span><span class="p">:</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">:</span> <span class="s2">"cosmosSearch"</span><span class="p">},</span>
-                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
-                        <span class="s2">"numLists"</span><span class="p">:</span> <span class="n">num_lists</span><span class="p">,</span>
-                        <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
-                        <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
-                    <span class="p">},</span>
+                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="n">cosmos_search_options</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">],</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">command</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_vector_index_hnsw</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ef_construction</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">m</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ef_construction</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CosmosDBVectorSearchCompression</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">cosmos_search_options</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+            <span class="s2">"m"</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span>
+            <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="n">ef_construction</span><span class="p">,</span>
+            <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
+            <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">compression</span><span class="p">:</span>
+            <span class="n">cosmos_search_options</span><span class="p">[</span><span class="s2">"compression"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compression</span>
         <span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"createIndexes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s2">"indexes"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_name</span><span class="p">,</span>
                     <span class="s2">"key"</span><span class="p">:</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">:</span> <span class="s2">"cosmosSearch"</span><span class="p">},</span>
-                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
-                        <span class="s2">"m"</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span>
-                        <span class="s2">"efConstruction"</span><span class="p">:</span> <span class="n">ef_construction</span><span class="p">,</span>
-                        <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
-                        <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
-                    <span class="p">},</span>
+                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="n">cosmos_search_options</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">],</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">command</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_vector_index_diskann</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">similarity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dimensions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CosmosDBVectorSearchCompression</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_compressed_dims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_sample_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">cosmos_search_options</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+            <span class="s2">"maxDegree"</span><span class="p">:</span> <span class="n">max_degree</span><span class="p">,</span>
+            <span class="s2">"lBuild"</span><span class="p">:</span> <span class="n">l_build</span><span class="p">,</span>
+            <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
+            <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">compression</span><span class="p">:</span>
+            <span class="n">cosmos_search_options</span><span class="p">[</span><span class="s2">"compression"</span><span class="p">]</span> <span class="o">=</span> <span class="n">compression</span>
+            <span class="k">if</span> <span class="n">pq_compressed_dims</span><span class="p">:</span>
+                <span class="n">cosmos_search_options</span><span class="p">[</span><span class="s2">"pqCompressedDims"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pq_compressed_dims</span>
+            <span class="k">if</span> <span class="n">pq_sample_size</span><span class="p">:</span>
+                <span class="n">cosmos_search_options</span><span class="p">[</span><span class="s2">"pqSampleSize"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pq_sample_size</span>
+
         <span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"createIndexes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collection</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="s2">"indexes"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_name</span><span class="p">,</span>
                     <span class="s2">"key"</span><span class="p">:</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">:</span> <span class="s2">"cosmosSearch"</span><span class="p">},</span>
-                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="p">{</span>
-                        <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
-                        <span class="s2">"maxDegree"</span><span class="p">:</span> <span class="n">max_degree</span><span class="p">,</span>
-                        <span class="s2">"lBuild"</span><span class="p">:</span> <span class="n">l_build</span><span class="p">,</span>
-                        <span class="s2">"similarity"</span><span class="p">:</span> <span class="n">similarity</span><span class="p">,</span>
-                        <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">dimensions</span><span class="p">,</span>
-                    <span class="p">},</span>
+                    <span class="s2">"cosmosSearchOptions"</span><span class="p">:</span> <span class="n">cosmos_search_options</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">],</span>
         <span class="p">}</span>
@@ -730,6 +801,7 @@
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Returns a list of documents with their scores.</span>
 
@@ -740,8 +812,7 @@
 <span class="sd">                Possible options are:</span>
 <span class="sd">                    - vector-ivf</span>
 <span class="sd">                    - vector-hnsw</span>
-<span class="sd">                    - vector-diskann: available as a preview feature only</span>
-<span class="sd">                                      to enable visit https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/preview-features</span>
+<span class="sd">                    - vector-diskann</span>
 <span class="sd">            pre_filter: Pre-filtering function</span>
 <span class="sd">            ef_search: The size of the dynamic candidate list for search</span>
 <span class="sd">                       (40 by default). A higher value provides better</span>
@@ -753,6 +824,10 @@
 <span class="sd">                Default value is 40, range from 10 to 10000.</span>
 <span class="sd">                Only vector-diskann search supports this.</span>
 <span class="sd">            with_embedding: (bool, optional): If true, return a vector with the result</span>
+<span class="sd">            oversampling: (Optional[float], optional): The oversampling factor for</span>
+<span class="sd">                compressed index. The oversampling factor (a float with a minimum of 1)</span>
+<span class="sd">                specifies how many more candidate vectors to retrieve from the</span>
+<span class="sd">                compressed index than k (the number of desired results).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A list of documents closest to the query vector</span>
@@ -791,12 +866,17 @@
         <span class="k">return</span> <span class="n">docs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_pipeline_vector_ivf</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"vector"</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span>
             <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">,</span>
             <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
+            <span class="s2">"oversampling"</span><span class="p">:</span> <span class="n">oversampling</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">pre_filter</span><span class="p">:</span>
             <span class="n">params</span><span class="p">[</span><span class="s2">"filter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pre_filter</span>
@@ -823,12 +903,14 @@
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"vector"</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span>
             <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">,</span>
             <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
             <span class="s2">"efSearch"</span><span class="p">:</span> <span class="n">ef_search</span><span class="p">,</span>
+            <span class="s2">"oversampling"</span><span class="p">:</span> <span class="n">oversampling</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">pre_filter</span><span class="p">:</span>
             <span class="n">params</span><span class="p">[</span><span class="s2">"filter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pre_filter</span>
@@ -854,12 +936,14 @@
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">pre_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"vector"</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span>
             <span class="s2">"path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_key</span><span class="p">,</span>
             <span class="s2">"k"</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span>
             <span class="s2">"lSearch"</span><span class="p">:</span> <span class="n">l_search</span><span class="p">,</span>
+            <span class="s2">"oversampling"</span><span class="p">:</span> <span class="n">oversampling</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">pre_filter</span><span class="p">:</span>
             <span class="n">params</span><span class="p">[</span><span class="s2">"filter"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pre_filter</span>
@@ -891,6 +975,7 @@
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Returns a list of similar documents with their scores."""</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -903,6 +988,7 @@
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
             <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span></div>
 
@@ -919,6 +1005,7 @@
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Returns a list of similar documents."""</span>
@@ -931,6 +1018,7 @@
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
             <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">doc</span> <span class="k">for</span> <span class="n">doc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">docs_and_scores</span><span class="p">]</span></div>
 
@@ -949,6 +1037,7 @@
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Retrieves the docs with similarity scores."""</span>
@@ -962,6 +1051,7 @@
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
             <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Re-ranks the docs using MMR</span>
@@ -989,6 +1079,7 @@
         <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Retrieves the similar docs."""</span>
@@ -1005,6 +1096,7 @@
             <span class="n">score_threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
             <span class="n">l_search</span><span class="o">=</span><span class="n">l_search</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="n">oversampling</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span></div>
 

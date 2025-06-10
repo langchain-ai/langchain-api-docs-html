@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 09, 2025" name="docbuild:last-update"/>
+<meta content="Jun 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -247,6 +247,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_azure_ai.vectorstores.azure_cosmos_db_mongo_vcore</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AzureCosmosDBMongoVCoreVectorSearch</span><span class="p">,</span>
     <span class="n">CosmosDBSimilarityType</span><span class="p">,</span>
+    <span class="n">CosmosDBVectorSearchCompression</span><span class="p">,</span>
     <span class="n">CosmosDBVectorSearchType</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -258,7 +259,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_hash</span><span class="p">(</span><span class="n">_input</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Use a deterministic hashing approach."""</span>
-    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">_input</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">_input</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_dump_generations_to_json</span><span class="p">(</span><span class="n">generations</span><span class="p">:</span> <span class="n">RETURN_VAL_TYPE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -382,8 +383,12 @@
         <span class="n">l_build</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
         <span class="n">l_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
         <span class="n">ef_search</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span>
-        <span class="n">score_threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">application_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"langchainpy"</span><span class="p">,</span>
+        <span class="n">score_threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CosmosDBVectorSearchCompression</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_compressed_dims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pq_sample_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">oversampling</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""AzureCosmosDBMongoVCoreSemanticCache constructor.</span>
 
@@ -412,8 +417,7 @@
 <span class="sd">                Possible options are:</span>
 <span class="sd">                    - vector-ivf</span>
 <span class="sd">                    - vector-hnsw</span>
-<span class="sd">                    - vector-diskann: available as a preview feature only,</span>
-<span class="sd">                                   to enable visit https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/preview-features</span>
+<span class="sd">                    - vector-diskann</span>
 <span class="sd">            m: The max number of connections per layer (16 by default, minimum</span>
 <span class="sd">               value is 2, maximum value is 100). Higher m is suitable for datasets</span>
 <span class="sd">               with high dimensionality and/or high accuracy requirements.</span>
@@ -437,9 +441,22 @@
 <span class="sd">                Only vector-diskann search supports this.</span>
 <span class="sd">            score_threshold: Maximum score used to filter the vector search documents.</span>
 <span class="sd">            application_name: Application name for the client for tracking and logging</span>
+<span class="sd">            compression: compression type for vector indexes.</span>
+<span class="sd">            pq_compressed_dims: Number of dimensions after compression for product</span>
+<span class="sd">                quantization. Must be less than original dimensions. Automatically</span>
+<span class="sd">                calculated if omitted. Range: 1-8000.</span>
+<span class="sd">            pq_sample_size: Number of samples for PQ centroid training.</span>
+<span class="sd">                Higher value means better quality but longer build time.</span>
+<span class="sd">                Default: 1000. Range: 1000-100000.</span>
+<span class="sd">            oversampling: The oversampling factor for compressed index.</span>
+<span class="sd">                The oversampling factor (a float with a minimum of 1)</span>
+<span class="sd">                specifies how many more candidate vectors to retrieve from the</span>
+<span class="sd">                compressed index than k (the number of desired results).</span>
 <span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_enum_value</span><span class="p">(</span><span class="n">similarity</span><span class="p">,</span> <span class="n">CosmosDBSimilarityType</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_enum_value</span><span class="p">(</span><span class="n">kind</span><span class="p">,</span> <span class="n">CosmosDBVectorSearchType</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">compression</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_enum_value</span><span class="p">(</span><span class="n">compression</span><span class="p">,</span> <span class="n">CosmosDBVectorSearchCompression</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">cosmosdb_connection_string</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">" CosmosDB connection string can be empty."</span><span class="p">)</span>
@@ -461,7 +478,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ef_search</span> <span class="o">=</span> <span class="n">ef_search</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">score_threshold</span> <span class="o">=</span> <span class="n">score_threshold</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cache_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AzureCosmosDBMongoVCoreVectorSearch</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">application_name</span> <span class="o">=</span> <span class="n">application_name</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">application_name</span> <span class="o">=</span> <span class="n">application_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression</span> <span class="o">=</span> <span class="n">compression</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pq_compressed_dims</span> <span class="o">=</span> <span class="n">pq_compressed_dims</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pq_sample_size</span> <span class="o">=</span> <span class="n">pq_sample_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span> <span class="o">=</span> <span class="n">oversampling</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_index_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -508,6 +529,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">ef_construction</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">max_degree</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">l_build</span><span class="p">,</span>
+                <span class="n">compression</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compression</span><span class="p">,</span>
+                <span class="n">pq_compressed_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pq_compressed_dims</span><span class="p">,</span>
+                <span class="n">pq_sample_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pq_sample_size</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">vectorstore</span>
@@ -525,7 +549,8 @@
             <span class="n">kind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kind</span><span class="p">,</span>
             <span class="n">ef_search</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ef_search</span><span class="p">,</span>
             <span class="n">l_search</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">l_search</span><span class="p">,</span>
-            <span class="n">score_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">score_threshold</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">score_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">score_threshold</span> <span class="ow">or</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">oversampling</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">oversampling</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">results</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">document</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>

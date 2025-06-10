@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 09, 2025" name="docbuild:last-update"/>
+<meta content="Jun 10, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -3365,14 +3365,24 @@
             <span class="k">if</span> <span class="n">tool</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"function"</span> <span class="ow">and</span> <span class="s2">"function"</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
                 <span class="n">new_tools</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function"</span><span class="p">,</span> <span class="o">**</span><span class="n">tool</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]})</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tool</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image_generation"</span><span class="p">:</span>
+                    <span class="c1"># Handle partial images (not yet supported)</span>
+                    <span class="k">if</span> <span class="s2">"partial_images"</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                            <span class="s2">"Partial image generation is not yet supported "</span>
+                            <span class="s2">"via the LangChain ChatOpenAI client. Please "</span>
+                            <span class="s2">"drop the 'partial_images' key from the image_generation "</span>
+                            <span class="s2">"tool."</span>
+                        <span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stream"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"partial_images"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
+                        <span class="c1"># OpenAI requires this parameter be set; we ignore it during</span>
+                        <span class="c1"># streaming.</span>
+                        <span class="n">tool</span><span class="p">[</span><span class="s2">"partial_images"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">pass</span>
+
                 <span class="n">new_tools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">tool</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image_generation"</span> <span class="ow">and</span> <span class="s2">"partial_images"</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">"Partial image generation is not yet supported "</span>
-                    <span class="s2">"via the LangChain ChatOpenAI client. Please "</span>
-                    <span class="s2">"drop the 'partial_images' key from the image_generation tool."</span>
-                <span class="p">)</span>
         <span class="n">payload</span><span class="p">[</span><span class="s2">"tools"</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_tools</span>
     <span class="k">if</span> <span class="n">tool_choice</span> <span class="o">:=</span> <span class="n">payload</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"tool_choice"</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
         <span class="c1"># chat api: {"type": "function", "function": {"name": "..."}}</span>
