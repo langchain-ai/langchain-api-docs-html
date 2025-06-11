@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 10, 2025" name="docbuild:last-update"/>
+<meta content="Jun 11, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -226,7 +226,8 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">computed_field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMessage</span><span class="p">,</span> <span class="n">BaseMessageChunk</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs.generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generation</span>
@@ -249,30 +250,44 @@
 <span class="sd">    via callbacks).</span>
 <span class="sd">    """</span>
 
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="w">    </span><span class="sd">"""*SHOULD NOT BE SET DIRECTLY* The text contents of the output message."""</span>
     <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span>
 <span class="w">    </span><span class="sd">"""The message output by the chat model."""</span>
-
+    <span class="c1"># Override type to be ChatGeneration, ignore mypy error as this is intentional</span>
     <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"ChatGeneration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"ChatGeneration"</span>  <span class="c1"># type: ignore[assignment]</span>
 <span class="w">    </span><span class="sd">"""Type is used exclusively for serialization purposes."""</span>
 
-    <span class="nd">@computed_field</span>  <span class="c1"># type: ignore[prop-decorator]</span>
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">text</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Set the text attribute to be the contents of the message."""</span>
-        <span class="n">text_</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_text</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Set the text attribute to be the contents of the message.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            values: The values of the object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The values of the object with the text attribute set.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the message is not a string or a list.</span>
+<span class="sd">        """</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">text_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
         <span class="c1"># Assumes text in content blocks in OpenAI format.</span>
         <span class="c1"># Uses first text block.</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">text_</span> <span class="o">=</span> <span class="n">block</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">block</span>
                     <span class="k">break</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"text"</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
-                    <span class="n">text_</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span>
                     <span class="k">break</span>
-        <span class="k">return</span> <span class="n">text_</span></div>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 
 
 
@@ -286,7 +301,7 @@
 
     <span class="n">message</span><span class="p">:</span> <span class="n">BaseMessageChunk</span>
 <span class="w">    </span><span class="sd">"""The message chunk output by the chat model."""</span>
-
+    <span class="c1"># Override type to be ChatGeneration, ignore mypy error as this is intentional</span>
     <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"ChatGenerationChunk"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"ChatGenerationChunk"</span>  <span class="c1"># type: ignore[assignment]</span>
 <span class="w">    </span><span class="sd">"""Type is used exclusively for serialization purposes."""</span>
 

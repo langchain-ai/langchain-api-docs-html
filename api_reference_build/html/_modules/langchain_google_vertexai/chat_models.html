@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 10, 2025" name="docbuild:last-update"/>
+<meta content="Jun 11, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -357,6 +357,7 @@
     <span class="n">_format_model_name</span><span class="p">,</span>
     <span class="n">is_gemini_model</span><span class="p">,</span>
     <span class="n">replace_defs_in_schema</span><span class="p">,</span>
+    <span class="n">_strip_nullable_anyof</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai.functions_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_format_tool_config</span><span class="p">,</span>
@@ -673,8 +674,10 @@
                         <span class="s2">"Merging values together"</span>
                     <span class="p">)</span>
                     <span class="n">content</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">merged_content</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-                <span class="k">else</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">parsed_content</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="n">content</span> <span class="o">=</span> <span class="n">parsed_content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"content"</span><span class="p">:</span> <span class="s2">""</span><span class="p">}</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="n">_parse_content</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
 
@@ -2315,6 +2318,9 @@
             <span class="c1"># Resolve refs in schema because they are not supported</span>
             <span class="c1"># by the Gemini API.</span>
             <span class="n">schema_json</span> <span class="o">=</span> <span class="n">replace_defs_in_schema</span><span class="p">(</span><span class="n">schema_json</span><span class="p">)</span>
+
+            <span class="c1"># API does not support anyOf.</span>
+            <span class="n">schema_json</span> <span class="o">=</span> <span class="n">_strip_nullable_anyof</span><span class="p">(</span><span class="n">schema_json</span><span class="p">)</span>
 
             <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
                 <span class="n">response_mime_type</span><span class="o">=</span><span class="s2">"application/json"</span><span class="p">,</span>
