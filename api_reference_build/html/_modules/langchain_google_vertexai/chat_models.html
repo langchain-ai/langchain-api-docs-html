@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 11, 2025" name="docbuild:last-update"/>
+<meta content="Jun 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -336,9 +336,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">google.cloud.aiplatform_v1beta1.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Blob</span><span class="p">,</span>
     <span class="n">Candidate</span><span class="p">,</span>
+    <span class="n">CodeExecutionResult</span><span class="p">,</span>
     <span class="n">Part</span><span class="p">,</span>
     <span class="n">HarmCategory</span><span class="p">,</span>
     <span class="n">Content</span><span class="p">,</span>
+    <span class="n">ExecutableCode</span><span class="p">,</span>
     <span class="n">FileData</span><span class="p">,</span>
     <span class="n">FunctionCall</span><span class="p">,</span>
     <span class="n">FunctionResponse</span><span class="p">,</span>
@@ -464,6 +466,29 @@
                 <span class="k">return</span> <span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"text"</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"executable_code"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">"executable_code"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span> <span class="ow">or</span> <span class="s2">"language"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Executable code part must have 'code' and 'language' keys, got "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">Part</span><span class="p">(</span>
+                <span class="n">executable_code</span><span class="o">=</span><span class="n">ExecutableCode</span><span class="p">(</span>
+                    <span class="n">language</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"language"</span><span class="p">],</span> <span class="n">code</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"executable_code"</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"code_execution_result"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">"code_execution_result"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span> <span class="ow">or</span> <span class="s2">"outcome"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Code execution result part must have 'code_execution_result' and "</span>
+                    <span class="sa">f</span><span class="s2">"'outcome' keys, got </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">Part</span><span class="p">(</span>
+                <span class="n">code_execution_result</span><span class="o">=</span><span class="n">CodeExecutionResult</span><span class="p">(</span>
+                    <span class="n">output</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"code_execution_result"</span><span class="p">],</span> <span class="n">outcome</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"outcome"</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">is_data_content_block</span><span class="p">(</span><span class="n">part</span><span class="p">):</span>
             <span class="c1"># LangChain standard format</span>
             <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image"</span> <span class="ow">and</span> <span class="n">part</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"url"</span><span class="p">:</span>
@@ -764,7 +789,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
     <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
-    <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">invalid_tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
@@ -832,6 +857,44 @@
                             <span class="n">error</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="s2">"executable_code"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">executable_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">executable_code</span><span class="o">.</span><span class="n">code</span> <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">executable_code</span><span class="o">.</span><span class="n">language</span><span class="p">:</span>
+                <span class="n">code_message</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"executable_code"</span><span class="p">,</span>
+                    <span class="s2">"executable_code"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">executable_code</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+                    <span class="s2">"language"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">executable_code</span><span class="o">.</span><span class="n">language</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">code_message</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">content</span><span class="p">,</span> <span class="n">code_message</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">code_message</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Unexpected content type"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="s2">"code_execution_result"</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span> <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">:</span>
+                <span class="n">execution_result</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"code_execution_result"</span><span class="p">,</span>
+                    <span class="c1"># Name output -&gt; code_execution_result for consistency with</span>
+                    <span class="c1"># langchain-google-genai</span>
+                    <span class="s2">"code_execution_result"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                    <span class="s2">"outcome"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">,</span>
+                <span class="p">}</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">execution_result</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">content</span><span class="p">,</span> <span class="n">execution_result</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">execution_result</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Unexpected content type"</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
 
@@ -1120,14 +1183,28 @@
 
 <span class="sd">        See ``ChatVertexAI.bind_tools()`` method for more.</span>
 
-<span class="sd">    Use Search with Gemini 2:</span>
+<span class="sd">    Built-in search:</span>
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            from google.cloud.aiplatform_v1beta1.types import Tool as VertexTool</span>
+<span class="sd">            from langchain_google_vertexai import ChatVertexAI</span>
+
 <span class="sd">            llm = ChatVertexAI(model="gemini-2.0-flash-exp")</span>
 <span class="sd">            resp = llm.invoke(</span>
 <span class="sd">                "When is the next total solar eclipse in US?",</span>
 <span class="sd">                tools=[VertexTool(google_search={})],</span>
+<span class="sd">            )</span>
+
+<span class="sd">    Built-in code execution:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from google.cloud.aiplatform_v1beta1.types import Tool as VertexTool</span>
+<span class="sd">            from langchain_google_vertexai import ChatVertexAI</span>
+
+<span class="sd">            llm = ChatVertexAI(model="gemini-2.0-flash-exp")</span>
+<span class="sd">            resp = llm.invoke(</span>
+<span class="sd">                "What is 3^3?",</span>
+<span class="sd">                tools=[VertexTool(code_execution={})],</span>
 <span class="sd">            )</span>
 
 <span class="sd">    Structured output:</span>

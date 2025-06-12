@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 11, 2025" name="docbuild:last-update"/>
+<meta content="Jun 12, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -254,6 +254,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.json_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">dereference_refs</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NotRequired</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -271,6 +272,7 @@
 <span class="p">]</span>
 <span class="n">_GoogleSearchLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">gapic</span><span class="o">.</span><span class="n">Tool</span><span class="o">.</span><span class="n">GoogleSearch</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
 <span class="n">_RetrievalLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">gapic</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+<span class="n">_CodeExecutionLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">gapic</span><span class="o">.</span><span class="n">Tool</span><span class="o">.</span><span class="n">CodeExecution</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_ToolDictLike</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
@@ -278,6 +280,7 @@
     <span class="n">google_search_retrieval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_GoogleSearchRetrievalLike</span><span class="p">]</span>
     <span class="n">google_search</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_GoogleSearchLike</span><span class="p">]</span>
     <span class="n">retrieval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_RetrievalLike</span><span class="p">]</span>
+    <span class="n">code_execution</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">_CodeExecutionLike</span><span class="p">]</span>
 
 
 <span class="n">_ToolType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">gapic</span><span class="o">.</span><span class="n">Tool</span><span class="p">,</span> <span class="n">vertexai</span><span class="o">.</span><span class="n">Tool</span><span class="p">,</span> <span class="n">_ToolDictLike</span><span class="p">,</span> <span class="n">_FunctionDeclarationLike</span><span class="p">]</span>
@@ -528,6 +531,8 @@
                 <span class="n">gapic_tool</span><span class="o">.</span><span class="n">function_declarations</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">function_declarations</span><span class="p">)</span>
             <span class="k">if</span> <span class="s2">"google_search"</span> <span class="ow">in</span> <span class="n">rt</span><span class="p">:</span>
                 <span class="n">gapic_tool</span><span class="o">.</span><span class="n">google_search</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">google_search</span>
+            <span class="k">if</span> <span class="s2">"code_execution"</span> <span class="ow">in</span> <span class="n">rt</span><span class="p">:</span>
+                <span class="n">gapic_tool</span><span class="o">.</span><span class="n">code_execution</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">code_execution</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="c1"># not _ToolDictLike</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
@@ -537,6 +542,7 @@
                     <span class="s2">"google_search_retrieval"</span><span class="p">,</span>
                     <span class="s2">"google_search"</span><span class="p">,</span>
                     <span class="s2">"retrieval"</span><span class="p">,</span>
+                    <span class="s2">"code_execution"</span><span class="p">,</span>
                 <span class="p">]</span>
             <span class="p">):</span>
                 <span class="n">fd</span> <span class="o">=</span> <span class="n">_format_to_gapic_function_declaration</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
@@ -567,6 +573,10 @@
                 <span class="p">)</span>
             <span class="k">if</span> <span class="s2">"retrieval"</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
                 <span class="n">gapic_tool</span><span class="o">.</span><span class="n">retrieval</span> <span class="o">=</span> <span class="n">gapic</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">(</span><span class="n">tool</span><span class="p">[</span><span class="s2">"retrieval"</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">"code_execution"</span> <span class="ow">in</span> <span class="n">tool</span><span class="p">:</span>
+                <span class="n">gapic_tool</span><span class="o">.</span><span class="n">code_execution</span> <span class="o">=</span> <span class="n">gapic</span><span class="o">.</span><span class="n">Tool</span><span class="o">.</span><span class="n">CodeExecution</span><span class="p">(</span>
+                    <span class="n">tool</span><span class="p">[</span><span class="s2">"code_execution"</span><span class="p">]</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">fd</span> <span class="o">=</span> <span class="n">_format_to_gapic_function_declaration</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
             <span class="n">gapic_tool</span><span class="o">.</span><span class="n">function_declarations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
