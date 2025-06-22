@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 21, 2025" name="docbuild:last-update"/>
+<meta content="Jun 22, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1335,15 +1335,27 @@
         <span class="n">response_dict</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">response</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">response</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
         <span class="p">)</span>
-        <span class="c1"># Sometimes the AI Model calling will get error, we should raise it.</span>
-        <span class="c1"># Otherwise, the next code 'choices.extend(response["choices"])'</span>
-        <span class="c1"># will throw a "TypeError: 'NoneType' object is not iterable" error</span>
-        <span class="c1"># to mask the true error. Because 'response["choices"]' is None.</span>
+        <span class="c1"># Sometimes the AI Model calling will get error, we should raise it (this is</span>
+        <span class="c1"># typically followed by a null value for `choices`, which we raise for</span>
+        <span class="c1"># separately below).</span>
         <span class="k">if</span> <span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"error"</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"error"</span><span class="p">))</span>
 
+        <span class="c1"># Raise informative error messages for non-OpenAI chat completions APIs</span>
+        <span class="c1"># that return malformed responses.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Response missing `choices` key: </span><span class="si">{</span><span class="n">response_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="k">if</span> <span class="n">choices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"Received response with null value for `choices`."</span><span class="p">)</span>
+
         <span class="n">token_usage</span> <span class="o">=</span> <span class="n">response_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"usage"</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">response_dict</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">]:</span>
+
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
             <span class="n">message</span> <span class="o">=</span> <span class="n">_convert_dict_to_message</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">"message"</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">token_usage</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
                 <span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_create_usage_metadata</span><span class="p">(</span><span class="n">token_usage</span><span class="p">)</span>
