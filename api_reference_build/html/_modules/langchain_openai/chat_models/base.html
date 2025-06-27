@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jun 26, 2025" name="docbuild:last-update"/>
+<meta content="Jun 27, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -873,6 +873,25 @@
 <span class="sd">    .. versionadded:: 0.3.9</span>
 <span class="sd">    """</span>
 
+    <span class="n">output_version</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"v0"</span><span class="p">,</span> <span class="s2">"responses/v1"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"v0"</span>
+<span class="w">    </span><span class="sd">"""Version of AIMessage output format to use.</span>
+
+<span class="sd">    This field is used to roll-out new output formats for chat model AIMessages</span>
+<span class="sd">    in a backwards-compatible way.</span>
+
+<span class="sd">    Supported values:</span>
+
+<span class="sd">    - ``"v0"``: AIMessage format as of langchain-openai 0.3.x.</span>
+<span class="sd">    - ``"responses/v1"``: Formats Responses API output</span>
+<span class="sd">      items into AIMessage content blocks.</span>
+
+<span class="sd">    Currently only impacts the Responses API. ``output_version="responses/v1"`` is</span>
+<span class="sd">    recommended.</span>
+
+<span class="sd">    .. versionadded:: 0.3.25</span>
+
+<span class="sd">    """</span>
+
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">populate_by_name</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
@@ -1127,6 +1146,7 @@
                     <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span>
                     <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
                     <span class="n">has_reasoning</span><span class="o">=</span><span class="n">has_reasoning</span><span class="p">,</span>
+                    <span class="n">output_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_version</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">generation_chunk</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
@@ -1181,6 +1201,7 @@
                     <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span>
                     <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
                     <span class="n">has_reasoning</span><span class="o">=</span><span class="n">has_reasoning</span><span class="p">,</span>
+                    <span class="n">output_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_version</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">generation_chunk</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
@@ -1320,7 +1341,10 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_client</span><span class="o">.</span><span class="n">responses</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">_construct_lc_result_from_responses_api</span><span class="p">(</span>
-                <span class="n">response</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">generation_info</span>
+                <span class="n">response</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
+                <span class="n">output_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_version</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_response_headers</span><span class="p">:</span>
             <span class="n">raw_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">with_raw_response</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
@@ -1333,6 +1357,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_use_responses_api</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use_responses_api</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_responses_api</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_version</span> <span class="o">==</span> <span class="s2">"responses/v1"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">include</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">reasoning</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1551,7 +1577,10 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_async_client</span><span class="o">.</span><span class="n">responses</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">_construct_lc_result_from_responses_api</span><span class="p">(</span>
-                <span class="n">response</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">generation_info</span>
+                <span class="n">response</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">original_schema_obj</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
+                <span class="n">output_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_version</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_response_headers</span><span class="p">:</span>
             <span class="n">raw_response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">with_raw_response</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
@@ -3789,6 +3818,7 @@
     <span class="n">response</span><span class="p">:</span> <span class="n">Response</span><span class="p">,</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">_BM</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_version</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"v0"</span><span class="p">,</span> <span class="s2">"responses/v1"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"v0"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct ChatResponse from OpenAI Response API response."""</span>
     <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
@@ -3925,7 +3955,10 @@
         <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
         <span class="n">invalid_tool_calls</span><span class="o">=</span><span class="n">invalid_tool_calls</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">message</span> <span class="o">=</span> <span class="n">_convert_to_v03_ai_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_version</span> <span class="o">==</span> <span class="s2">"v0"</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">_convert_to_v03_ai_message</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">pass</span>
     <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)])</span>
 
 
@@ -3937,6 +3970,7 @@
     <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">_BM</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">has_reasoning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">output_version</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"v0"</span><span class="p">,</span> <span class="s2">"responses/v1"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"v0"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ChatGenerationChunk</span><span class="p">]]:</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_advance</span><span class="p">(</span><span class="n">output_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">sub_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Advance indexes tracked during streaming.</span>
@@ -4005,12 +4039,15 @@
     <span class="k">elif</span> <span class="n">chunk</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"response.output_text.done"</span><span class="p">:</span>
         <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"id"</span><span class="p">:</span> <span class="n">chunk</span><span class="o">.</span><span class="n">item_id</span><span class="p">,</span> <span class="s2">"index"</span><span class="p">:</span> <span class="n">current_index</span><span class="p">})</span>
     <span class="k">elif</span> <span class="n">chunk</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"response.created"</span><span class="p">:</span>
-        <span class="n">response_metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">id</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">response_metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">id</span>  <span class="c1"># Backwards compatibility</span>
     <span class="k">elif</span> <span class="n">chunk</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"response.completed"</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
             <span class="n">AIMessage</span><span class="p">,</span>
             <span class="p">(</span>
-                <span class="n">_construct_lc_result_from_responses_api</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">response</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+                <span class="n">_construct_lc_result_from_responses_api</span><span class="p">(</span>
+                    <span class="n">chunk</span><span class="o">.</span><span class="n">response</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span> <span class="n">output_version</span><span class="o">=</span><span class="n">output_version</span>
+                <span class="p">)</span>
                 <span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="o">.</span><span class="n">message</span>
             <span class="p">),</span>
@@ -4022,7 +4059,10 @@
             <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">response_metadata</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"id"</span>
         <span class="p">}</span>
     <span class="k">elif</span> <span class="n">chunk</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"response.output_item.added"</span> <span class="ow">and</span> <span class="n">chunk</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"message"</span><span class="p">:</span>
-        <span class="nb">id</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">if</span> <span class="n">output_version</span> <span class="o">==</span> <span class="s2">"v0"</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="n">chunk</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span>
     <span class="k">elif</span> <span class="p">(</span>
         <span class="n">chunk</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"response.output_item.added"</span>
         <span class="ow">and</span> <span class="n">chunk</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"function_call"</span>
@@ -4117,9 +4157,13 @@
         <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">additional_kwargs</span><span class="p">,</span>
         <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">_convert_to_v03_ai_message</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">has_reasoning</span><span class="o">=</span><span class="n">has_reasoning</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_version</span> <span class="o">==</span> <span class="s2">"v0"</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+            <span class="n">AIMessageChunk</span><span class="p">,</span>
+            <span class="n">_convert_to_v03_ai_message</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">has_reasoning</span><span class="o">=</span><span class="n">has_reasoning</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">pass</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="n">current_index</span><span class="p">,</span>
         <span class="n">current_output_index</span><span class="p">,</span>
