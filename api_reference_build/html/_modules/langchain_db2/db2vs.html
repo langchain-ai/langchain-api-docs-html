@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 13, 2025" name="docbuild:last-update"/>
+<meta content="Jul 14, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -227,6 +227,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TYPE_CHECKING</span><span class="p">,</span>
@@ -295,8 +296,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_table_exists</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">cursor</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SELECT COUNT(*) FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
         <span class="k">if</span> <span class="s2">"SQL0204N"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">):</span>
@@ -470,7 +471,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="o">=</span> <span class="n">table_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span> <span class="o">=</span> <span class="n">distance_strategy</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
-            <span class="n">_create_table</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+            <span class="n">_create_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">ibm_db_dbi</span><span class="o">.</span><span class="n">DatabaseError</span> <span class="k">as</span> <span class="n">db_err</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Database error occurred while create table: </span><span class="si">{</span><span class="n">db_err</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -612,7 +613,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">metadatas</span><span class="p">:</span>
             <span class="n">metadatas</span> <span class="o">=</span> <span class="p">[{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
 
-        <span class="n">embeddingLen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
+        <span class="n">embedding_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
         <span class="n">docs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">id_</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="p">),</span> <span class="n">text</span><span class="p">)</span>
@@ -623,7 +624,7 @@
 
         <span class="n">SQL_INSERT</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"INSERT INTO </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> (id, embedding, metadata, text) "</span>
-            <span class="sa">f</span><span class="s2">"VALUES (?, VECTOR(?, </span><span class="si">{</span><span class="n">embeddingLen</span><span class="si">}</span><span class="s2">, FLOAT32), SYSTOOLS.JSON2BSON(?), ?)"</span>
+            <span class="sa">f</span><span class="s2">"VALUES (?, VECTOR(?, </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32), SYSTOOLS.JSON2BSON(?), ?)"</span>
         <span class="p">)</span>
 
         <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
@@ -704,13 +705,13 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">embeddingLen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
+        <span class="n">embedding_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">        SELECT id,</span>
 <span class="s2">          text,</span>
 <span class="s2">          SYSTOOLS.BSON2JSON(metadata),</span>
-<span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embeddingLen</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
+<span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
 <span class="s2">          </span><span class="si">{</span><span class="n">_get_distance_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span><span class="p">)</span><span class="si">}</span><span class="s2">) as distance</span>
 <span class="s2">        FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
 <span class="s2">        ORDER BY distance</span>
@@ -761,13 +762,13 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">embeddingLen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
+        <span class="n">embedding_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">        SELECT id,</span>
 <span class="s2">          text,</span>
 <span class="s2">          SYSTOOLS.BSON2JSON(metadata),</span>
-<span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embeddingLen</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
+<span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
 <span class="s2">          </span><span class="si">{</span><span class="n">_get_distance_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span><span class="p">)</span><span class="si">}</span><span class="s2">) as distance,</span>
 <span class="s2">          embedding</span>
 <span class="s2">        FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span>
@@ -972,13 +973,19 @@
         <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No ids provided to delete."</span><span class="p">)</span>
 
-        <span class="c1"># Compute SHA-256 hashes of the ids and truncate them</span>
-        <span class="n">hashed_ids</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">_id</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">16</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="n">ids</span>
-        <span class="p">]</span>
+        <span class="n">is_hashed</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-F0-9]</span><span class="si">{16}</span><span class="s2">"</span><span class="p">,</span> <span class="n">_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_hashed</span><span class="p">:</span>
+            <span class="n">hashed_ids</span> <span class="o">=</span> <span class="n">ids</span>  <span class="c1"># use as-is</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Compute SHA-256 hashes of the raw ids and truncate them</span>
+            <span class="n">hashed_ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">_id</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">16</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="n">ids</span>
+            <span class="p">]</span>
 
         <span class="c1"># Constructing the SQL statement with individual placeholders</span>
-        <span class="n">placeholders</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">"?"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hashed_ids</span><span class="p">))])</span>
+        <span class="n">placeholders</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">"?"</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hashed_ids</span><span class="p">)</span>
 
         <span class="n">ddl</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"DELETE FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> WHERE id IN (</span><span class="si">{</span><span class="n">placeholders</span><span class="si">}</span><span class="s2">)"</span>
         <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
