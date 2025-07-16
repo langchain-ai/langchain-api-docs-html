@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 15, 2025" name="docbuild:last-update"/>
+<meta content="Jul 16, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -504,6 +504,7 @@
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
         <span class="n">embedding_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
+        <span class="n">async_req</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -520,6 +521,7 @@
 <span class="sd">            namespace: Optional pinecone namespace to add the texts to.</span>
 <span class="sd">            batch_size: Batch size to use when adding the texts to the vectorstore.</span>
 <span class="sd">            embedding_chunk_size: Chunk size to use when embedding the texts.</span>
+<span class="sd">            async_req: Whether runs asynchronously. Defaults to True.</span>
 <span class="sd">            id_prefix: Optional string to use as an ID prefix when upserting vectors.</span>
 
 <span class="sd">        Returns:</span>
@@ -541,17 +543,32 @@
 
         <span class="c1"># For loops to avoid memory issues and optimize when using HTTP based embeddings</span>
         <span class="c1"># The first loop runs the embeddings, it benefits when using OpenAI embeddings</span>
+        <span class="c1"># The second loops runs the pinecone upsert asynchronously.</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">texts</span><span class="p">),</span> <span class="n">embedding_chunk_size</span><span class="p">):</span>
             <span class="n">chunk_texts</span> <span class="o">=</span> <span class="n">texts</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">chunk_ids</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">chunk_metadatas</span> <span class="o">=</span> <span class="n">metadatas</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">embedding_chunk_size</span><span class="p">]</span>
             <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_documents</span><span class="p">(</span><span class="n">chunk_texts</span><span class="p">)</span>
             <span class="n">vector_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">chunk_ids</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">,</span> <span class="n">chunk_metadatas</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
-                <span class="n">vectors</span><span class="o">=</span><span class="n">vector_tuples</span><span class="p">,</span>
-                <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">async_req</span><span class="p">:</span>
+                <span class="c1"># Runs the pinecone upsert asynchronously.</span>
+                <span class="n">async_res</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
+                        <span class="n">vectors</span><span class="o">=</span><span class="n">batch_vector_tuples</span><span class="p">,</span>
+                        <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                        <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
+                        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">batch_vector_tuples</span> <span class="ow">in</span> <span class="n">batch_iterate</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">vector_tuples</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">async_res</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
+                    <span class="n">vectors</span><span class="o">=</span><span class="n">vector_tuples</span><span class="p">,</span>
+                    <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
+                    <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ids</span></div>
 
@@ -1061,6 +1078,7 @@
         <span class="n">upsert_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pool_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">embeddings_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">async_req</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">id_prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
@@ -1102,6 +1120,7 @@
             <span class="n">namespace</span><span class="o">=</span><span class="n">namespace</span><span class="p">,</span>
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="n">embedding_chunk_size</span><span class="o">=</span><span class="n">embeddings_chunk_size</span><span class="p">,</span>
+            <span class="n">async_req</span><span class="o">=</span><span class="n">async_req</span><span class="p">,</span>
             <span class="n">id_prefix</span><span class="o">=</span><span class="n">id_prefix</span><span class="p">,</span>
             <span class="o">**</span><span class="p">(</span><span class="n">upsert_kwargs</span> <span class="ow">or</span> <span class="p">{}),</span>
         <span class="p">)</span>
