@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 17, 2025" name="docbuild:last-update"/>
+<meta content="Jul 18, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -243,8 +243,15 @@
     <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
         <span class="k">if</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">component</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="n">component</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">component</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">component</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">out</span>
+            <span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Reference '</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">' not found."</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Reference '</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">' not found."</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -254,64 +261,64 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_dereference_refs_helper</span><span class="p">(</span>
     <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="n">full_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">processed_refs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
     <span class="n">skip_keys</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">processed_refs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">shallow_refs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>  <span class="c1"># noqa: FBT001</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Inline every pure {'$ref':...}.</span>
+
+<span class="sd">    But:</span>
+<span class="sd">    - if shallow_refs=True: only break cycles, do not inline nested refs</span>
+<span class="sd">    - if shallow_refs=False: deep-inline all nested refs</span>
+
+<span class="sd">    Also skip recursion under any key in skip_keys.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">processed_refs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">processed_refs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
+    <span class="c1"># 1) Pure $ref node?</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"$ref"</span><span class="p">}:</span>
+        <span class="n">ref_path</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s2">"$ref"</span><span class="p">]</span>
+        <span class="c1"># cycle?</span>
+        <span class="k">if</span> <span class="n">ref_path</span> <span class="ow">in</span> <span class="n">processed_refs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>
+        <span class="n">processed_refs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ref_path</span><span class="p">)</span>
+
+        <span class="c1"># grab + copy the target</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">_retrieve_ref</span><span class="p">(</span><span class="n">ref_path</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">))</span>
+
+        <span class="c1"># deep inlining: recurse into everything</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span>
+            <span class="n">target</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">shallow_refs</span>
+        <span class="p">)</span>
+
+        <span class="n">processed_refs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ref_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="c1"># 2) Not a pure-$ref: recurse, skipping any keys in skip_keys</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="n">obj_out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">skip_keys</span><span class="p">:</span>
-                <span class="n">obj_out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">"$ref"</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">processed_refs</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">processed_refs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-                <span class="n">ref</span> <span class="o">=</span> <span class="n">_retrieve_ref</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">)</span>
-                <span class="n">full_ref</span> <span class="o">=</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span>
-                    <span class="n">ref</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">processed_refs</span>
-                <span class="p">)</span>
-                <span class="n">processed_refs</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-                <span class="k">return</span> <span class="n">full_ref</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)):</span>
-                <span class="n">obj_out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span>
-                    <span class="n">v</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">processed_refs</span>
+                <span class="c1"># do not recurse under this key</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span>
+                    <span class="n">v</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">shallow_refs</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">obj_out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="k">return</span> <span class="n">obj_out</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">out</span>
+
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span>
-            <span class="n">_dereference_refs_helper</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">obj</span>
+            <span class="n">_dereference_refs_helper</span><span class="p">(</span>
+                <span class="n">item</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">,</span> <span class="n">shallow_refs</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">obj</span>
         <span class="p">]</span>
+
     <span class="k">return</span> <span class="n">obj</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_infer_skip_keys</span><span class="p">(</span>
-    <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="k">if</span> <span class="n">processed_refs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">processed_refs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-
-    <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">"$ref"</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">processed_refs</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">processed_refs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-                <span class="n">ref</span> <span class="o">=</span> <span class="n">_retrieve_ref</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">)</span>
-                <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="n">keys</span> <span class="o">+=</span> <span class="n">_infer_skip_keys</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)):</span>
-                <span class="n">keys</span> <span class="o">+=</span> <span class="n">_infer_skip_keys</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
-            <span class="n">keys</span> <span class="o">+=</span> <span class="n">_infer_skip_keys</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">processed_refs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">keys</span>
 
 
 <div class="viewcode-block" id="dereference_refs">
@@ -325,20 +332,18 @@
 <span class="w">    </span><span class="sd">"""Try to substitute $refs in JSON Schema.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        schema_obj: The schema object to dereference.</span>
-<span class="sd">        full_schema: The full schema object. Defaults to None.</span>
-<span class="sd">        skip_keys: The keys to skip. Defaults to None.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        The dereferenced schema object.</span>
+<span class="sd">      schema_obj: The fragment to dereference.</span>
+<span class="sd">      full_schema: The complete schema (defaults to schema_obj).</span>
+<span class="sd">      skip_keys:</span>
+<span class="sd">        - If None (the default), we skip recursion under '$defs' *and* only</span>
+<span class="sd">            shallow-inline refs.</span>
+<span class="sd">        - If provided (even as an empty list), we will recurse under every key and</span>
+<span class="sd">            deep-inline all refs.</span>
 <span class="sd">    """</span>
-    <span class="n">full_schema</span> <span class="o">=</span> <span class="n">full_schema</span> <span class="ow">or</span> <span class="n">schema_obj</span>
-    <span class="n">skip_keys</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">skip_keys</span>
-        <span class="k">if</span> <span class="n">skip_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="n">_infer_skip_keys</span><span class="p">(</span><span class="n">schema_obj</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span><span class="n">schema_obj</span><span class="p">,</span> <span class="n">full_schema</span><span class="p">,</span> <span class="n">skip_keys</span><span class="p">)</span></div>
+    <span class="n">full</span> <span class="o">=</span> <span class="n">full_schema</span> <span class="ow">or</span> <span class="n">schema_obj</span>
+    <span class="n">keys_to_skip</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">skip_keys</span><span class="p">)</span> <span class="k">if</span> <span class="n">skip_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span><span class="s2">"$defs"</span><span class="p">]</span>
+    <span class="n">shallow</span> <span class="o">=</span> <span class="n">skip_keys</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">_dereference_refs_helper</span><span class="p">(</span><span class="n">schema_obj</span><span class="p">,</span> <span class="n">full</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">keys_to_skip</span><span class="p">,</span> <span class="n">shallow</span><span class="p">)</span></div>
 
 </pre></div>
 </article>
