@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 18, 2025" name="docbuild:last-update"/>
+<meta content="Jul 19, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,7 +220,7 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_mongodb.retrievers.full_text_search</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotated</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackManagerForRetrieverRun</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
@@ -241,7 +241,7 @@
 <span class="w">    </span><span class="sd">"""MongoDB Collection on an Atlas cluster"""</span>
     <span class="n">search_index_name</span><span class="p">:</span> <span class="nb">str</span>
 <span class="w">    </span><span class="sd">"""Atlas Search Index name"""</span>
-    <span class="n">search_field</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">search_field</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
 <span class="w">    </span><span class="sd">"""Collection field that contains the text to be searched. It must be indexed"""</span>
     <span class="n">k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Number of documents to return. Default is no limit"""</span>
@@ -288,7 +288,11 @@
         <span class="c1"># Formatting</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_field</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_field</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">search_field</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
             <span class="n">make_serializable</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
             <span class="n">docs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">res</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">docs</span></div>
