@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 23, 2025" name="docbuild:last-update"/>
+<meta content="Jul 24, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -341,7 +341,10 @@
     <span class="n">VideoMetadata</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_VertexAICommon</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._image_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageBytesLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._image_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ImageBytesLoader</span><span class="p">,</span>
+    <span class="n">image_bytes_to_b64_string</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">create_retry_decorator</span><span class="p">,</span>
     <span class="n">get_generation_info</span><span class="p">,</span>
@@ -949,6 +952,25 @@
                     <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">execution_result</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Unexpected content type"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">mime_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"image/"</span><span class="p">):</span>
+            <span class="n">image_format</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">mime_type</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span>
+            <span class="n">image_message</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"image_url"</span><span class="p">,</span>
+                <span class="s2">"image_url"</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">"url"</span><span class="p">:</span> <span class="n">image_bytes_to_b64_string</span><span class="p">(</span>
+                        <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">image_format</span><span class="o">=</span><span class="n">image_format</span>
+                    <span class="p">)</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">image_message</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="p">[</span><span class="n">content</span><span class="p">,</span> <span class="n">image_message</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_message</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"Unexpected content type"</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">content</span> <span class="o">=</span> <span class="s2">""</span>
