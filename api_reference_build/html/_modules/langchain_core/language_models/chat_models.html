@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 28, 2025" name="docbuild:last-update"/>
+<meta content="Jul 29, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -233,22 +233,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">TYPE_CHECKING</span><span class="p">,</span>
-    <span class="n">Any</span><span class="p">,</span>
-    <span class="n">Callable</span><span class="p">,</span>
-    <span class="n">Literal</span><span class="p">,</span>
-    <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Union</span><span class="p">,</span>
-    <span class="n">cast</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">BaseModel</span><span class="p">,</span>
-    <span class="n">ConfigDict</span><span class="p">,</span>
-    <span class="n">Field</span><span class="p">,</span>
-    <span class="n">model_validator</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">model_validator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core._api</span><span class="w"> </span><span class="kn">import</span> <span class="n">deprecated</span>
@@ -285,6 +272,7 @@
     <span class="n">ChatGeneration</span><span class="p">,</span>
     <span class="n">ChatGenerationChunk</span><span class="p">,</span>
     <span class="n">ChatResult</span><span class="p">,</span>
+    <span class="n">Generation</span><span class="p">,</span>
     <span class="n">LLMResult</span><span class="p">,</span>
     <span class="n">RunInfo</span><span class="p">,</span>
 <span class="p">)</span>
@@ -895,6 +883,34 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_combine_llm_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm_outputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># noqa: ARG002</span>
         <span class="k">return</span> <span class="p">{}</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_convert_cached_generations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_val</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ChatGeneration</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Convert cached Generation objects to ChatGeneration objects.</span>
+
+<span class="sd">        Handle case where cache contains Generation objects instead of</span>
+<span class="sd">        ChatGeneration objects. This can happen due to serialization/deserialization</span>
+<span class="sd">        issues or legacy cache data (see #22389).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            cache_val: List of cached generation objects.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of ChatGeneration objects.</span>
+<span class="sd">        """</span>
+        <span class="n">converted_generations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="n">cache_val</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gen</span><span class="p">,</span> <span class="n">Generation</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gen</span><span class="p">,</span> <span class="n">ChatGeneration</span><span class="p">):</span>
+                <span class="c1"># Convert Generation to ChatGeneration by creating AIMessage</span>
+                <span class="c1"># from the text content</span>
+                <span class="n">chat_gen</span> <span class="o">=</span> <span class="n">ChatGeneration</span><span class="p">(</span>
+                    <span class="n">message</span><span class="o">=</span><span class="n">AIMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">gen</span><span class="o">.</span><span class="n">text</span><span class="p">),</span>
+                    <span class="n">generation_info</span><span class="o">=</span><span class="n">gen</span><span class="o">.</span><span class="n">generation_info</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">converted_generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chat_gen</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Already a ChatGeneration or other expected type</span>
+                <span class="n">converted_generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">converted_generations</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_invocation_params</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1252,7 +1268,8 @@
                 <span class="n">prompt</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
                 <span class="n">cache_val</span> <span class="o">=</span> <span class="n">llm_cache</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cache_val</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">cache_val</span><span class="p">)</span>
+                    <span class="n">converted_generations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_cached_generations</span><span class="p">(</span><span class="n">cache_val</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">converted_generations</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1324,7 +1341,8 @@
                 <span class="n">prompt</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
                 <span class="n">cache_val</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm_cache</span><span class="o">.</span><span class="n">alookup</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">llm_string</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cache_val</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">cache_val</span><span class="p">)</span>
+                    <span class="n">converted_generations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_cached_generations</span><span class="p">(</span><span class="n">cache_val</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span><span class="n">generations</span><span class="o">=</span><span class="n">converted_generations</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
