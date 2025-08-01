@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Jul 31, 2025" name="docbuild:last-update"/>
+<meta content="Aug 01, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -269,6 +269,15 @@
 <span class="sd">    https://learn.microsoft.com/en-us/azure/cosmos-db/gen-ai/hybrid-search</span>
 <span class="sd">    """</span>
 
+    <span class="n">VALID_SEARCH_TYPES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"vector"</span><span class="p">,</span>
+        <span class="s2">"vector_score_threshold"</span><span class="p">,</span>
+        <span class="s2">"full_text_search"</span><span class="p">,</span>
+        <span class="s2">"full_text_ranking"</span><span class="p">,</span>
+        <span class="s2">"hybrid"</span><span class="p">,</span>
+        <span class="s2">"hybrid_score_threshold"</span><span class="p">,</span>
+    <span class="p">}</span>
+
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.__init__">
 <a class="viewcode-back" href="../../../azure_ai/vectorstores/langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -302,7 +311,8 @@
 <span class="sd">            indexing_policy: Indexing Policy for the container.</span>
 <span class="sd">            cosmos_container_properties: Container Properties for the container.</span>
 <span class="sd">            cosmos_database_properties: Database Properties for the container.</span>
-<span class="sd">            vector_search_fields: Vector Search Fields for the container.</span>
+<span class="sd">            vector_search_fields: Vector Search and Text</span>
+<span class="sd">                                  Search Fields for the container.</span>
 <span class="sd">            search_type: CosmosDB Search Type to be performed.</span>
 <span class="sd">            metadata_key: Metadata key to use for data schema.</span>
 <span class="sd">            create_container: Set to true if the container does not exist.</span>
@@ -641,10 +651,18 @@
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query."""</span>
         <span class="n">search_type</span> <span class="o">=</span> <span class="n">search_type</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_type</span>
+
+        <span class="k">if</span> <span class="n">search_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_SEARCH_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Invalid search_type '</span><span class="si">{</span><span class="n">search_type</span><span class="si">}</span><span class="s2">'. "</span>
+                <span class="sa">f</span><span class="s2">"Valid options are: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">VALID_SEARCH_TYPES</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
 
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_with_score</span><span class="p">(</span>
             <span class="n">query</span><span class="p">,</span>
@@ -655,6 +673,8 @@
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
             <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
             <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
             <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -673,11 +693,20 @@
         <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Run similarity search with distance."""</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">search_type</span> <span class="o">=</span> <span class="n">search_type</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_type</span>
+
+        <span class="k">if</span> <span class="n">search_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_SEARCH_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Invalid search_type '</span><span class="si">{</span><span class="n">search_type</span><span class="si">}</span><span class="s2">'. "</span>
+                <span class="sa">f</span><span class="s2">"Valid options are: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">VALID_SEARCH_TYPES</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
             <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
             <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_search_with_score</span><span class="p">(</span>
@@ -688,6 +717,18 @@
                 <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
                 <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span><span class="p">:</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_search_with_threshold</span><span class="p">(</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span> <span class="ow">or</span> <span class="mf">0.5</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_search"</span><span class="p">:</span>
             <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_text_search</span><span class="p">(</span>
@@ -718,6 +759,21 @@
                 <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
                 <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span><span class="p">:</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hybrid_search_with_threshold</span><span class="p">(</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span> <span class="ow">or</span> <span class="mf">0.5</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs_and_scores</span></div>
 
@@ -732,16 +788,24 @@
         <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"vector"</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">offset_limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs selected using the maximal marginal relevance."""</span>  <span class="c1"># noqa:E501</span>
         <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector_search_with_score</span><span class="p">(</span>
-            <span class="n">embeddings</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
-            <span class="n">k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span>
             <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">embeddings</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+            <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
             <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Re-ranks the docs using MMR</span>
@@ -769,7 +833,11 @@
         <span class="n">lambda_mult</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"vector"</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">offset_limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs selected using the maximal marginal relevance."""</span>  <span class="c1"># noqa:E501</span>
@@ -782,7 +850,11 @@
             <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span>
             <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+            <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
             <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs</span></div>
 
@@ -818,6 +890,42 @@
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.vector_search_with_threshold">
+<a class="viewcode-back" href="../../../azure_ai/vectorstores/langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.vector_search_with_threshold">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vector_search_with_threshold</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">offset_limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Returns the most similar indexed documents to the embeddings."""</span>  <span class="c1"># noqa:E501</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_query</span><span class="p">(</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">,</span>
+            <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+            <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_query</span><span class="p">(</span>
+            <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -894,6 +1002,7 @@
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Returns the documents based on the embeddings and text provided full text rank filters."""</span>  <span class="c1"># noqa:E501</span>
         <span class="n">query</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_query</span><span class="p">(</span>
@@ -904,6 +1013,7 @@
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
             <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
             <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_query</span><span class="p">(</span>
             <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
@@ -911,6 +1021,43 @@
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
             <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.hybrid_search_with_threshold">
+<a class="viewcode-back" href="../../../azure_ai/vectorstores/langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.html#langchain_azure_ai.vectorstores.azure_cosmos_db_no_sql.AzureCosmosDBNoSqlVectorSearch.hybrid_search_with_threshold">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hybrid_search_with_threshold</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">embeddings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">offset_limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Returns the documents based on the embeddings and text provided full text rank filters."""</span>  <span class="c1"># noqa:E501</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_query</span><span class="p">(</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">,</span>
+            <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+            <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+            <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_query</span><span class="p">(</span>
+            <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+            <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -924,11 +1071,16 @@
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">where</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_ranking"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_ranking"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span>
+        <span class="p">):</span>
             <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="s1">'TOP '</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s1">' '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">offset_limit</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">"</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""SELECT </span><span class="si">{</span><span class="s1">'TOP @limit '</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">offset_limit</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">''</span><span class="si">}</span><span class="s2">"""</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""SELECT </span><span class="si">{</span><span class="s2">"TOP @limit "</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">offset_limit</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s2">"""</span>
         <span class="n">query</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_projection_fields</span><span class="p">(</span>
             <span class="n">projection_mapping</span><span class="p">,</span>
             <span class="n">search_type</span><span class="p">,</span>
@@ -937,11 +1089,11 @@
             <span class="n">with_embedding</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_alias</span>
-        <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">" FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"> "</span>
+        <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">" FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">"</span>
 
         <span class="c1"># Add where_clause if specified</span>
         <span class="k">if</span> <span class="n">where</span><span class="p">:</span>
-            <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">"WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">"</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">" WHERE </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s2">"</span>
 
         <span class="c1"># TODO: Update the code to use parameters once parametrized queries</span>
         <span class="c1">#  are allowed for these query functions</span>
@@ -952,32 +1104,36 @@
                 <span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">full_text_rank_filter</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">""" ORDER BY RANK FullTextScore(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">full_text_rank_filter</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"search_field"</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span>
-<span class="s2">                [</span><span class="si">{</span><span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2">'"</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">term</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">full_text_rank_filter</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"search_text"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">())</span><span class="si">}</span><span class="s2">])"""</span>  <span class="c1"># noqa:E501</span>
+<span class="s2">                </span><span class="si">{</span><span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2">'"</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">term</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">full_text_rank_filter</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"search_text"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">())</span><span class="si">}</span><span class="s2">)"""</span>  <span class="c1"># noqa:E501</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">rank_components</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="sa">f</span><span class="s2">"FullTextScore(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">search_item</span><span class="p">[</span><span class="s1">'search_field'</span><span class="p">]</span><span class="si">}</span><span class="s2">, ["</span>
+                    <span class="sa">f</span><span class="s2">"FullTextScore(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">search_item</span><span class="p">[</span><span class="s1">'search_field'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
                     <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2">'"</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">search_item</span><span class="p">[</span><span class="s2">"search_text"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
                     <span class="p">)</span>
-                    <span class="o">+</span> <span class="s2">"])"</span>
+                    <span class="o">+</span> <span class="s2">")"</span>
                     <span class="k">for</span> <span class="n">search_item</span> <span class="ow">in</span> <span class="n">full_text_rank_filter</span>
                 <span class="p">]</span>
                 <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" ORDER BY RANK RRF(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rank_components</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
-        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">+=</span> <span class="s2">" ORDER BY VectorDistance(c[@embeddingKey], @embeddings)"</span>
-        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">full_text_rank_filter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"full_text_rank_filter cannot be None for HYBRID queries."</span>
                 <span class="p">)</span>
             <span class="n">rank_components</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="sa">f</span><span class="s2">"FullTextScore(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">search_item</span><span class="p">[</span><span class="s1">'search_field'</span><span class="p">]</span><span class="si">}</span><span class="s2">, ["</span>
+                <span class="sa">f</span><span class="s2">"FullTextScore(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">search_item</span><span class="p">[</span><span class="s1">'search_field'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
                 <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">term</span><span class="si">}</span><span class="s2">'"</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">search_item</span><span class="p">[</span><span class="s2">"search_text"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
-                <span class="o">+</span> <span class="s2">"])"</span>
+                <span class="o">+</span> <span class="s2">")"</span>
                 <span class="k">for</span> <span class="n">search_item</span> <span class="ow">in</span> <span class="n">full_text_rank_filter</span>
             <span class="p">]</span>
-            <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">""" ORDER BY RANK RRF(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rank_components</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span>
-<span class="s2">            VectorDistance(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"embedding_field"</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">embeddings</span><span class="si">}</span><span class="s2">))"""</span>  <span class="c1"># noqa:E501</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">""" ORDER BY RANK RRF(</span><span class="si">{</span><span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rank_components</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span>
+<span class="s2">            VectorDistance(</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"embedding_field"</span><span class="p">]</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">embeddings</span><span class="si">}</span><span class="s2">)"""</span>  <span class="c1"># noqa:E501</span>
+            <span class="k">if</span> <span class="n">weights</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">weights</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">+=</span> <span class="s2">")"</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">query</span> <span class="o">+=</span> <span class="s2">""</span>
 
@@ -988,7 +1144,11 @@
         <span class="c1"># TODO: Remove this if check once parametrized queries</span>
         <span class="c1">#  are allowed for these query functions</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_search"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_search"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span>
+        <span class="p">):</span>
             <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_parameters</span><span class="p">(</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span>
@@ -1005,10 +1165,14 @@
         <span class="n">full_text_rank_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="c1"># TODO: Remove the if check, lines 704-726 once parametrized queries</span>
+        <span class="c1"># TODO: Remove the if check, once parametrized queries</span>
         <span class="c1">#  are supported for these query functions.</span>
         <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_alias</span>
-        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_ranking"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_ranking"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span>
+            <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span>
+        <span class="p">):</span>
             <span class="k">if</span> <span class="n">projection_mapping</span><span class="p">:</span>
                 <span class="n">projection</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> as </span><span class="si">{</span><span class="n">alias</span><span class="si">}</span><span class="s2">"</span>
@@ -1028,8 +1192,8 @@
                 <span class="n">projection</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.id, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s1">'text_field'</span><span class="p">]</span><span class="si">}</span><span class="s2"> "</span>
                 <span class="p">)</span>
-                <span class="sa">f</span><span class="s2">"as text, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata_key</span><span class="si">}</span><span class="s2"> as metadata"</span>
-            <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
+                <span class="sa">f</span><span class="s2">"as description, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata_key</span><span class="si">}</span><span class="s2"> as metadata"</span>
+            <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">with_embedding</span><span class="p">:</span>
                     <span class="n">projection</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s1">'embedding_field'</span><span class="p">]</span><span class="si">}</span><span class="s2"> as embedding"</span>  <span class="c1"># noqa:E501</span>
                 <span class="n">projection</span> <span class="o">+=</span> <span class="p">(</span>
@@ -1048,9 +1212,9 @@
                     <span class="k">for</span> <span class="n">search_item</span> <span class="ow">in</span> <span class="n">full_text_rank_filter</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">projection</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.id, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">[@textKey] as text, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">[@metadataKey] as metadata"</span>  <span class="c1"># noqa: E501</span>
+                <span class="n">projection</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.id, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">[@textKey] as description, </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">[@metadataKey] as metadata"</span>  <span class="c1"># noqa: E501</span>
 
-            <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">with_embedding</span><span class="p">:</span>
                     <span class="n">projection</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">", </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">[@embeddingKey] as embedding"</span>
                 <span class="n">projection</span> <span class="o">+=</span> <span class="p">(</span>
@@ -1079,7 +1243,7 @@
             <span class="p">)</span>
             <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"@metadataKey"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_key</span><span class="p">})</span>
 
-        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span><span class="p">:</span>
             <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"@embeddingKey"</span><span class="p">,</span>
@@ -1097,6 +1261,7 @@
         <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">with_embedding</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">projection_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
@@ -1104,28 +1269,71 @@
                 <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="n">enable_cross_partition_query</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
         <span class="p">)</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span> <span class="ow">or</span> <span class="mf">0.0</span>
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]]</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata_key</span><span class="p">,</span> <span class="p">{})</span>
             <span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span>
-
-            <span class="k">if</span> <span class="n">projection_mapping</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">projection_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]:</span>
-                        <span class="k">continue</span>
-                    <span class="n">metadata</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span> <span class="ow">or</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">search_type</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="s2">"vector"</span><span class="p">,</span>
+                <span class="s2">"hybrid"</span><span class="p">,</span>
+                <span class="s2">"vector_score_threshold"</span><span class="p">,</span>
+                <span class="s2">"hybrid_score_threshold"</span><span class="p">,</span>
+            <span class="p">]:</span>
                 <span class="n">score</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">"SimilarityScore"</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">with_embedding</span><span class="p">:</span>
                     <span class="n">metadata</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"embedding_field"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"embedding_field"</span><span class="p">]</span>
                     <span class="p">]</span>
-            <span class="n">docs_and_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">),</span> <span class="n">score</span><span class="p">)</span>
-            <span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">search_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"vector_score_threshold"</span><span class="p">,</span> <span class="s2">"hybrid_score_threshold"</span><span class="p">]</span>
+                    <span class="ow">and</span> <span class="n">score</span> <span class="o">&lt;=</span> <span class="n">threshold</span>
+                <span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">projection_mapping</span>
+                    <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">projection_mapping</span>
+                <span class="p">):</span>
+                    <span class="n">text_key</span> <span class="o">=</span> <span class="n">projection_mapping</span><span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">text_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">text_key</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">projection_mapping</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">projection_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]:</span>
+                            <span class="k">continue</span>
+                        <span class="n">metadata</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+                <span class="n">docs_and_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">),</span> <span class="n">score</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">projection_mapping</span>
+                    <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">projection_mapping</span>
+                <span class="p">):</span>
+                    <span class="n">text_key</span> <span class="o">=</span> <span class="n">projection_mapping</span><span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">text_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">text_key</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">projection_mapping</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">projection_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vector_search_fields</span><span class="p">[</span><span class="s2">"text_field"</span><span class="p">]:</span>
+                            <span class="k">continue</span>
+                        <span class="n">metadata</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">metadata</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+                <span class="n">docs_and_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">Document</span><span class="p">(</span><span class="n">page_content</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">),</span> <span class="n">score</span><span class="p">)</span>
+                <span class="p">)</span>
         <span class="k">return</span> <span class="n">docs_and_scores</span>
 
 <div class="viewcode-block" id="AzureCosmosDBNoSqlVectorSearch.get_container">
@@ -1157,13 +1365,30 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            AzureCosmosDBNoSqlVectorStoreRetriever: Retriever class for VectorStore.</span>
 <span class="sd">        """</span>  <span class="c1"># noqa:E501</span>
-        <span class="n">search_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"search_type"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_search_type</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s2">"search_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">search_type</span>
+        <span class="n">search_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"search_type"</span><span class="p">,</span> <span class="s2">"vector"</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"k"</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="n">with_embedding</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"with_embedding"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">offset_limit</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"offset_limit"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">projection_mapping</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"projection_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">full_text_rank_filter</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"full_text_rank_filter"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"where"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"weights"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">score_threshold</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"score_threshold"</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+
+        <span class="n">search_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"with_embedding"</span><span class="p">:</span> <span class="n">with_embedding</span><span class="p">,</span>
+            <span class="s2">"offset_limit"</span><span class="p">:</span> <span class="n">offset_limit</span><span class="p">,</span>
+            <span class="s2">"projection_mapping"</span><span class="p">:</span> <span class="n">projection_mapping</span><span class="p">,</span>
+            <span class="s2">"full_text_rank_filter"</span><span class="p">:</span> <span class="n">full_text_rank_filter</span><span class="p">,</span>
+            <span class="s2">"where"</span><span class="p">:</span> <span class="n">where</span><span class="p">,</span>
+            <span class="s2">"weights"</span><span class="p">:</span> <span class="n">weights</span><span class="p">,</span>
+            <span class="s2">"score_threshold"</span><span class="p">:</span> <span class="n">score_threshold</span><span class="p">,</span>
+        <span class="p">}</span>
 
         <span class="n">tags</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"tags"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="n">tags</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_retriever_tags</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">AzureCosmosDBNoSqlVectorStoreRetriever</span><span class="p">(</span>
-            <span class="n">vectorstore</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">tags</span>
+            <span class="n">vectorstore</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">search_type</span><span class="o">=</span><span class="n">search_type</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">search_kwargs</span><span class="o">=</span><span class="n">search_kwargs</span>
         <span class="p">)</span></div>
 </div>
 
@@ -1179,12 +1404,18 @@
     <span class="n">search_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"vector"</span>
 <span class="w">    </span><span class="sd">"""Type of search to perform. Options are "vector", </span>
 <span class="sd">    "hybrid", "full_text_ranking", "full_text_search"."""</span>
-    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="w">    </span><span class="sd">"""Number of documents to return."""</span>
     <span class="n">search_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="w">    </span><span class="sd">"""Search params.</span>
+<span class="sd">        with_embedding:</span>
+<span class="sd">        offset_limit:</span>
+<span class="sd">        projection_mapping:</span>
+<span class="sd">        full_text_rank_filter:</span>
+<span class="sd">        where:</span>
+<span class="sd">        weights:</span>
 <span class="sd">        score_threshold: Minimum relevance threshold</span>
-<span class="sd">            for similarity_score_threshold</span>
+<span class="sd">            for vector_score_threshold and hybrid_score_threshold</span>
 <span class="sd">        fetch_k: Amount of documents to pass to MMR algorithm (Default: 20)</span>
 <span class="sd">        lambda_mult: Diversity of results returned by MMR;</span>
 <span class="sd">            1 for minimum diversity and 0 for maximum. (Default: 0.5)</span>
@@ -1193,9 +1424,11 @@
 
     <span class="n">allowed_search_types</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="s2">"vector"</span><span class="p">,</span>
-        <span class="s2">"hybrid"</span><span class="p">,</span>
-        <span class="s2">"full_text_ranking"</span><span class="p">,</span>
+        <span class="s2">"vector_score_threshold"</span><span class="p">,</span>
         <span class="s2">"full_text_search"</span><span class="p">,</span>
+        <span class="s2">"full_text_ranking"</span><span class="p">,</span>
+        <span class="s2">"hybrid"</span><span class="p">,</span>
+        <span class="s2">"hybrid_score_threshold"</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
@@ -1221,21 +1454,78 @@
         <span class="n">run_manager</span><span class="p">:</span> <span class="n">CallbackManagerForRetrieverRun</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+        <span class="n">with_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"with_embedding"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">offset_limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"offset_limit"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">projection_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"projection_mapping"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">full_text_rank_filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"full_text_rank_filter"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">where</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"where"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"weights"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">score_threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"score_threshold"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector"</span><span class="p">:</span>
-            <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"vector_score_threshold"</span><span class="p">:</span>
+            <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid"</span><span class="p">:</span>
             <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
-                <span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">search_type</span><span class="o">=</span><span class="s2">"hybrid"</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"hybrid_score_threshold"</span><span class="p">:</span>
+            <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">with_embedding</span><span class="o">=</span><span class="n">with_embedding</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">score_threshold</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_ranking"</span><span class="p">:</span>
             <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
-                <span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">search_type</span><span class="o">=</span><span class="s2">"full_text_ranking"</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">full_text_rank_filter</span><span class="o">=</span><span class="n">full_text_rank_filter</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">search_type</span> <span class="o">==</span> <span class="s2">"full_text_search"</span><span class="p">:</span>
             <span class="n">docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectorstore</span><span class="o">.</span><span class="n">similarity_search</span><span class="p">(</span>
-                <span class="n">query</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">search_type</span><span class="o">=</span><span class="s2">"full_text_search"</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+                <span class="n">search_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
+                <span class="n">offset_limit</span><span class="o">=</span><span class="n">offset_limit</span><span class="p">,</span>
+                <span class="n">projection_mapping</span><span class="o">=</span><span class="n">projection_mapping</span><span class="p">,</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Query type of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">search_type</span><span class="si">}</span><span class="s2"> is not allowed."</span><span class="p">)</span>
