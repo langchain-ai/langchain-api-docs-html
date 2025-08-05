@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Aug 04, 2025" name="docbuild:last-update"/>
+<meta content="Aug 05, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -836,6 +836,10 @@
 <span class="w">    </span><span class="sd">"""Base class for Bedrock models."""</span>
 
     <span class="n">client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
+<span class="w">    </span><span class="sd">"""The bedrock runtime client for making data plane API calls"""</span>
+    
+    <span class="n">bedrock_client</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#: :meta private:</span>
+<span class="w">    </span><span class="sd">"""The bedrock client for making control plane API calls"""</span>
 
     <span class="n">region_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s2">"region"</span><span class="p">)</span>
 <span class="w">    </span><span class="sd">"""The aws region e.g., `us-west-2`. Falls back to AWS_REGION or AWS_DEFAULT_REGION </span>
@@ -1020,6 +1024,19 @@
                 <span class="n">service_name</span><span class="o">=</span><span class="s2">"bedrock-runtime"</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="c1"># Create bedrock client for control plane API call</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bedrock_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bedrock_client</span> <span class="o">=</span> <span class="n">create_aws_client</span><span class="p">(</span>
+                <span class="n">region_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">region_name</span><span class="p">,</span>
+                <span class="n">credentials_profile_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">credentials_profile_name</span><span class="p">,</span>
+                <span class="n">aws_access_key_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_access_key_id</span><span class="p">,</span>
+                <span class="n">aws_secret_access_key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_secret_access_key</span><span class="p">,</span>
+                <span class="n">aws_session_token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">aws_session_token</span><span class="p">,</span>
+                <span class="n">endpoint_url</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">endpoint_url</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+                <span class="n">service_name</span><span class="o">=</span><span class="s2">"bedrock"</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@property</span>
@@ -1060,6 +1077,16 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_base_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="c1"># identify the base model id used in the application inference profile (AIP)</span>
+        <span class="c1"># Format: arn:aws:bedrock:us-east-1:&lt;accountId&gt;:application-inference-profile/&lt;id&gt;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">'application-inference-profile'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bedrock_client</span><span class="o">.</span><span class="n">get_inference_profile</span><span class="p">(</span>
+                <span class="n">inferenceProfileIdentifier</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="s1">'models'</span> <span class="ow">in</span> <span class="n">response</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s1">'models'</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">model_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s1">'models'</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">'modelArn'</span><span class="p">]</span>
+                <span class="c1"># Format: arn:aws:bedrock:region::foundation-model/provider.model-name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="o">=</span> <span class="n">model_arn</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@property</span>

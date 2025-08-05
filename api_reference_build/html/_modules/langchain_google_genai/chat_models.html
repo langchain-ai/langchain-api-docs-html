@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Aug 04, 2025" name="docbuild:last-update"/>
+<meta content="Aug 05, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -228,6 +228,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">mimetypes</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">wave</span>
@@ -378,7 +379,12 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_create_retry_decorator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_retry_decorator</span><span class="p">(</span>
+    <span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="n">wait_exponential_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">wait_exponential_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">wait_exponential_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Creates and returns a preconfigured tenacity retry decorator.</span>
 
@@ -390,15 +396,14 @@
 <span class="sd">        Callable[[Any], Any]: A retry decorator configured for handling specific</span>
 <span class="sd">        Google API exceptions.</span>
 <span class="sd">    """</span>
-    <span class="n">multiplier</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">min_seconds</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">max_seconds</span> <span class="o">=</span> <span class="mi">60</span>
-    <span class="n">max_retries</span> <span class="o">=</span> <span class="mi">2</span>
-
     <span class="k">return</span> <span class="n">retry</span><span class="p">(</span>
         <span class="n">reraise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">stop</span><span class="o">=</span><span class="n">stop_after_attempt</span><span class="p">(</span><span class="n">max_retries</span><span class="p">),</span>
-        <span class="n">wait</span><span class="o">=</span><span class="n">wait_exponential</span><span class="p">(</span><span class="n">multiplier</span><span class="o">=</span><span class="n">multiplier</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">min_seconds</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">max_seconds</span><span class="p">),</span>
+        <span class="n">wait</span><span class="o">=</span><span class="n">wait_exponential</span><span class="p">(</span>
+            <span class="n">multiplier</span><span class="o">=</span><span class="n">wait_exponential_multiplier</span><span class="p">,</span>
+            <span class="nb">min</span><span class="o">=</span><span class="n">wait_exponential_min</span><span class="p">,</span>
+            <span class="nb">max</span><span class="o">=</span><span class="n">wait_exponential_max</span><span class="p">,</span>
+        <span class="p">),</span>
         <span class="n">retry</span><span class="o">=</span><span class="p">(</span>
             <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ResourceExhausted</span><span class="p">)</span>
             <span class="o">|</span> <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ServiceUnavailable</span><span class="p">)</span>
@@ -423,13 +428,17 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Any: The result from the chat generation method.</span>
 <span class="sd">    """</span>
-    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">_create_retry_decorator</span><span class="p">()</span>
+    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">_create_retry_decorator</span><span class="p">(</span>
+        <span class="n">max_retries</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_retries"</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="n">wait_exponential_multiplier</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_multiplier"</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">wait_exponential_min</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_min"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">wait_exponential_max</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_max"</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span>
+    <span class="p">)</span>
 
     <span class="nd">@retry_decorator</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_chat_with_retry</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">generation_method</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="c1"># Do not retry for these errors.</span>
         <span class="k">except</span> <span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">FailedPrecondition</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"location is not supported"</span> <span class="ow">in</span> <span class="n">exc</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>
                 <span class="n">error_msg</span> <span class="o">=</span> <span class="p">(</span>
@@ -443,6 +452,13 @@
             <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Invalid argument provided to Gemini: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">except</span> <span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ResourceExhausted</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Handle quota-exceeded error with recommended retry delay</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">retry_after</span> <span class="o">&lt;</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">"wait_exponential_max"</span><span class="p">,</span> <span class="mf">60.0</span>
+            <span class="p">):</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">retry_after</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">e</span>
 
@@ -1325,6 +1341,144 @@
 
 <span class="sd">            'The weather in this image appears to be sunny and pleasant. The sky is a bright blue with scattered white clouds, suggesting fair weather. The lush green grass and trees indicate a warm and possibly slightly breezy day. There are no signs of rain or storms.'</span>
 
+<span class="sd">    PDF input:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import base64</span>
+<span class="sd">            from langchain_core.messages import HumanMessage</span>
+
+<span class="sd">            pdf_bytes = open("/path/to/your/test.pdf", 'rb').read()</span>
+<span class="sd">            pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')</span>
+
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content=[</span>
+<span class="sd">                    {"type": "text", "text": "describe the document in a sentence"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "file",</span>
+<span class="sd">                        "source_type": "base64",</span>
+<span class="sd">                        "mime_type":"application/pdf",</span>
+<span class="sd">                        "data": pdf_base64</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            )</span>
+<span class="sd">            ai_msg = llm.invoke([message])</span>
+<span class="sd">            ai_msg.content</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            'This research paper describes a system developed for SemEval-2025 Task 9, which aims to automate the detection of food hazards from recall reports, addressing the class imbalance problem by leveraging LLM-based data augmentation techniques and transformer-based models to improve performance.'</span>
+
+<span class="sd">    Video input:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import base64</span>
+<span class="sd">            from langchain_core.messages import HumanMessage</span>
+
+<span class="sd">            video_bytes = open("/path/to/your/video.mp4", 'rb').read()</span>
+<span class="sd">            video_base64 = base64.b64encode(video_bytes).decode('utf-8')</span>
+
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content=[</span>
+<span class="sd">                    {"type": "text", "text": "describe what's in this video in a sentence"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "file",</span>
+<span class="sd">                        "source_type": "base64",</span>
+<span class="sd">                        "mime_type": "video/mp4",</span>
+<span class="sd">                        "data": video_base64</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            )</span>
+<span class="sd">            ai_msg = llm.invoke([message])</span>
+<span class="sd">            ai_msg.content</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            'Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed adventure involving a corn-on-the-cob chase, maze antics, and a disastrous attempt to prepare a turkey dinner.'</span>
+
+<span class="sd">        You can also pass YouTube URLs directly:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            from langchain_core.messages import HumanMessage</span>
+
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content=[</span>
+<span class="sd">                    {"type": "text", "text": "summarize the video in 3 sentences."},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "media",</span>
+<span class="sd">                        "file_uri": "https://www.youtube.com/watch?v=9hE5-98ZeCg",</span>
+<span class="sd">                        "mime_type": "video/mp4",</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            )</span>
+<span class="sd">            ai_msg = llm.invoke([message])</span>
+<span class="sd">            ai_msg.content</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            'The video is a demo of multimodal live streaming in Gemini 2.0. The narrator is sharing his screen in AI Studio and asks if the AI can see it. The AI then reads text that is highlighted on the screen, defines the word “multimodal,” and summarizes everything that was seen and heard.'</span>
+
+<span class="sd">    Audio input:</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import base64</span>
+<span class="sd">            from langchain_core.messages import HumanMessage</span>
+
+<span class="sd">            audio_bytes = open("/path/to/your/audio.mp3", 'rb').read()</span>
+<span class="sd">            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')</span>
+
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content=[</span>
+<span class="sd">                    {"type": "text", "text": "summarize this audio in a sentence"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "file",</span>
+<span class="sd">                        "source_type": "base64",</span>
+<span class="sd">                        "mime_type":"audio/mp3",</span>
+<span class="sd">                        "data": audio_base64</span>
+<span class="sd">                    }</span>
+<span class="sd">                ]</span>
+<span class="sd">            )</span>
+<span class="sd">            ai_msg = llm.invoke([message])</span>
+<span class="sd">            ai_msg.content</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            "In this episode of the Made by Google podcast, Stephen Johnson and Simon Tokumine discuss NotebookLM, a tool designed to help users understand complex material in various modalities, with a focus on its unexpected uses, the development of audio overviews, and the implementation of new features like mind maps and source discovery."</span>
+
+<span class="sd">    File upload (URI-based):</span>
+<span class="sd">        You can also upload files to Google's servers and reference them by URI.</span>
+<span class="sd">        This works for PDFs, images, videos, and audio files.</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            import time</span>
+<span class="sd">            from google import genai</span>
+<span class="sd">            from langchain_core.messages import HumanMessage</span>
+
+<span class="sd">            client = genai.Client()</span>
+
+<span class="sd">            myfile = client.files.upload(file="/path/to/your/sample.pdf")</span>
+<span class="sd">            while myfile.state.name == "PROCESSING":</span>
+<span class="sd">                time.sleep(2)</span>
+<span class="sd">                myfile = client.files.get(name=myfile.name)</span>
+
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content=[</span>
+<span class="sd">                    {"type": "text", "text": "What is in the document?"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "media",</span>
+<span class="sd">                        "file_uri": myfile.uri,</span>
+<span class="sd">                        "mime_type": "application/pdf",</span>
+<span class="sd">                    },</span>
+<span class="sd">                ]</span>
+<span class="sd">            )</span>
+<span class="sd">            ai_msg = llm.invoke([message])</span>
+<span class="sd">            ai_msg.content</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            "This research paper assesses and mitigates multi-turn jailbreak vulnerabilities in large language models using the Crescendo attack study, evaluating attack success rates and mitigation strategies like prompt hardening and LLM-as-guardrail."</span>
+
 <span class="sd">    Token usage:</span>
 <span class="sd">        .. code-block:: python</span>
 
@@ -1775,7 +1929,7 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">gen</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_astream</span><span class="p">(</span>
@@ -1841,7 +1995,7 @@
                 <span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
-                    <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                    <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen</span><span class="p">)</span>
                 <span class="k">yield</span> <span class="n">gen</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_request</span><span class="p">(</span>

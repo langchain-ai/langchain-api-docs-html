@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Aug 04, 2025" name="docbuild:last-update"/>
+<meta content="Aug 05, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -255,7 +255,6 @@
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">BaseMessage</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">UsageMetadata</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.outputs</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatGeneration</span><span class="p">,</span>
     <span class="n">ChatGenerationChunk</span><span class="p">,</span>
@@ -277,6 +276,7 @@
     <span class="n">_extract_tool_calls</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._anthropic_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_create_usage_metadata</span><span class="p">,</span>
     <span class="n">_documents_in_params</span><span class="p">,</span>
     <span class="n">_format_messages_anthropic</span><span class="p">,</span>
     <span class="n">_make_message_chunk_from_anthropic_event</span><span class="p">,</span>
@@ -286,16 +286,6 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._base</span><span class="w"> </span><span class="kn">import</span> <span class="n">_BaseVertexAIModelGarden</span><span class="p">,</span> <span class="n">_VertexAICommon</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_google_vertexai._retry</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_base_retry_decorator</span>
-
-
-<div class="viewcode-block" id="CacheUsageMetadata">
-<a class="viewcode-back" href="../../google_vertexai/model_garden/langchain_google_vertexai.model_garden.CacheUsageMetadata.html#langchain_google_vertexai.model_garden.CacheUsageMetadata">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">CacheUsageMetadata</span><span class="p">(</span><span class="n">UsageMetadata</span><span class="p">):</span>
-    <span class="n">cache_creation_input_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
-<span class="w">    </span><span class="sd">"""The number of input tokens used to create the cache entry."""</span>
-    <span class="n">cache_read_input_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
-<span class="w">    </span><span class="sd">"""The number of input tokens read from the cache."""</span></div>
-
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_create_retry_decorator</span><span class="p">(</span>
@@ -517,14 +507,8 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">AIMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">)</span>
-        <span class="c1"># Collect token usage</span>
-        <span class="n">msg</span><span class="o">.</span><span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">CacheUsageMetadata</span><span class="p">(</span>
-            <span class="n">input_tokens</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">input_tokens</span><span class="p">,</span>
-            <span class="n">output_tokens</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">output_tokens</span><span class="p">,</span>
-            <span class="n">total_tokens</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">input_tokens</span> <span class="o">+</span> <span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">output_tokens</span><span class="p">,</span>
-            <span class="n">cache_creation_input_tokens</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">cache_creation_input_tokens</span><span class="p">,</span>
-            <span class="n">cache_read_input_tokens</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">cache_read_input_tokens</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c1"># Collect token usage using the reusable function (matches langchain_anthropic)</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">_create_usage_metadata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">usage</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ChatResult</span><span class="p">(</span>
             <span class="n">generations</span><span class="o">=</span><span class="p">[</span><span class="n">ChatGeneration</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">msg</span><span class="p">)],</span>
             <span class="n">llm_output</span><span class="o">=</span><span class="n">llm_output</span><span class="p">,</span>

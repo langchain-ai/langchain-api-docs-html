@@ -54,7 +54,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Aug 04, 2025" name="docbuild:last-update"/>
+<meta content="Aug 05, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -296,7 +296,7 @@
 </a>
 </li>
 <li class="breadcrumb-item"><a class="nav-link" href="../../reference.html">LangChain Python API Reference</a></li>
-<li class="breadcrumb-item"><a class="nav-link" href="../index.html">langchain-google-vertexai: 2.0.27</a></li>
+<li class="breadcrumb-item"><a class="nav-link" href="../index.html">langchain-google-vertexai: 2.0.28</a></li>
 <li class="breadcrumb-item"><a class="nav-link" href="../chat_models.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">chat_models</span></code></a></li>
 <li aria-current="page" class="breadcrumb-item active"><span class="ellipsis">ChatVertexAI</span></li>
 </ul>
@@ -594,13 +594,95 @@ This caches content from GCS and queries it.</p>
 </pre></div>
 </div>
 </dd>
-</dl>
-<p>Video input:</p>
-<blockquote>
-<div><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Currently only supported for <code class="docutils literal notranslate"><span class="pre">gemini-...-vision</span></code> models.</p>
+<dt>PDF input:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
+
+<span class="n">pdf_bytes</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/path/to/your/test.pdf"</span><span class="p">,</span> <span class="s1">'rb'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">pdf_base64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">pdf_bytes</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>
+<span class="n">message</span> <span class="o">=</span> <span class="n">HumanMessage</span><span class="p">(</span>
+    <span class="n">content</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"describe the document in a sentence"</span><span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span>
+            <span class="s2">"source_type"</span><span class="p">:</span> <span class="s2">"base64"</span><span class="p">,</span>
+            <span class="s2">"mime_type"</span><span class="p">:</span><span class="s2">"application/pdf"</span><span class="p">,</span>
+            <span class="s2">"data"</span><span class="p">:</span> <span class="n">pdf_base64</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">ai_msg</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">([</span><span class="n">message</span><span class="p">])</span>
+<span class="n">ai_msg</span><span class="o">.</span><span class="n">content</span>
+</pre></div>
 </div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s1">'This research paper describes a system developed for SemEval-2025 Task 9, which aims to automate the detection of food hazards from recall reports, addressing the class imbalance problem by leveraging LLM-based data augmentation techniques and transformer-based models to improve performance.'</span>
+</pre></div>
+</div>
+<p>You can also point to GCS files.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">HumanMessage</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">"describe the document in a sentence"</span><span class="p">,</span>
+                <span class="p">{</span>
+                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"media"</span><span class="p">,</span>
+                    <span class="s2">"file_uri"</span><span class="p">:</span> <span class="s2">"gs://cloud-samples-data/generative-ai/pdf/1706.03762v7.pdf"</span><span class="p">,</span>
+                    <span class="s2">"mime_type"</span><span class="p">:</span> <span class="s2">"application/pdf"</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">)</span><span class="o">.</span><span class="n">content</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s1">'The article introduces Transformer, a new model architecture for sequence transduction based solely on attention mechanisms, outperforming previous models in machine translation tasks and demonstrating good generalization to English constituency parsing.'</span>
+</pre></div>
+</div>
+</dd>
+<dt>Video input:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
+
+<span class="n">video_bytes</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/path/to/your/video.mp4"</span><span class="p">,</span> <span class="s1">'rb'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">video_base64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">video_bytes</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">HumanMessage</span><span class="p">(</span>
+    <span class="n">content</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"describe what's in this video in a sentence"</span><span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span>
+            <span class="s2">"source_type"</span><span class="p">:</span> <span class="s2">"base64"</span><span class="p">,</span>
+            <span class="s2">"mime_type"</span><span class="p">:</span> <span class="s2">"video/mp4"</span><span class="p">,</span>
+            <span class="s2">"data"</span><span class="p">:</span> <span class="n">video_base64</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">ai_msg</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">([</span><span class="n">message</span><span class="p">])</span>
+<span class="n">ai_msg</span><span class="o">.</span><span class="n">content</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s1">'Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed adventure involving a corn-on-the-cob chase, maze antics, and a disastrous attempt to prepare a turkey dinner.'</span>
+</pre></div>
+</div>
+<p>You can also pass YouTube URLs directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">HumanMessage</span><span class="p">(</span>
+    <span class="n">content</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"summarize the video in 3 sentences."</span><span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"media"</span><span class="p">,</span>
+            <span class="s2">"file_uri"</span><span class="p">:</span> <span class="s2">"https://www.youtube.com/watch?v=9hE5-98ZeCg"</span><span class="p">,</span>
+            <span class="s2">"mime_type"</span><span class="p">:</span> <span class="s2">"video/mp4"</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">ai_msg</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">([</span><span class="n">message</span><span class="p">])</span>
+<span class="n">ai_msg</span><span class="o">.</span><span class="n">content</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s1">'The video is a demo of multimodal live streaming in Gemini 2.0. The narrator is sharing his screen in AI Studio and asks if the AI can see it. The AI then reads text that is highlighted on the screen, defines the word “multimodal,” and summarizes everything that was seen and heard.'</span>
+</pre></div>
+</div>
+<p>You can also point to GCS files.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">llm</span> <span class="o">=</span> <span class="n">ChatVertexAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"gemini-1.0-pro-vision"</span><span class="p">)</span>
 
 <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span>
@@ -622,9 +704,33 @@ This caches content from GCS and queries it.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s1">'The video is about a new feature in Google Photos called "Zoomable Selfies". The feature allows users to take selfies with animals at the zoo. The video shows several examples of people taking selfies with animals, including a tiger, an elephant, and a sea otter. The video also shows how the feature works. Users simply need to open the Google Photos app and select the "Zoomable Selfies" option. Then, they need to choose an animal from the list of available animals. The app will then guide the user through the process of taking the selfie.'</span>
 </pre></div>
 </div>
-</div></blockquote>
-<dl>
-<dt>Audio input:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
+</dd>
+<dt>Audio input:</dt><dd><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
+
+<span class="n">audio_bytes</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"/path/to/your/audio.mp3"</span><span class="p">,</span> <span class="s1">'rb'</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">audio_base64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">audio_bytes</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">'utf-8'</span><span class="p">)</span>
+
+<span class="n">message</span> <span class="o">=</span> <span class="n">HumanMessage</span><span class="p">(</span>
+    <span class="n">content</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"summarize this audio in a sentence"</span><span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"file"</span><span class="p">,</span>
+            <span class="s2">"source_type"</span><span class="p">:</span> <span class="s2">"base64"</span><span class="p">,</span>
+            <span class="s2">"mime_type"</span><span class="p">:</span><span class="s2">"audio/mp3"</span><span class="p">,</span>
+            <span class="s2">"data"</span><span class="p">:</span> <span class="n">audio_base64</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">ai_msg</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">invoke</span><span class="p">([</span><span class="n">message</span><span class="p">])</span>
+<span class="n">ai_msg</span><span class="o">.</span><span class="n">content</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">"In this episode of the Made by Google podcast, Stephen Johnson and Simon Tokumine discuss NotebookLM, a tool designed to help users understand complex material in various modalities, with a focus on its unexpected uses, the development of audio overviews, and the implementation of new features like mind maps and source discovery."</span>
+</pre></div>
+</div>
+<p>You can also point to GCS files.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">HumanMessage</span>
 
 <span class="n">llm</span> <span class="o">=</span> <span class="n">ChatVertexAI</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"gemini-1.5-flash-001"</span><span class="p">)</span>
 
