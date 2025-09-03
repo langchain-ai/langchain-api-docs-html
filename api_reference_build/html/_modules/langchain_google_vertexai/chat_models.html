@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 02, 2025" name="docbuild:last-update"/>
+<meta content="Sep 03, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -298,17 +298,18 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_basemodel_subclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_model_kwargs</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.generative_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.generative_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tool</span> <span class="k">as</span> <span class="n">VertexTool</span><span class="p">,</span>
+    <span class="n">HarmBlockThreshold</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.generative_models._generative_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.generative_models._generative_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ToolConfig</span><span class="p">,</span>
     <span class="n">SafetySettingsType</span><span class="p">,</span>
     <span class="n">GenerationConfigType</span><span class="p">,</span>
     <span class="n">GenerationResponse</span><span class="p">,</span>
     <span class="n">_convert_schema_dict_to_gapic</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vertexai.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatMessage</span><span class="p">,</span>
     <span class="n">InputOutputTextPair</span><span class="p">,</span>
 <span class="p">)</span>
@@ -441,10 +442,20 @@
         <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
             <span class="n">context</span> <span class="o">=</span> <span class="n">content</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
-            <span class="n">vertex_message</span> <span class="o">=</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"bot"</span><span class="p">)</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">vertex_message</span> <span class="o">=</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"bot"</span><span class="p">)</span>
             <span class="n">vertex_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertex_message</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
-            <span class="n">vertex_message</span> <span class="o">=</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"user"</span><span class="p">)</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">message</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">vertex_message</span> <span class="o">=</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"user"</span><span class="p">)</span>
             <span class="n">vertex_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertex_message</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -777,16 +788,25 @@
                     <span class="sa">f</span><span class="s2">"Expected the first message in a part to be from human, got "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">example</span><span class="p">)</span><span class="si">}</span><span class="s2"> for the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">th message."</span>
                 <span class="p">)</span>
-            <span class="n">input_text</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">content</span>
+            <span class="n">input_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">example</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Expected the second message in a part to be from AI, got "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">example</span><span class="p">)</span><span class="si">}</span><span class="s2"> for the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">th message."</span>
                 <span class="p">)</span>
-            <span class="n">pair</span> <span class="o">=</span> <span class="n">InputOutputTextPair</span><span class="p">(</span>
-                <span class="n">input_text</span><span class="o">=</span><span class="n">input_text</span><span class="p">,</span> <span class="n">output_text</span><span class="o">=</span><span class="n">example</span><span class="o">.</span><span class="n">content</span>
+            <span class="n">output_text</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">example</span><span class="o">.</span><span class="n">content</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">example</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="n">input_text</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"input_text should not be None at this point"</span><span class="p">)</span>
+            <span class="n">pair</span> <span class="o">=</span> <span class="n">InputOutputTextPair</span><span class="p">(</span><span class="n">input_text</span><span class="o">=</span><span class="n">input_text</span><span class="p">,</span> <span class="n">output_text</span><span class="o">=</span><span class="n">output_text</span><span class="p">)</span>
             <span class="n">example_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">example_pairs</span>
 
@@ -826,15 +846,13 @@
 <span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
     <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
-    <span class="o">...</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
     <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessageChunk</span><span class="p">:</span>
-    <span class="o">...</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessageChunk</span><span class="p">:</span> <span class="o">...</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
@@ -1339,7 +1357,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The image is of five blueberry scones arranged on a piece of baking paper. Here is a list of what is in the picture:* **Five blueberry scones:** They are scattered across the parchment paper, dusted with powdered sugar.  * **Two cups of coffee:**  Two white cups with saucers. One appears full, the other partially drunk. * **A bowl of blueberries:** A brown bowl is filled with fresh blueberries, placed near the scones.* **A spoon:**  A silver spoon with the words "Let\'s Jam" rests on the paper.* **Pink peonies:** Several pink peonies lie beside the scones, adding a touch of color.* **Baking paper:** The scones, cups, bowl, and spoon are arranged on a piece of white baking paper, splattered with purple.  The paper is crinkled and sits on a dark surface. The image has a rustic and delicious feel, suggesting a cozy and enjoyable breakfast or brunch setting.' # codespell:ignore brunch</span>
+<span class="sd">            'The image is of five blueberry scones arranged on a piece of baking paper. Here is a list of what is in the picture:* **Five blueberry scones:** They are scattered across the parchment paper, dusted with powdered sugar.  * **Two cups of coffee:**  Two white cups with saucers. One appears full, the other partially drunk. * **A bowl of blueberries:** A brown bowl is filled with fresh blueberries, placed near the scones.* **A spoon:**  A silver spoon with the words "Let\'s Jam" rests on the paper.* **Pink peonies:** Several pink peonies lie beside the scones, adding a touch of color.* **Baking paper:** The scones, cups, bowl, and spoon are arranged on a piece of white baking paper, splattered with purple.  The paper is crinkled and sits on a dark surface. The image has a rustic and delicious feel, suggesting a cozy and enjoyable breakfast or brunch setting.'</span>
 
 <span class="sd">    PDF input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1925,22 +1943,69 @@
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">safety_settings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">safety_settings</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safety_settings_gemini</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">safety_settings</span><span class="p">)</span>
+                <span class="c1"># Return the original settings unchanged for backward compatibility</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">safety_settings</span>  <span class="c1"># type: ignore[return-value]</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">safety_settings</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">safety_settings</span>
+            <span class="c1"># Check if conversion is needed</span>
+            <span class="n">needs_conversion</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="s2">"to_dict"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="s2">"_pb"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">safety_settings</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">needs_conversion</span><span class="p">:</span>
+                <span class="c1"># Return as-is if already gapic SafetySettings</span>
+                <span class="k">return</span> <span class="n">safety_settings</span>  <span class="c1"># type: ignore[return-value]</span>
+
+            <span class="c1"># Convert vertexai SafetySetting objects to gapic SafetySetting objects</span>
+            <span class="n">converted_settings</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">setting</span> <span class="ow">in</span> <span class="n">safety_settings</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="s2">"to_dict"</span><span class="p">):</span>
+                    <span class="c1"># VertexAI SafetySetting with to_dict method</span>
+                    <span class="n">setting_dict</span> <span class="o">=</span> <span class="n">setting</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+                    <span class="n">converted_setting</span> <span class="o">=</span> <span class="n">SafetySetting</span><span class="p">(</span>
+                        <span class="n">category</span><span class="o">=</span><span class="n">setting_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"category"</span><span class="p">),</span>
+                        <span class="n">threshold</span><span class="o">=</span><span class="n">setting_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"threshold"</span><span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">converted_settings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">converted_setting</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Direct attribute access for other types</span>
+                    <span class="n">converted_settings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">SafetySetting</span><span class="p">(</span>
+                            <span class="n">category</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                            <span class="n">threshold</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="s2">"threshold"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="k">return</span> <span class="n">converted_settings</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">safety_settings</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">formatted_safety_settings</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">threshold</span> <span class="ow">in</span> <span class="n">safety_settings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">category</span> <span class="o">=</span> <span class="n">HarmCategory</span><span class="p">[</span><span class="n">category</span><span class="p">]</span>  <span class="c1"># type: ignore[misc]</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">threshold</span> <span class="o">=</span> <span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">[</span><span class="n">threshold</span><span class="p">]</span>  <span class="c1"># type: ignore[misc]</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">safety_settings</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">raw_category</span><span class="p">,</span> <span class="n">raw_threshold</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                <span class="c1"># Convert category to HarmCategory if needed</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_category</span><span class="p">,</span> <span class="n">HarmCategory</span><span class="p">):</span>
+                    <span class="n">category</span> <span class="o">=</span> <span class="n">raw_category</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_category</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">category</span> <span class="o">=</span> <span class="n">HarmCategory</span><span class="p">[</span><span class="n">raw_category</span><span class="p">]</span>  <span class="c1"># type: ignore[misc]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Handles numeric enum values</span>
+                    <span class="n">category</span> <span class="o">=</span> <span class="n">HarmCategory</span><span class="p">(</span><span class="n">raw_category</span><span class="p">)</span>
+
+                <span class="c1"># Convert threshold to HarmBlockThreshold if needed</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_threshold</span><span class="p">,</span> <span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">):</span>
+                    <span class="n">threshold</span> <span class="o">=</span> <span class="n">raw_threshold</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_threshold</span><span class="p">,</span> <span class="n">HarmBlockThreshold</span><span class="p">):</span>
+                    <span class="c1"># Convert vertexai.generative_models.HarmBlockThreshold to gapic</span>
+                    <span class="n">threshold</span> <span class="o">=</span> <span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">(</span><span class="n">raw_threshold</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_threshold</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">threshold</span> <span class="o">=</span> <span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">[</span><span class="n">raw_threshold</span><span class="p">]</span>  <span class="c1"># type: ignore[misc]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Handles numeric enum values</span>
+                    <span class="n">threshold</span> <span class="o">=</span> <span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">(</span><span class="n">raw_threshold</span><span class="p">)</span>
 
                 <span class="n">formatted_safety_settings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">SafetySetting</span><span class="p">(</span>
-                        <span class="n">category</span><span class="o">=</span><span class="n">HarmCategory</span><span class="p">(</span><span class="n">category</span><span class="p">),</span>
-                        <span class="n">threshold</span><span class="o">=</span><span class="n">SafetySetting</span><span class="o">.</span><span class="n">HarmBlockThreshold</span><span class="p">(</span><span class="n">threshold</span><span class="p">),</span>
+                        <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">,</span>
+                        <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">formatted_safety_settings</span>
@@ -1978,7 +2043,9 @@
             <span class="n">tool_config</span> <span class="o">=</span> <span class="n">_tool_choice_to_tool_config</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="n">all_names</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">pass</span>
-        <span class="n">safety_settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safety_settings_gemini</span><span class="p">(</span><span class="n">safety_settings</span><span class="p">)</span>
+        <span class="n">processed_safety_settings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">SafetySetting</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_safety_settings_gemini</span><span class="p">(</span><span class="n">safety_settings</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="n">logprobs</span> <span class="o">=</span> <span class="n">logprobs</span> <span class="k">if</span> <span class="n">logprobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">logprobs</span>
         <span class="n">logprobs</span> <span class="o">=</span> <span class="n">logprobs</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">logprobs</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="k">else</span> <span class="kc">False</span>
         <span class="n">generation_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generation_config_gemini</span><span class="p">(</span>
@@ -2011,18 +2078,20 @@
                 <span class="n">v1_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">v1Tool</span><span class="p">(</span><span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">formatted_tools</span><span class="p">]</span>
 
             <span class="k">if</span> <span class="n">tool_config</span><span class="p">:</span>
-                <span class="n">v1_tool_config</span> <span class="o">=</span> <span class="n">v1ToolConfig</span><span class="p">(</span>
-                    <span class="n">function_calling_config</span><span class="o">=</span><span class="n">v1FunctionCallingConfig</span><span class="p">(</span>
-                        <span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">tool_config</span><span class="o">.</span><span class="n">function_calling_config</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tool_config</span><span class="p">,</span> <span class="s2">"function_calling_config"</span><span class="p">):</span>
+                    <span class="n">v1_tool_config</span> <span class="o">=</span> <span class="n">v1ToolConfig</span><span class="p">(</span>
+                        <span class="n">function_calling_config</span><span class="o">=</span><span class="n">v1FunctionCallingConfig</span><span class="p">(</span>
+                            <span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">tool_config</span><span class="o">.</span><span class="n">function_calling_config</span><span class="p">)</span>
+                        <span class="p">)</span>
                     <span class="p">)</span>
-                <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Handle other ToolConfig types or convert as needed</span>
+                    <span class="n">v1_tool_config</span> <span class="o">=</span> <span class="n">v1ToolConfig</span><span class="p">(</span><span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">tool_config</span><span class="p">))</span>
 
-            <span class="k">if</span> <span class="n">safety_settings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">processed_safety_settings</span><span class="p">:</span>
                 <span class="n">v1_safety_settings</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">v1SafetySetting</span><span class="p">(</span>
-                        <span class="n">category</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">category</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">threshold</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">safety_settings</span>
+                    <span class="n">v1SafetySetting</span><span class="p">(</span><span class="o">**</span><span class="n">proto</span><span class="o">.</span><span class="n">Message</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">processed_safety_settings</span>
                 <span class="p">]</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cached_content</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">cached_content</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
@@ -2047,7 +2116,7 @@
             <span class="k">return</span> <span class="n">GenerateContentRequest</span><span class="p">(</span>
                 <span class="n">contents</span><span class="o">=</span><span class="n">contents</span><span class="p">,</span>
                 <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
-                <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span><span class="p">,</span>
+                <span class="n">safety_settings</span><span class="o">=</span><span class="n">processed_safety_settings</span><span class="p">,</span>
                 <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
                 <span class="n">cached_content</span><span class="o">=</span><span class="n">full_cache_name</span><span class="p">,</span>
             <span class="p">)</span>
@@ -2069,7 +2138,7 @@
             <span class="n">system_instruction</span><span class="o">=</span><span class="n">system_instruction</span><span class="p">,</span>
             <span class="n">tools</span><span class="o">=</span><span class="n">formatted_tools</span><span class="p">,</span>
             <span class="n">tool_config</span><span class="o">=</span><span class="n">tool_config</span><span class="p">,</span>
-            <span class="n">safety_settings</span><span class="o">=</span><span class="n">safety_settings</span><span class="p">,</span>
+            <span class="n">safety_settings</span><span class="o">=</span><span class="n">processed_safety_settings</span><span class="p">,</span>
             <span class="n">generation_config</span><span class="o">=</span><span class="n">generation_config</span><span class="p">,</span>
             <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span><span class="p">,</span>
             <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
@@ -2181,7 +2250,7 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolConfigDict</span><span class="p">,</span> <span class="n">ToolConfig</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GapicToolConfig</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">tool_config</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_config</span><span class="p">,</span> <span class="n">ToolConfig</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">_format_tool_config</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">_ToolConfigDict</span><span class="p">,</span> <span class="n">tool_config</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">_format_tool_config</span><span class="p">(</span><span class="n">tool_config</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
@@ -2544,7 +2613,7 @@
             <span class="n">info</span> <span class="o">=</span> <span class="n">get_generation_info</span><span class="p">(</span>
                 <span class="n">candidate</span><span class="p">,</span> <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span> <span class="n">logprobs</span><span class="o">=</span><span class="n">logprobs</span>
             <span class="p">)</span>
-            <span class="n">message</span> <span class="o">=</span> <span class="n">_parse_response_candidate</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">_parse_response_candidate</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># type: ignore[call-overload]</span>
             <span class="n">message</span><span class="o">.</span><span class="n">response_metadata</span><span class="p">[</span><span class="s2">"model_name"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
                 <span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">lc_usage</span>
@@ -2592,7 +2661,7 @@
             <span class="n">generation_info</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">top_candidate</span> <span class="o">=</span> <span class="n">response_chunk</span><span class="o">.</span><span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">message</span> <span class="o">=</span> <span class="n">_parse_response_candidate</span><span class="p">(</span><span class="n">top_candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">_parse_response_candidate</span><span class="p">(</span><span class="n">top_candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># type: ignore[call-overload]</span>
             <span class="k">if</span> <span class="n">lc_usage</span><span class="p">:</span>
                 <span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span> <span class="o">=</span> <span class="n">lc_usage</span>
             <span class="n">generation_info</span> <span class="o">=</span> <span class="n">get_generation_info</span><span class="p">(</span>
