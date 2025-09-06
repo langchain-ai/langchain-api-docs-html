@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 05, 2025" name="docbuild:last-update"/>
+<meta content="Sep 06, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -1226,24 +1226,27 @@
 
 <span class="sd">        .. dropdown:: Extended caching</span>
 
-<span class="sd">            .. versionadded:: 0.3.15</span>
-
 <span class="sd">            The cache lifetime is 5 minutes by default. If this is too short, you can</span>
-<span class="sd">            apply one hour caching by enabling the ``'extended-cache-ttl-2025-04-11'``</span>
-<span class="sd">            beta header:</span>
+<span class="sd">            apply one hour caching by setting ``ttl`` to ``'1h'``.</span>
 
 <span class="sd">            .. code-block:: python</span>
 
 <span class="sd">                llm = ChatAnthropic(</span>
 <span class="sd">                    model="claude-3-7-sonnet-20250219",</span>
-<span class="sd">                    betas=["extended-cache-ttl-2025-04-11"],</span>
 <span class="sd">                )</span>
 
-<span class="sd">            and specifying ``"cache_control": {"type": "ephemeral", "ttl": "1h"}``.</span>
+<span class="sd">                messages = [{</span>
+<span class="sd">                        "role": "user",</span>
+<span class="sd">                        "content": [</span>
+<span class="sd">                            {</span>
+<span class="sd">                                "type": "text",</span>
+<span class="sd">                                "text": f"{long_text}",</span>
+<span class="sd">                                "cache_control": {"type": "ephemeral", "ttl": "1h"},</span>
+<span class="sd">                            },</span>
+<span class="sd">                        ],</span>
+<span class="sd">                }]</span>
 
-<span class="sd">            .. important::</span>
-<span class="sd">                Specifying a `ttl` key under `cache_control` will not work unless the</span>
-<span class="sd">                beta header is set!</span>
+<span class="sd">                response = llm.invoke(messages)</span>
 
 <span class="sd">            Details of cached token counts will be included on the ``InputTokenDetails``</span>
 <span class="sd">            of response's ``usage_metadata``:</span>
@@ -1659,23 +1662,6 @@
         <span class="c1"># If cache_control is provided in kwargs, add it to last message</span>
         <span class="c1"># and content block.</span>
         <span class="k">if</span> <span class="s2">"cache_control"</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">formatted_messages</span><span class="p">:</span>
-            <span class="n">cache_control</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">"cache_control"</span><span class="p">]</span>
-
-            <span class="c1"># Validate TTL usage requires extended cache TTL beta header</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="nb">isinstance</span><span class="p">(</span><span class="n">cache_control</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="s2">"ttl"</span> <span class="ow">in</span> <span class="n">cache_control</span>
-                <span class="ow">and</span> <span class="p">(</span>
-                    <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">betas</span> <span class="ow">or</span> <span class="s2">"extended-cache-ttl-2025-04-11"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">betas</span>
-                <span class="p">)</span>
-            <span class="p">):</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="s2">"Specifying a 'ttl' under 'cache_control' requires enabling "</span>
-                    <span class="s2">"the 'extended-cache-ttl-2025-04-11' beta header. "</span>
-                    <span class="s2">"Set betas=['extended-cache-ttl-2025-04-11'] when initializing "</span>
-                    <span class="s2">"ChatAnthropic."</span>
-                <span class="p">)</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">formatted_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"content"</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="n">formatted_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"content"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"cache_control"</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
                     <span class="s2">"cache_control"</span>
