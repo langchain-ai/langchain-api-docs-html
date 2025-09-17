@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 16, 2025" name="docbuild:last-update"/>
+<meta content="Sep 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,18 +222,17 @@
 <h1>Source code for langchain_google_vertexai.model_garden_maas.llama</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
-    <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">Iterator</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
     <span class="n">Literal</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
@@ -296,7 +295,8 @@
     <span class="n">content</span> <span class="o">=</span> <span class="n">response_candidate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
     <span class="n">role</span> <span class="o">=</span> <span class="n">response_candidate</span><span class="p">[</span><span class="s2">"role"</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">role</span> <span class="o">!=</span> <span class="s2">"assistant"</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Role in response is </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">, expected 'assistant'!"</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Role in response is </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">, expected 'assistant'!"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">tool_call_chunks</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -327,10 +327,8 @@
             <span class="n">function_name</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
             <span class="n">function_args</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"function"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"arguments"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">function_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">suppress</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
                     <span class="n">function_args</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">function_args</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                    <span class="k">pass</span>
             <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
                 <span class="n">tool_call_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">tool_call_chunk</span><span class="p">(</span>
@@ -363,7 +361,7 @@
 <div class="viewcode-block" id="VertexModelGardenLlama">
 <a class="viewcode-back" href="../../../google_vertexai/model_garden_maas/langchain_google_vertexai.model_garden_maas.llama.VertexModelGardenLlama.html#langchain_google_vertexai.model_garden_maas.llama.VertexModelGardenLlama">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">VertexModelGardenLlama</span><span class="p">(</span><span class="n">_BaseVertexMaasModelGarden</span><span class="p">,</span> <span class="n">BaseChatModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Integration for Llama 3.1 on Google Cloud Vertex AI Model-as-a-Service.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Integration for Llama 3.1 on Google Cloud Vertex AI Model-as-a-Service.</span>
 
 <span class="sd">    For more information, see:</span>
 <span class="sd">        https://cloud.google.com/blog/products/ai-machine-learning/llama-3-1-on-vertex-ai</span>
@@ -422,14 +420,20 @@
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            messages = [</span>
-<span class="sd">                ("system", "You are a helpful translator. Translate the user sentence to French."),</span>
+<span class="sd">                (</span>
+<span class="sd">                    "system",</span>
+<span class="sd">                    "You are a helpful translator. Translate the user sentence to French.",</span>
+<span class="sd">                ),</span>
 <span class="sd">                ("human", "I love programming."),</span>
 <span class="sd">            ]</span>
 <span class="sd">            llm.invoke(messages)</span>
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessage(content="J'adore programmer. \n", id='run-925ce305-2268-44c4-875f-dde9128520ad-0')</span>
+<span class="sd">            AIMessage(</span>
+<span class="sd">                content="J'adore programmer. \n",</span>
+<span class="sd">                id="run-925ce305-2268-44c4-875f-dde9128520ad-0",</span>
+<span class="sd">            )</span>
 
 <span class="sd">    Stream:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -439,9 +443,12 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessageChunk(content='J', id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
-<span class="sd">            AIMessageChunk(content="'adore programmer. \n", id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
-<span class="sd">            AIMessageChunk(content='', id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
+<span class="sd">            AIMessageChunk(content="J", id="run-9df01d73-84d9-42db-9d6b-b1466a019e89")</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="'adore programmer. \n",</span>
+<span class="sd">                id="run-9df01d73-84d9-42db-9d6b-b1466a019e89",</span>
+<span class="sd">            )</span>
+<span class="sd">            AIMessageChunk(content="", id="run-9df01d73-84d9-42db-9d6b-b1466a019e89")</span>
 
 <span class="sd">        .. code-block:: python</span>
 
@@ -453,7 +460,10 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessageChunk(content="J'adore programmer. \n", id='run-b7f7492c-4cb5-42d0-8fc3-dce9b293b0fb')</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="J'adore programmer. \n",</span>
+<span class="sd">                id="run-b7f7492c-4cb5-42d0-8fc3-dce9b293b0fb",</span>
+<span class="sd">            )</span>
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
@@ -462,11 +472,12 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
         <span class="n">converted_messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">tools</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_tools_to_system_message</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"If providing tools, either format system message yourself or "</span>
                 <span class="s2">"append_tools_to_system_message to True!"</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">tools</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tools</span><span class="p">:</span>
             <span class="n">tools_str</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">convert_to_openai_function</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>
             <span class="p">)</span>
@@ -513,7 +524,8 @@
                 <span class="c1"># we also need to format a previous message if we got a tool result</span>
                 <span class="n">prev_message</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prev_message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"ToolMessage should follow AIMessage only!"</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">"ToolMessage should follow AIMessage only!"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="n">_</span> <span class="o">=</span> <span class="n">converted_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
                 <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">prev_message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
@@ -529,9 +541,8 @@
                     <span class="p">)</span>
                 <span class="n">converted_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">tool_calls</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tool_calls</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">"Only a single function call per turn is supported!"</span>
-                    <span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Only a single function call per turn is supported!"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="n">converted_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s2">"role"</span><span class="p">:</span> <span class="s2">"tool"</span><span class="p">,</span>
@@ -541,7 +552,8 @@
                     <span class="p">}</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Message type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not yet supported!"</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Message type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not yet supported!"</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">converted_messages</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span>
@@ -637,7 +649,8 @@
         <span class="n">chunk_delta</span> <span class="o">=</span> <span class="n">chunk</span><span class="p">[</span><span class="s2">"choices"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"delta"</span><span class="p">]</span>
         <span class="n">content</span> <span class="o">=</span> <span class="n">chunk_delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">chunk_delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"assistant"</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Got chunk with non-assistant role: </span><span class="si">{</span><span class="n">chunk_delta</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Got chunk with non-assistant role: </span><span class="si">{</span><span class="n">chunk_delta</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">raw_tool_calls</span> <span class="o">:=</span> <span class="n">chunk_delta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">):</span>
             <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"tool_calls"</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_tool_calls</span>
@@ -672,7 +685,7 @@
             <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
             <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">additional_kwargs</span><span class="p">,</span>
             <span class="n">tool_call_chunks</span><span class="o">=</span><span class="n">tool_call_chunks</span><span class="p">,</span>
-            <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">usage_metadata</span><span class="o">=</span><span class="n">usage_metadata</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
@@ -696,7 +709,7 @@
             <span class="n">gen_chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
                 <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                    <span class="n">token</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen_chunk</span>
+                    <span class="n">token</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen_chunk</span>
                 <span class="p">)</span>
             <span class="k">yield</span> <span class="n">gen_chunk</span>
 
@@ -721,7 +734,7 @@
             <span class="n">gen_chunk</span> <span class="o">=</span> <span class="n">ChatGenerationChunk</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">message</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">run_manager</span><span class="p">:</span>
                 <span class="k">await</span> <span class="n">run_manager</span><span class="o">.</span><span class="n">on_llm_new_token</span><span class="p">(</span>
-                    <span class="n">token</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen_chunk</span>
+                    <span class="n">token</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">chunk</span><span class="o">=</span><span class="n">gen_chunk</span>
                 <span class="p">)</span>
             <span class="k">yield</span> <span class="n">gen_chunk</span>
 

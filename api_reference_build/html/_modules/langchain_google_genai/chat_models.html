@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 16, 2025" name="docbuild:last-update"/>
+<meta content="Sep 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -232,30 +232,24 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">wave</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">difflib</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_close_matches</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
-    <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">Iterator</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
     <span class="n">Literal</span><span class="p">,</span>
-    <span class="n">Mapping</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Tuple</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">filetype</span>  <span class="c1"># type: ignore[import]</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">google.api_core</span>
-
-<span class="c1"># TODO: remove ignore once the Google package is published with types</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">proto</span>  <span class="c1"># type: ignore[import]</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">filetype</span>  <span class="c1"># type: ignore[import-untyped]</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">proto</span>  <span class="c1"># type: ignore[import-untyped]</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">google.ai.generativelanguage_v1beta</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">GenerativeServiceAsyncClient</span> <span class="k">as</span> <span class="n">v1betaGenerativeServiceAsyncClient</span><span class="p">,</span>
 <span class="p">)</span>
@@ -279,12 +273,19 @@
     <span class="n">VideoMetadata</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">google.ai.generativelanguage_v1beta.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tool</span> <span class="k">as</span> <span class="n">GoogleTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">google.api_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FailedPrecondition</span><span class="p">,</span>
+    <span class="n">GoogleAPIError</span><span class="p">,</span>
+    <span class="n">InvalidArgument</span><span class="p">,</span>
+    <span class="n">ResourceExhausted</span><span class="p">,</span>
+    <span class="n">ServiceUnavailable</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.callbacks.manager</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AsyncCallbackManagerForLLMRun</span><span class="p">,</span>
     <span class="n">CallbackManagerForLLMRun</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LanguageModelInput</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span><span class="p">,</span> <span class="n">LangSmithParams</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LangSmithParams</span><span class="p">,</span> <span class="n">LanguageModelInput</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.language_models.chat_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseChatModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">AIMessage</span><span class="p">,</span>
     <span class="n">AIMessageChunk</span><span class="p">,</span>
@@ -363,12 +364,11 @@
 <div class="viewcode-block" id="ChatGoogleGenerativeAIError">
 <a class="viewcode-back" href="../../google_genai/chat_models/langchain_google_genai.chat_models.ChatGoogleGenerativeAIError.html#langchain_google_genai.chat_models.ChatGoogleGenerativeAIError">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatGoogleGenerativeAIError</span><span class="p">(</span><span class="n">GoogleGenerativeAIError</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Custom exception class for errors associated with the `Google GenAI` API.</span>
+<span class="w">    </span><span class="sd">"""Custom exception class for errors associated with the `Google GenAI` API.</span>
 
-<span class="sd">    This exception is raised when there are specific issues related to the</span>
-<span class="sd">    Google genai API usage in the ChatGoogleGenerativeAI class, such as unsupported</span>
-<span class="sd">    message types or roles.</span>
+<span class="sd">    This exception is raised when there are specific issues related to the Google genai</span>
+<span class="sd">    API usage in the ChatGoogleGenerativeAI class, such as unsupported message types or</span>
+<span class="sd">    roles.</span>
 <span class="sd">    """</span></div>
 
 
@@ -379,12 +379,11 @@
     <span class="n">wait_exponential_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">wait_exponential_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Creates and returns a preconfigured tenacity retry decorator.</span>
+<span class="w">    </span><span class="sd">"""Creates and returns a preconfigured tenacity retry decorator.</span>
 
-<span class="sd">    The retry decorator is configured to handle specific Google API exceptions</span>
-<span class="sd">    such as ResourceExhausted and ServiceUnavailable. It uses an exponential</span>
-<span class="sd">    backoff strategy for retries.</span>
+<span class="sd">    The retry decorator is configured to handle specific Google API exceptions such as</span>
+<span class="sd">    ResourceExhausted and ServiceUnavailable. It uses an exponential backoff strategy</span>
+<span class="sd">    for retries.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Callable[[Any], Any]: A retry decorator configured for handling specific</span>
@@ -399,21 +398,20 @@
             <span class="nb">max</span><span class="o">=</span><span class="n">wait_exponential_max</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">retry</span><span class="o">=</span><span class="p">(</span>
-            <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ResourceExhausted</span><span class="p">)</span>
-            <span class="o">|</span> <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ServiceUnavailable</span><span class="p">)</span>
-            <span class="o">|</span> <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">GoogleAPIError</span><span class="p">)</span>
+            <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">ResourceExhausted</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">ServiceUnavailable</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">retry_if_exception_type</span><span class="p">(</span><span class="n">GoogleAPIError</span><span class="p">)</span>
         <span class="p">),</span>
         <span class="n">before_sleep</span><span class="o">=</span><span class="n">before_sleep_log</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">),</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_chat_with_retry</span><span class="p">(</span><span class="n">generation_method</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Executes a chat generation method with retry logic using tenacity.</span>
+<span class="w">    </span><span class="sd">"""Executes a chat generation method with retry logic using tenacity.</span>
 
-<span class="sd">    This function is a wrapper that applies a retry mechanism to a provided</span>
-<span class="sd">    chat generation function. It is useful for handling intermittent issues</span>
-<span class="sd">    like network errors or temporary service unavailability.</span>
+<span class="sd">    This function is a wrapper that applies a retry mechanism to a provided chat</span>
+<span class="sd">    generation function. It is useful for handling intermittent issues like network</span>
+<span class="sd">    errors or temporary service unavailability.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        generation_method (Callable): The chat generation method to be executed.</span>
@@ -433,7 +431,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_chat_with_retry</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">generation_method</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">FailedPrecondition</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">FailedPrecondition</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"location is not supported"</span> <span class="ow">in</span> <span class="n">exc</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>
                 <span class="n">error_msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"Your location is not supported by google-generativeai "</span>
@@ -442,19 +440,18 @@
                 <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
 
-        <span class="k">except</span> <span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">InvalidArgument</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Invalid argument provided to Gemini: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-        <span class="k">except</span> <span class="n">google</span><span class="o">.</span><span class="n">api_core</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ResourceExhausted</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">except</span> <span class="n">InvalidArgument</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Invalid argument provided to Gemini: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">except</span> <span class="n">ResourceExhausted</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="c1"># Handle quota-exceeded error with recommended retry delay</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">retry_after</span> <span class="o">&lt;</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                 <span class="s2">"wait_exponential_max"</span><span class="p">,</span> <span class="mf">60.0</span>
             <span class="p">):</span>
-                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">retry_after</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">e</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">e</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">))</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span>
 
     <span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_allowed_params_prediction_service</span><span class="p">}</span>
@@ -467,12 +464,11 @@
 
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_achat_with_retry</span><span class="p">(</span><span class="n">generation_method</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Executes a chat generation method with retry logic using tenacity.</span>
+<span class="w">    </span><span class="sd">"""Executes a chat generation method with retry logic using tenacity.</span>
 
-<span class="sd">    This function is a wrapper that applies a retry mechanism to a provided</span>
-<span class="sd">    chat generation function. It is useful for handling intermittent issues</span>
-<span class="sd">    like network errors or temporary service unavailability.</span>
+<span class="sd">    This function is a wrapper that applies a retry mechanism to a provided chat</span>
+<span class="sd">    generation function. It is useful for handling intermittent issues like network</span>
+<span class="sd">    errors or temporary service unavailability.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        generation_method (Callable): The chat generation method to be executed.</span>
@@ -481,8 +477,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Any: The result from the chat generation method.</span>
 <span class="sd">    """</span>
-    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">_create_retry_decorator</span><span class="p">()</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">google.api_core.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidArgument</span>  <span class="c1"># type: ignore</span>
+    <span class="n">retry_decorator</span> <span class="o">=</span> <span class="n">_create_retry_decorator</span><span class="p">(</span>
+        <span class="n">max_retries</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_retries"</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="n">wait_exponential_multiplier</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_multiplier"</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span>
+        <span class="n">wait_exponential_min</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_min"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">wait_exponential_max</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wait_exponential_max"</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">),</span>
+    <span class="p">)</span>
 
     <span class="nd">@retry_decorator</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_achat_with_retry</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -490,11 +490,17 @@
             <span class="k">return</span> <span class="k">await</span> <span class="n">generation_method</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">InvalidArgument</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="c1"># Do not retry for these errors.</span>
-            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Invalid argument provided to Gemini: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">e</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Invalid argument provided to Gemini: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+        <span class="k">except</span> <span class="n">ResourceExhausted</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Handle quota-exceeded error with recommended retry delay</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">"wait_exponential_max"</span><span class="p">,</span> <span class="mf">60.0</span>
+            <span class="p">):</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="s2">"retry_after"</span><span class="p">))</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span>
 
     <span class="n">params</span> <span class="o">=</span> <span class="p">(</span>
         <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_allowed_params_prediction_service</span><span class="p">}</span>
@@ -547,12 +553,13 @@
                     <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"base64"</span><span class="p">:</span>
                         <span class="n">bytes_</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="s2">"data"</span><span class="p">])</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"source_type must be url or base64."</span><span class="p">)</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"source_type must be url or base64."</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="n">inline_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="n">bytes_</span><span class="p">}</span>
                     <span class="k">if</span> <span class="s2">"mime_type"</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
                         <span class="n">inline_data</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">source</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">part</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"url"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">part</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">))</span>
+                        <span class="n">source</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="n">part</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"url"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">part</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">))</span>
                         <span class="n">mime_type</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">mimetypes</span><span class="o">.</span><span class="n">guess_type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="n">mime_type</span><span class="p">:</span>
                             <span class="n">kind</span> <span class="o">=</span> <span class="n">filetype</span><span class="o">.</span><span class="n">guess</span><span class="p">(</span><span class="n">bytes_</span><span class="p">)</span>
@@ -565,16 +572,16 @@
                     <span class="n">img_url</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">]</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img_url</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                         <span class="k">if</span> <span class="s2">"url"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">img_url</span><span class="p">:</span>
-                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                                <span class="sa">f</span><span class="s2">"Unrecognized message image format: </span><span class="si">{</span><span class="n">img_url</span><span class="si">}</span><span class="s2">"</span>
-                            <span class="p">)</span>
+                            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unrecognized message image format: </span><span class="si">{</span><span class="n">img_url</span><span class="si">}</span><span class="s2">"</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                         <span class="n">img_url</span> <span class="o">=</span> <span class="n">img_url</span><span class="p">[</span><span class="s2">"url"</span><span class="p">]</span>
                     <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_loader</span><span class="o">.</span><span class="n">load_part</span><span class="p">(</span><span class="n">img_url</span><span class="p">))</span>
                 <span class="c1"># Handle media type like LangChain.js</span>
                 <span class="c1"># https://github.com/langchain-ai/langchainjs/blob/e536593e2585f1dd7b0afc187de4d07cb40689ba/libs/langchain-google-common/src/utils/gemini.ts#L93-L106</span>
                 <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"media"</span><span class="p">:</span>
                     <span class="k">if</span> <span class="s2">"mime_type"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Missing mime_type in media part: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Missing mime_type in media part: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="n">mime_type</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span>
                     <span class="n">media_part</span> <span class="o">=</span> <span class="n">Part</span><span class="p">()</span>
 
@@ -587,19 +594,19 @@
                             <span class="n">file_uri</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"file_uri"</span><span class="p">],</span> <span class="n">mime_type</span><span class="o">=</span><span class="n">mime_type</span>
                         <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">"Media part must have either data or file_uri: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
-                        <span class="p">)</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Media part must have either data or file_uri: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="k">if</span> <span class="s2">"video_metadata"</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
                         <span class="n">metadata</span> <span class="o">=</span> <span class="n">VideoMetadata</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="s2">"video_metadata"</span><span class="p">])</span>
                         <span class="n">media_part</span><span class="o">.</span><span class="n">video_metadata</span> <span class="o">=</span> <span class="n">metadata</span>
                     <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">media_part</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"executable_code"</span><span class="p">:</span>
                     <span class="k">if</span> <span class="s2">"executable_code"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span> <span class="ow">or</span> <span class="s2">"language"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                             <span class="s2">"Executable code part must have 'code' and 'language' "</span>
                             <span class="sa">f</span><span class="s2">"keys, got </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
                         <span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="n">executable_code_part</span> <span class="o">=</span> <span class="n">Part</span><span class="p">(</span>
                         <span class="n">executable_code</span><span class="o">=</span><span class="n">ExecutableCode</span><span class="p">(</span>
                             <span class="n">language</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"language"</span><span class="p">],</span> <span class="n">code</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"executable_code"</span><span class="p">]</span>
@@ -608,10 +615,11 @@
                     <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">executable_code_part</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"code_execution_result"</span><span class="p">:</span>
                     <span class="k">if</span> <span class="s2">"code_execution_result"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                             <span class="s2">"Code execution result part must have "</span>
                             <span class="sa">f</span><span class="s2">"'code_execution_result', got </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
                         <span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                     <span class="k">if</span> <span class="s2">"outcome"</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
                         <span class="n">outcome</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"outcome"</span><span class="p">]</span>
                     <span class="k">else</span><span class="p">:</span>
@@ -626,10 +634,11 @@
                 <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"thinking"</span><span class="p">:</span>
                     <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"thinking"</span><span class="p">],</span> <span class="n">thought</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="sa">f</span><span class="s2">"Unrecognized message part type: </span><span class="si">{</span><span class="n">part</span><span class="p">[</span><span class="s1">'type'</span><span class="p">]</span><span class="si">}</span><span class="s2">. Only text, "</span>
                         <span class="sa">f</span><span class="s2">"image_url, and media types are supported."</span>
                     <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Yolo</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -639,9 +648,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># TODO: Maybe some of Google's native stuff</span>
             <span class="c1"># would hit this branch.</span>
-            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span>
-                <span class="s2">"Gemini only supports text and inline_data parts."</span>
-            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Gemini only supports text and inline_data parts."</span>
+            <span class="k">raise</span> <span class="n">ChatGoogleGenerativeAIError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">parts</span>
 
 
@@ -688,14 +696,15 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_ai_message_tool_messages_parts</span><span class="p">(</span>
     <span class="n">tool_messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ToolMessage</span><span class="p">],</span> <span class="n">ai_message</span><span class="p">:</span> <span class="n">AIMessage</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Part</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Finds relevant tool messages for the AI message and converts them to a single</span>
-<span class="sd">    list of Parts.</span>
+<span class="w">    </span><span class="sd">"""Conversion.</span>
+
+<span class="sd">    Finds relevant tool messages for the AI message and converts them to a single list</span>
+<span class="sd">    of Parts.</span>
 <span class="sd">    """</span>
     <span class="c1"># We are interested only in the tool messages that are part of the AI message</span>
     <span class="n">tool_calls_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">tool_call</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]:</span> <span class="n">tool_call</span> <span class="k">for</span> <span class="n">tool_call</span> <span class="ow">in</span> <span class="n">ai_message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">}</span>
     <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tool_messages</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">_i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tool_messages</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">tool_calls_ids</span><span class="p">:</span>
             <span class="k">break</span>
         <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span> <span class="ow">in</span> <span class="n">tool_calls_ids</span><span class="p">:</span>
@@ -739,7 +748,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">pass</span>
             <span class="k">continue</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
             <span class="n">role</span> <span class="o">=</span> <span class="s2">"model"</span>
             <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_calls</span><span class="p">:</span>
                 <span class="n">ai_message_parts</span> <span class="o">=</span> <span class="p">[]</span>
@@ -757,7 +766,7 @@
                 <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">ai_message_parts</span><span class="p">))</span>
                 <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">tool_messages_parts</span><span class="p">))</span>
                 <span class="k">continue</span>
-            <span class="k">elif</span> <span class="n">raw_function_call</span> <span class="o">:=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">raw_function_call</span> <span class="o">:=</span> <span class="n">message</span><span class="o">.</span><span class="n">additional_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">):</span>
                 <span class="n">function_call</span> <span class="o">=</span> <span class="n">FunctionCall</span><span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="n">raw_function_call</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
@@ -771,15 +780,14 @@
             <span class="n">role</span> <span class="o">=</span> <span class="s2">"user"</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="n">_convert_to_parts</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">convert_system_message_to_human</span> <span class="ow">and</span> <span class="n">system_instruction</span><span class="p">:</span>
-                <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">system_instruction</span><span class="o">.</span><span class="n">parts</span><span class="p">]</span> <span class="o">+</span> <span class="n">parts</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">system_instruction</span><span class="o">.</span><span class="n">parts</span><span class="p">)</span> <span class="o">+</span> <span class="n">parts</span>
                 <span class="n">system_instruction</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">FunctionMessage</span><span class="p">):</span>
             <span class="n">role</span> <span class="o">=</span> <span class="s2">"user"</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="n">_convert_tool_message_to_parts</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">parts</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">system_instruction</span><span class="p">,</span> <span class="n">messages</span>
@@ -792,17 +800,17 @@
 <span class="w">    </span><span class="sd">"""Appends a new item to the content, handling different initial content types."""</span>
     <span class="k">if</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">new_item</span>
-    <span class="k">elif</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">new_item</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">current_content</span><span class="p">,</span> <span class="n">new_item</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">current_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_item</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">current_content</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># This case should ideally not be reached with proper type checking,</span>
-        <span class="c1"># but it catches any unexpected types that might slip through.</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unexpected content type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">current_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="c1"># This case should ideally not be reached with proper type checking,</span>
+    <span class="c1"># but it catches any unexpected types that might slip through.</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unexpected content type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">current_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
@@ -846,14 +854,13 @@
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">hasattr</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="s2">"code_execution_result"</span><span class="p">)</span>
             <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="p">):</span>
-            <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">:</span>
-                <span class="n">execution_result</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"code_execution_result"</span><span class="p">,</span>
-                    <span class="s2">"code_execution_result"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
-                    <span class="s2">"outcome"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">,</span>
-                <span class="p">}</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="n">_append_to_content</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">execution_result</span><span class="p">)</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">:</span>
+            <span class="n">execution_result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"code_execution_result"</span><span class="p">,</span>
+                <span class="s2">"code_execution_result"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                <span class="s2">"outcome"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">_append_to_content</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">execution_result</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">mime_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"audio/"</span><span class="p">):</span>
             <span class="n">buffer</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
@@ -933,9 +940,9 @@
     <span class="p">):</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
 <span class="w">            </span><span class="sd">"""</span>
-<span class="sd">        ⚠️ Warning: Output may vary each run.  </span>
-<span class="sd">        - 'executable_code': Always present.  </span>
-<span class="sd">        - 'execution_result' &amp; 'image_url': May be absent for some queries.  </span>
+<span class="sd">        Warning: Output may vary each run.</span>
+<span class="sd">        - 'executable_code': Always present.</span>
+<span class="sd">        - 'execution_result' &amp; 'image_url': May be absent for some queries.</span>
 
 <span class="sd">        Validate before using in production.</span>
 <span class="sd">"""</span>
@@ -943,13 +950,13 @@
 
     <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">AIMessageChunk</span><span class="p">(</span>
-            <span class="n">content</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]],</span> <span class="n">content</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
             <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">additional_kwargs</span><span class="p">,</span>
             <span class="n">tool_call_chunks</span><span class="o">=</span><span class="n">tool_call_chunks</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">AIMessage</span><span class="p">(</span>
-        <span class="n">content</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]],</span> <span class="n">content</span><span class="p">),</span>
+        <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
         <span class="n">additional_kwargs</span><span class="o">=</span><span class="n">additional_kwargs</span><span class="p">,</span>
         <span class="n">tool_calls</span><span class="o">=</span><span class="n">tool_calls</span><span class="p">,</span>
         <span class="n">invalid_tool_calls</span><span class="o">=</span><span class="n">invalid_tool_calls</span><span class="p">,</span>
@@ -1030,7 +1037,7 @@
         <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
             <span class="n">generations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">ChatGenerationChunk</span><span class="p">(</span>
-                    <span class="n">message</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">message</span><span class="p">),</span>
+                    <span class="n">message</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"AIMessageChunk"</span><span class="p">,</span> <span class="n">message</span><span class="p">),</span>
                     <span class="n">generation_info</span><span class="o">=</span><span class="n">generation_info</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
@@ -1076,13 +1083,14 @@
 <div class="viewcode-block" id="ChatGoogleGenerativeAI">
 <a class="viewcode-back" href="../../google_genai/chat_models/langchain_google_genai.chat_models.ChatGoogleGenerativeAI.html#langchain_google_genai.chat_models.ChatGoogleGenerativeAI">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatGoogleGenerativeAI</span><span class="p">(</span><span class="n">_BaseGoogleGenerativeAI</span><span class="p">,</span> <span class="n">BaseChatModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""`Google AI` chat models integration.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""`Google AI` chat models integration.</span>
 
 <span class="sd">    Instantiation:</span>
 <span class="sd">        To use, you must have either:</span>
 
 <span class="sd">            1. The ``GOOGLE_API_KEY`` environment variable set with your API key, or</span>
-<span class="sd">            2. Pass your API key using the ``google_api_key`` kwarg to the ChatGoogleGenerativeAI constructor.</span>
+<span class="sd">            2. Pass your API key using the ``google_api_key`` kwarg to the</span>
+<span class="sd">            ChatGoogleGenerativeAI constructor.</span>
 
 <span class="sd">        .. code-block:: python</span>
 
@@ -1104,9 +1112,38 @@
 
 <span class="sd">            AIMessage(</span>
 <span class="sd">                content="J'adore programmer. \\n",</span>
-<span class="sd">                response_metadata={'prompt_feedback': {'block_reason': 0, 'safety_ratings': []}, 'finish_reason': 'STOP', 'safety_ratings': [{'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability': 'NEGLIGIBLE', 'blocked': False}]},</span>
-<span class="sd">                id='run-56cecc34-2e54-4b52-a974-337e47008ad2-0',</span>
-<span class="sd">                usage_metadata={'input_tokens': 18, 'output_tokens': 5, 'total_tokens': 23}</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "prompt_feedback": {"block_reason": 0, "safety_ratings": []},</span>
+<span class="sd">                    "finish_reason": "STOP",</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-56cecc34-2e54-4b52-a974-337e47008ad2-0",</span>
+<span class="sd">                usage_metadata={</span>
+<span class="sd">                    "input_tokens": 18,</span>
+<span class="sd">                    "output_tokens": 5,</span>
+<span class="sd">                    "total_tokens": 23,</span>
+<span class="sd">                },</span>
 <span class="sd">            )</span>
 
 <span class="sd">    Stream:</span>
@@ -1117,8 +1154,50 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessageChunk(content='J', response_metadata={'finish_reason': 'STOP', 'safety_ratings': []}, id='run-e905f4f4-58cb-4a10-a960-448a2bb649e3', usage_metadata={'input_tokens': 18, 'output_tokens': 1, 'total_tokens': 19})</span>
-<span class="sd">            AIMessageChunk(content="'adore programmer. \\n", response_metadata={'finish_reason': 'STOP', 'safety_ratings': [{'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability': 'NEGLIGIBLE', 'blocked': False}]}, id='run-e905f4f4-58cb-4a10-a960-448a2bb649e3', usage_metadata={'input_tokens': 18, 'output_tokens': 5, 'total_tokens': 23})</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="J",</span>
+<span class="sd">                response_metadata={"finish_reason": "STOP", "safety_ratings": []},</span>
+<span class="sd">                id="run-e905f4f4-58cb-4a10-a960-448a2bb649e3",</span>
+<span class="sd">                usage_metadata={</span>
+<span class="sd">                    "input_tokens": 18,</span>
+<span class="sd">                    "output_tokens": 1,</span>
+<span class="sd">                    "total_tokens": 19,</span>
+<span class="sd">                },</span>
+<span class="sd">            )</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="'adore programmer. \\n",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "finish_reason": "STOP",</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-e905f4f4-58cb-4a10-a960-448a2bb649e3",</span>
+<span class="sd">                usage_metadata={</span>
+<span class="sd">                    "input_tokens": 18,</span>
+<span class="sd">                    "output_tokens": 5,</span>
+<span class="sd">                    "total_tokens": 23,</span>
+<span class="sd">                },</span>
+<span class="sd">            )</span>
 
 <span class="sd">        .. code-block:: python</span>
 
@@ -1132,9 +1211,37 @@
 
 <span class="sd">            AIMessageChunk(</span>
 <span class="sd">                content="J'adore programmer. \\n",</span>
-<span class="sd">                response_metadata={'finish_reason': 'STOPSTOP', 'safety_ratings': [{'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability': 'NEGLIGIBLE', 'blocked': False}]},</span>
-<span class="sd">                id='run-3ce13a42-cd30-4ad7-a684-f1f0b37cdeec',</span>
-<span class="sd">                usage_metadata={'input_tokens': 36, 'output_tokens': 6, 'total_tokens': 42}</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "finish_reason": "STOPSTOP",</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability": "NEGLIGIBLE",</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-3ce13a42-cd30-4ad7-a684-f1f0b37cdeec",</span>
+<span class="sd">                usage_metadata={</span>
+<span class="sd">                    "input_tokens": 36,</span>
+<span class="sd">                    "output_tokens": 6,</span>
+<span class="sd">                    "total_tokens": 42,</span>
+<span class="sd">                },</span>
 <span class="sd">            )</span>
 
 <span class="sd">    Async:</span>
@@ -1149,9 +1256,10 @@
 <span class="sd">            # await llm.abatch([messages])</span>
 
 <span class="sd">    Context Caching:</span>
-<span class="sd">        Context caching allows you to store and reuse content (e.g., PDFs, images) for faster processing.</span>
-<span class="sd">        The ``cached_content`` parameter accepts a cache name created via the Google Generative AI API.</span>
-<span class="sd">        Below are two examples: caching a single file directly and caching multiple files using ``Part``.</span>
+<span class="sd">        Context caching allows you to store and reuse content (e.g., PDFs, images) for</span>
+<span class="sd">        faster processing. The ``cached_content`` parameter accepts a cache name created</span>
+<span class="sd">        via the Google Generative AI API. Below are two examples: caching a single file</span>
+<span class="sd">        directly and caching multiple files using ``Part``.</span>
 
 <span class="sd">        Single File Example:</span>
 <span class="sd">        This caches a single file and queries it.</span>
@@ -1168,23 +1276,23 @@
 
 <span class="sd">            # Upload file</span>
 <span class="sd">            file = client.files.upload(file="./example_file")</span>
-<span class="sd">            while file.state.name == 'PROCESSING':</span>
+<span class="sd">            while file.state.name == "PROCESSING":</span>
 <span class="sd">                time.sleep(2)</span>
 <span class="sd">                file = client.files.get(name=file.name)</span>
 
 <span class="sd">            # Create cache</span>
-<span class="sd">            model = 'models/gemini-1.5-flash-latest'</span>
+<span class="sd">            model = "models/gemini-1.5-flash-latest"</span>
 <span class="sd">            cache = client.caches.create(</span>
 <span class="sd">                model=model,</span>
 <span class="sd">                config=types.CreateCachedContentConfig(</span>
-<span class="sd">                    display_name='Cached Content',</span>
+<span class="sd">                    display_name="Cached Content",</span>
 <span class="sd">                    system_instruction=(</span>
-<span class="sd">                        'You are an expert content analyzer, and your job is to answer '</span>
-<span class="sd">                        'the user\'s query based on the file you have access to.'</span>
+<span class="sd">                        "You are an expert content analyzer, and your job is to answer "</span>
+<span class="sd">                        "the user's query based on the file you have access to."</span>
 <span class="sd">                    ),</span>
 <span class="sd">                    contents=[file],</span>
 <span class="sd">                    ttl="300s",</span>
-<span class="sd">                )</span>
+<span class="sd">                ),</span>
 <span class="sd">            )</span>
 
 <span class="sd">            # Query with LangChain</span>
@@ -1210,12 +1318,12 @@
 
 <span class="sd">            # Upload files</span>
 <span class="sd">            file_1 = client.files.upload(file="./file1")</span>
-<span class="sd">            while file_1.state.name == 'PROCESSING':</span>
+<span class="sd">            while file_1.state.name == "PROCESSING":</span>
 <span class="sd">                time.sleep(2)</span>
 <span class="sd">                file_1 = client.files.get(name=file_1.name)</span>
 
 <span class="sd">            file_2 = client.files.upload(file="./file2")</span>
-<span class="sd">            while file_2.state.name == 'PROCESSING':</span>
+<span class="sd">            while file_2.state.name == "PROCESSING":</span>
 <span class="sd">                time.sleep(2)</span>
 <span class="sd">                file_2 = client.files.get(name=file_2.name)</span>
 
@@ -1233,14 +1341,14 @@
 <span class="sd">            cache = client.caches.create(</span>
 <span class="sd">                model=model,</span>
 <span class="sd">                config=CreateCachedContentConfig(</span>
-<span class="sd">                    display_name='Cached Contents',</span>
+<span class="sd">                    display_name="Cached Contents",</span>
 <span class="sd">                    system_instruction=(</span>
-<span class="sd">                        'You are an expert content analyzer, and your job is to answer '</span>
-<span class="sd">                        'the user\'s query based on the files you have access to.'</span>
+<span class="sd">                        "You are an expert content analyzer, and your job is to answer "</span>
+<span class="sd">                        "the user's query based on the files you have access to."</span>
 <span class="sd">                    ),</span>
 <span class="sd">                    contents=contents,</span>
 <span class="sd">                    ttl="300s",</span>
-<span class="sd">                )</span>
+<span class="sd">                ),</span>
 <span class="sd">            )</span>
 
 <span class="sd">            # Query with LangChain</span>
@@ -1248,7 +1356,9 @@
 <span class="sd">                model=model,</span>
 <span class="sd">                cached_content=cache.name,</span>
 <span class="sd">            )</span>
-<span class="sd">            message = HumanMessage(content="Provide a summary of the key information across both files.")</span>
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content="Provide a summary of the key information across both files."</span>
+<span class="sd">            )</span>
 <span class="sd">            llm.invoke([message])</span>
 
 <span class="sd">    Tool calling:</span>
@@ -1281,23 +1391,34 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            [{'name': 'GetWeather',</span>
-<span class="sd">              'args': {'location': 'Los Angeles, CA'},</span>
-<span class="sd">              'id': 'c186c99f-f137-4d52-947f-9e3deabba6f6'},</span>
-<span class="sd">             {'name': 'GetWeather',</span>
-<span class="sd">              'args': {'location': 'New York City, NY'},</span>
-<span class="sd">              'id': 'cebd4a5d-e800-4fa5-babd-4aa286af4f31'},</span>
-<span class="sd">             {'name': 'GetPopulation',</span>
-<span class="sd">              'args': {'location': 'Los Angeles, CA'},</span>
-<span class="sd">              'id': '4f92d897-f5e4-4d34-a3bc-93062c92591e'},</span>
-<span class="sd">             {'name': 'GetPopulation',</span>
-<span class="sd">              'args': {'location': 'New York City, NY'},</span>
-<span class="sd">              'id': '634582de-5186-4e4b-968b-f192f0a93678'}]</span>
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetWeather",</span>
+<span class="sd">                    "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                    "id": "c186c99f-f137-4d52-947f-9e3deabba6f6",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetWeather",</span>
+<span class="sd">                    "args": {"location": "New York City, NY"},</span>
+<span class="sd">                    "id": "cebd4a5d-e800-4fa5-babd-4aa286af4f31",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetPopulation",</span>
+<span class="sd">                    "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                    "id": "4f92d897-f5e4-4d34-a3bc-93062c92591e",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetPopulation",</span>
+<span class="sd">                    "args": {"location": "New York City, NY"},</span>
+<span class="sd">                    "id": "634582de-5186-4e4b-968b-f192f0a93678",</span>
+<span class="sd">                },</span>
+<span class="sd">            ]</span>
 
 <span class="sd">    Use Search with Gemini 2:</span>
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            from google.ai.generativelanguage_v1beta.types import Tool as GenAITool</span>
+
 <span class="sd">            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")</span>
 <span class="sd">            resp = llm.invoke(</span>
 <span class="sd">                "When is the next total solar eclipse in US?",</span>
@@ -1317,7 +1438,9 @@
 
 <span class="sd">                setup: str = Field(description="The setup of the joke")</span>
 <span class="sd">                punchline: str = Field(description="The punchline to the joke")</span>
-<span class="sd">                rating: Optional[int] = Field(description="How funny the joke is, from 1 to 10")</span>
+<span class="sd">                rating: Optional[int] = Field(</span>
+<span class="sd">                    description="How funny the joke is, from 1 to 10"</span>
+<span class="sd">                )</span>
 
 
 <span class="sd">            structured_llm = llm.with_structured_output(Joke)</span>
@@ -1326,9 +1449,9 @@
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            Joke(</span>
-<span class="sd">                setup='Why are cats so good at video games?',</span>
-<span class="sd">                punchline='They have nine lives on the internet',</span>
-<span class="sd">                rating=None</span>
+<span class="sd">                setup="Why are cats so good at video games?",</span>
+<span class="sd">                punchline="They have nine lives on the internet",</span>
+<span class="sd">                rating=None,</span>
 <span class="sd">            )</span>
 
 <span class="sd">    Image input:</span>
@@ -1354,7 +1477,10 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The weather in this image appears to be sunny and pleasant. The sky is a bright blue with scattered white clouds, suggesting fair weather. The lush green grass and trees indicate a warm and possibly slightly breezy day. There are no signs of rain or storms.'</span>
+<span class="sd">            "The weather in this image appears to be sunny and pleasant. The sky is a</span>
+<span class="sd">            bright blue with scattered white clouds, suggesting fair weather. The lush</span>
+<span class="sd">            green grass and trees indicate a warm and possibly slightly breezy day.</span>
+<span class="sd">            There are no signs of rain or storms."</span>
 
 <span class="sd">    PDF input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1362,8 +1488,8 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            pdf_bytes = open("/path/to/your/test.pdf", 'rb').read()</span>
-<span class="sd">            pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')</span>
+<span class="sd">            pdf_bytes = open("/path/to/your/test.pdf", "rb").read()</span>
+<span class="sd">            pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")</span>
 
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
@@ -1371,9 +1497,9 @@
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
-<span class="sd">                        "mime_type":"application/pdf",</span>
-<span class="sd">                        "data": pdf_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "mime_type": "application/pdf",</span>
+<span class="sd">                        "data": pdf_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1381,7 +1507,11 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'This research paper describes a system developed for SemEval-2025 Task 9, which aims to automate the detection of food hazards from recall reports, addressing the class imbalance problem by leveraging LLM-based data augmentation techniques and transformer-based models to improve performance.'</span>
+<span class="sd">            "This research paper describes a system developed for SemEval-2025 Task 9,</span>
+<span class="sd">            which aims to automate the detection of food hazards from recall reports,</span>
+<span class="sd">            addressing the class imbalance problem by leveraging LLM-based data</span>
+<span class="sd">            augmentation techniques and transformer-based models to improve</span>
+<span class="sd">            performance."</span>
 
 <span class="sd">    Video input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1389,18 +1519,21 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            video_bytes = open("/path/to/your/video.mp4", 'rb').read()</span>
-<span class="sd">            video_base64 = base64.b64encode(video_bytes).decode('utf-8')</span>
+<span class="sd">            video_bytes = open("/path/to/your/video.mp4", "rb").read()</span>
+<span class="sd">            video_base64 = base64.b64encode(video_bytes).decode("utf-8")</span>
 
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
-<span class="sd">                    {"type": "text", "text": "describe what's in this video in a sentence"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "text",</span>
+<span class="sd">                        "text": "describe what's in this video in a sentence",</span>
+<span class="sd">                    },</span>
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
 <span class="sd">                        "mime_type": "video/mp4",</span>
-<span class="sd">                        "data": video_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "data": video_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1408,7 +1541,9 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed adventure involving a corn-on-the-cob chase, maze antics, and a disastrous attempt to prepare a turkey dinner.'</span>
+<span class="sd">            "Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed</span>
+<span class="sd">            adventure involving a corn-on-the-cob chase, maze antics, and a disastrous</span>
+<span class="sd">            attempt to prepare a turkey dinner."</span>
 
 <span class="sd">        You can also pass YouTube URLs directly:</span>
 
@@ -1423,7 +1558,7 @@
 <span class="sd">                        "type": "media",</span>
 <span class="sd">                        "file_uri": "https://www.youtube.com/watch?v=9hE5-98ZeCg",</span>
 <span class="sd">                        "mime_type": "video/mp4",</span>
-<span class="sd">                    }</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1431,7 +1566,10 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The video is a demo of multimodal live streaming in Gemini 2.0. The narrator is sharing his screen in AI Studio and asks if the AI can see it. The AI then reads text that is highlighted on the screen, defines the word “multimodal,” and summarizes everything that was seen and heard.'</span>
+<span class="sd">            "The video is a demo of multimodal live streaming in Gemini 2.0. The</span>
+<span class="sd">            narrator is sharing his screen in AI Studio and asks if the AI can see it.</span>
+<span class="sd">            The AI then reads text that is highlighted on the screen, defines the word</span>
+<span class="sd">            “multimodal,” and summarizes everything that was seen and heard."</span>
 
 <span class="sd">    Audio input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1439,8 +1577,8 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            audio_bytes = open("/path/to/your/audio.mp3", 'rb').read()</span>
-<span class="sd">            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')</span>
+<span class="sd">            audio_bytes = open("/path/to/your/audio.mp3", "rb").read()</span>
+<span class="sd">            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")</span>
 
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
@@ -1448,9 +1586,9 @@
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
-<span class="sd">                        "mime_type":"audio/mp3",</span>
-<span class="sd">                        "data": audio_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "mime_type": "audio/mp3",</span>
+<span class="sd">                        "data": audio_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1458,7 +1596,11 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            "In this episode of the Made by Google podcast, Stephen Johnson and Simon Tokumine discuss NotebookLM, a tool designed to help users understand complex material in various modalities, with a focus on its unexpected uses, the development of audio overviews, and the implementation of new features like mind maps and source discovery."</span>
+<span class="sd">            "In this episode of the Made by Google podcast, Stephen Johnson and Simon</span>
+<span class="sd">            Tokumine discuss NotebookLM, a tool designed to help users understand</span>
+<span class="sd">            complex material in various modalities, with a focus on its unexpected uses,</span>
+<span class="sd">            the development of audio overviews, and the implementation of new features</span>
+<span class="sd">            like mind maps and source discovery."</span>
 
 <span class="sd">    File upload (URI-based):</span>
 <span class="sd">        You can also upload files to Google's servers and reference them by URI.</span>
@@ -1492,7 +1634,10 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            "This research paper assesses and mitigates multi-turn jailbreak vulnerabilities in large language models using the Crescendo attack study, evaluating attack success rates and mitigation strategies like prompt hardening and LLM-as-guardrail."</span>
+<span class="sd">            "This research paper assesses and mitigates multi-turn jailbreak</span>
+<span class="sd">            vulnerabilities in large language models using the Crescendo attack study,</span>
+<span class="sd">            evaluating attack success rates and mitigation strategies like prompt</span>
+<span class="sd">            hardening and LLM-as-guardrail."</span>
 
 <span class="sd">    Token usage:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1502,7 +1647,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            {'input_tokens': 18, 'output_tokens': 5, 'total_tokens': 23}</span>
+<span class="sd">            {"input_tokens": 18, "output_tokens": 5, "total_tokens": 23}</span>
 
 
 <span class="sd">    Response metadata</span>
@@ -1514,9 +1659,30 @@
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            {</span>
-<span class="sd">                'prompt_feedback': {'block_reason': 0, 'safety_ratings': []},</span>
-<span class="sd">                'finish_reason': 'STOP',</span>
-<span class="sd">                'safety_ratings': [{'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability': 'NEGLIGIBLE', 'blocked': False}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability': 'NEGLIGIBLE', 'blocked': False}]</span>
+<span class="sd">                "prompt_feedback": {"block_reason": 0, "safety_ratings": []},</span>
+<span class="sd">                "finish_reason": "STOP",</span>
+<span class="sd">                "safety_ratings": [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                        "probability": "NEGLIGIBLE",</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                        "probability": "NEGLIGIBLE",</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                        "probability": "NEGLIGIBLE",</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                        "probability": "NEGLIGIBLE",</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
 <span class="sd">            }</span>
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
@@ -1530,32 +1696,33 @@
     <span class="n">convert_system_message_to_human</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="w">    </span><span class="sd">"""Whether to merge any leading SystemMessage into the following HumanMessage.</span>
 
-<span class="sd">    Gemini does not support system messages; any unsupported messages will</span>
-<span class="sd">    raise an error."""</span>
+<span class="sd">    Gemini does not support system messages; any unsupported messages will raise an</span>
+<span class="sd">    error.</span>
+<span class="sd">    """</span>
 
     <span class="n">response_mime_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Optional. Output response mimetype of the generated candidate text. Only</span>
 <span class="sd">    supported in Gemini 1.5 and later models.</span>
-<span class="sd">    </span>
+
 <span class="sd">    Supported mimetype:</span>
 <span class="sd">        * ``'text/plain'``: (default) Text output.</span>
 <span class="sd">        * ``'application/json'``: JSON response in the candidates.</span>
 <span class="sd">        * ``'text/x.enum'``: Enum in plain text.</span>
-<span class="sd">    </span>
+
 <span class="sd">    The model also needs to be prompted to output the appropriate response</span>
 <span class="sd">    type, otherwise the behavior is undefined. This is a preview feature.</span>
 <span class="sd">    """</span>
 
     <span class="n">response_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">    </span><span class="sd">""" Optional. Enforce an schema to the output.</span>
-<span class="sd">        The format of the dictionary should follow Open API schema.</span>
+<span class="w">    </span><span class="sd">""" Optional. Enforce an schema to the output. The format of the dictionary should</span>
+<span class="sd">    follow Open API schema.</span>
 <span class="sd">    """</span>
 
     <span class="n">cached_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">    </span><span class="sd">"""The name of the cached content used as context to serve the prediction. </span>
+<span class="w">    </span><span class="sd">"""The name of the cached content used as context to serve the prediction.</span>
 
-<span class="sd">    Note: only used in explicit caching, where users can have control over caching </span>
-<span class="sd">    (e.g. what content to cache) and enjoy guaranteed cost savings. Format: </span>
+<span class="sd">    Note: only used in explicit caching, where users can have control over caching</span>
+<span class="sd">    (e.g. what content to cache) and enjoy guaranteed cost savings. Format:</span>
 <span class="sd">    ``cachedContents/{cachedContent}``.</span>
 <span class="sd">    """</span>
 
@@ -1611,7 +1778,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"before"</span><span class="p">)</span>
@@ -1619,20 +1786,22 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build extra kwargs from additional params that were passed in."""</span>
         <span class="n">all_required_field_names</span> <span class="o">=</span> <span class="n">get_pydantic_field_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">values</span>
+        <span class="k">return</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validates params and passes them to google-generativeai package."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&lt;=</span> <span class="mf">2.0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"temperature must be in the range [0.0, 2.0]"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"temperature must be in the range [0.0, 2.0]"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_p</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"top_p must be in the range [0.0, 1.0]"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"top_p must be in the range [0.0, 1.0]"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"top_k must be positive"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"top_k must be positive"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"models/"</span><span class="p">,)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"models/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="s2">"</span>
@@ -1710,30 +1879,28 @@
         <span class="n">stop</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseMessage</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Enable code execution. Supported on: gemini-1.5-pro, gemini-1.5-flash,</span>
+<span class="w">        </span><span class="sd">"""Enable code execution. Supported on: gemini-1.5-pro, gemini-1.5-flash,</span>
 <span class="sd">        gemini-2.0-flash, and gemini-2.0-pro. When enabled, the model can execute</span>
 <span class="sd">        code to solve problems.</span>
 <span class="sd">        """</span>
-
 <span class="w">        </span><span class="sd">"""Override invoke to add code_execution parameter."""</span>
 
         <span class="k">if</span> <span class="n">code_execution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_supports_code_execution</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Code execution is only supported on Gemini 1.5 Pro, </span><span class="se">\</span>
 <span class="s2">                    Gemini 1.5 Flash, "</span>
                     <span class="sa">f</span><span class="s2">"Gemini 2.0 Flash, and Gemini 2.0 Pro models. </span><span class="se">\</span>
 <span class="s2">                    Current model: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">if</span> <span class="s2">"tools"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="n">code_execution_tool</span> <span class="o">=</span> <span class="n">GoogleTool</span><span class="p">(</span><span class="n">code_execution</span><span class="o">=</span><span class="n">CodeExecution</span><span class="p">())</span>
                 <span class="n">kwargs</span><span class="p">[</span><span class="s2">"tools"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">code_execution_tool</span><span class="p">]</span>
 
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"Tools are already defined.code_execution tool can't be defined"</span>
-                <span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Tools are already defined.code_execution tool can't be defined"</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">stop</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
@@ -1846,6 +2013,10 @@
             <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"timeout"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"timeout"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+        <span class="k">if</span> <span class="s2">"max_retries"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"max_retries"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="n">_chat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -1872,13 +2043,11 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">:</span>
             <span class="n">updated_kwargs</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-                <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">"tools"</span><span class="p">:</span> <span class="n">tools</span><span class="p">,</span>
-                    <span class="s2">"functions"</span><span class="p">:</span> <span class="n">functions</span><span class="p">,</span>
-                    <span class="s2">"safety_settings"</span><span class="p">:</span> <span class="n">safety_settings</span><span class="p">,</span>
-                    <span class="s2">"tool_config"</span><span class="p">:</span> <span class="n">tool_config</span><span class="p">,</span>
-                    <span class="s2">"generation_config"</span><span class="p">:</span> <span class="n">generation_config</span><span class="p">,</span>
-                <span class="p">},</span>
+                <span class="s2">"tools"</span><span class="p">:</span> <span class="n">tools</span><span class="p">,</span>
+                <span class="s2">"functions"</span><span class="p">:</span> <span class="n">functions</span><span class="p">,</span>
+                <span class="s2">"safety_settings"</span><span class="p">:</span> <span class="n">safety_settings</span><span class="p">,</span>
+                <span class="s2">"tool_config"</span><span class="p">:</span> <span class="n">tool_config</span><span class="p">,</span>
+                <span class="s2">"generation_config"</span><span class="p">:</span> <span class="n">generation_config</span><span class="p">,</span>
             <span class="p">}</span>
             <span class="k">return</span> <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_agenerate</span><span class="p">(</span>
                 <span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">,</span> <span class="o">**</span><span class="n">updated_kwargs</span>
@@ -1896,6 +2065,10 @@
             <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"timeout"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"timeout"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+        <span class="k">if</span> <span class="s2">"max_retries"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"max_retries"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_achat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -1931,6 +2104,10 @@
             <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"timeout"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"timeout"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+        <span class="k">if</span> <span class="s2">"max_retries"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"max_retries"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span>
         <span class="n">response</span><span class="p">:</span> <span class="n">GenerateContentResponse</span> <span class="o">=</span> <span class="n">_chat_with_retry</span><span class="p">(</span>
             <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
             <span class="n">generation_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">stream_generate_content</span><span class="p">,</span>
@@ -1943,8 +2120,8 @@
             <span class="n">_chat_result</span> <span class="o">=</span> <span class="n">_response_to_result</span><span class="p">(</span>
                 <span class="n">chunk</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">prev_usage</span><span class="o">=</span><span class="n">prev_usage_metadata</span>
             <span class="p">)</span>
-            <span class="n">gen</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">_chat_result</span><span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">gen</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+            <span class="n">gen</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"ChatGenerationChunk"</span><span class="p">,</span> <span class="n">_chat_result</span><span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"AIMessageChunk"</span><span class="p">,</span> <span class="n">gen</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
 
             <span class="n">prev_usage_metadata</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span>
@@ -1974,13 +2151,11 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="p">:</span>
             <span class="n">updated_kwargs</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-                <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">"tools"</span><span class="p">:</span> <span class="n">tools</span><span class="p">,</span>
-                    <span class="s2">"functions"</span><span class="p">:</span> <span class="n">functions</span><span class="p">,</span>
-                    <span class="s2">"safety_settings"</span><span class="p">:</span> <span class="n">safety_settings</span><span class="p">,</span>
-                    <span class="s2">"tool_config"</span><span class="p">:</span> <span class="n">tool_config</span><span class="p">,</span>
-                    <span class="s2">"generation_config"</span><span class="p">:</span> <span class="n">generation_config</span><span class="p">,</span>
-                <span class="p">},</span>
+                <span class="s2">"tools"</span><span class="p">:</span> <span class="n">tools</span><span class="p">,</span>
+                <span class="s2">"functions"</span><span class="p">:</span> <span class="n">functions</span><span class="p">,</span>
+                <span class="s2">"safety_settings"</span><span class="p">:</span> <span class="n">safety_settings</span><span class="p">,</span>
+                <span class="s2">"tool_config"</span><span class="p">:</span> <span class="n">tool_config</span><span class="p">,</span>
+                <span class="s2">"generation_config"</span><span class="p">:</span> <span class="n">generation_config</span><span class="p">,</span>
             <span class="p">}</span>
             <span class="k">async</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_astream</span><span class="p">(</span>
                 <span class="n">messages</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">run_manager</span><span class="p">,</span> <span class="o">**</span><span class="n">updated_kwargs</span>
@@ -1999,6 +2174,10 @@
                 <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_choice</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">"timeout"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"timeout"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span>
+            <span class="k">if</span> <span class="s2">"max_retries"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">"max_retries"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span>
             <span class="n">prev_usage_metadata</span><span class="p">:</span> <span class="n">UsageMetadata</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># cumulative usage</span>
             <span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">_achat_with_retry</span><span class="p">(</span>
                 <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">,</span>
@@ -2009,8 +2188,8 @@
                 <span class="n">_chat_result</span> <span class="o">=</span> <span class="n">_response_to_result</span><span class="p">(</span>
                     <span class="n">chunk</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">prev_usage</span><span class="o">=</span><span class="n">prev_usage_metadata</span>
                 <span class="p">)</span>
-                <span class="n">gen</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">ChatGenerationChunk</span><span class="p">,</span> <span class="n">_chat_result</span><span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">AIMessageChunk</span><span class="p">,</span> <span class="n">gen</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+                <span class="n">gen</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"ChatGenerationChunk"</span><span class="p">,</span> <span class="n">_chat_result</span><span class="o">.</span><span class="n">generations</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">message</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"AIMessageChunk"</span><span class="p">,</span> <span class="n">gen</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
 
                 <span class="n">prev_usage_metadata</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">message</span><span class="o">.</span><span class="n">usage_metadata</span>
@@ -2037,10 +2216,11 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenerateContentRequest</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">and</span> <span class="n">tool_config</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"Must specify at most one of tool_choice and tool_config, received "</span>
                 <span class="sa">f</span><span class="s2">"both:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_config</span><span class="si">=}</span><span class="s2">"</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">formatted_tools</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">code_execution_tool</span> <span class="o">=</span> <span class="n">GoogleTool</span><span class="p">(</span><span class="n">code_execution</span><span class="o">=</span><span class="n">CodeExecution</span><span class="p">())</span>
@@ -2078,16 +2258,15 @@
             <span class="n">all_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">formatted_tools</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">"function_declarations"</span><span class="p">):</span>
-                    <span class="n">t_with_declarations</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                    <span class="n">t_with_declarations</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"Any"</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
                     <span class="n">all_names</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
                         <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">t_with_declarations</span><span class="o">.</span><span class="n">function_declarations</span>
                     <span class="p">)</span>
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">GoogleTool</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">"code_execution"</span><span class="p">):</span>
                     <span class="k">continue</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">"Tool </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2"> doesn't have function_declarations attribute"</span>
-                    <span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Tool </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2"> doesn't have function_declarations attribute"</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
             <span class="n">tool_config</span> <span class="o">=</span> <span class="n">_tool_choice_to_tool_config</span><span class="p">(</span><span class="n">tool_choice</span><span class="p">,</span> <span class="n">all_names</span><span class="p">)</span>
 
@@ -2151,7 +2330,8 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Runnable</span><span class="p">[</span><span class="n">LanguageModelInput</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">]]:</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">parser</span><span class="p">:</span> <span class="n">OutputParserLike</span>
 
@@ -2168,7 +2348,8 @@
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">schema_json</span> <span class="o">=</span> <span class="n">schema</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="n">parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
 
             <span class="c1"># Resolve refs in schema because they are not supported</span>
@@ -2211,8 +2392,7 @@
                 <span class="n">exception_key</span><span class="o">=</span><span class="s2">"parsing_error"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="p">{</span><span class="s2">"raw"</span><span class="p">:</span> <span class="n">llm</span><span class="p">}</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser</span></div>
+        <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser</span></div>
 
 
 <div class="viewcode-block" id="ChatGoogleGenerativeAI.bind_tools">
@@ -2233,20 +2413,21 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            tools: A list of tool definitions to bind to this chat model.</span>
-<span class="sd">                Can be a pydantic model, callable, or BaseTool. Pydantic</span>
-<span class="sd">                models, callables, and BaseTools will be automatically converted to</span>
-<span class="sd">                their schema dictionary representation. Tools with Union types in</span>
-<span class="sd">                their arguments are now supported and converted to `anyOf` schemas.</span>
+<span class="sd">                Can be a pydantic model, callable, or BaseTool. Pydantic models,</span>
+<span class="sd">                callables, and BaseTools will be automatically converted to their schema</span>
+<span class="sd">                dictionary representation. Tools with Union types in their arguments are</span>
+<span class="sd">                now supported and converted to `anyOf` schemas.</span>
 <span class="sd">            **kwargs: Any additional parameters to pass to the</span>
 <span class="sd">                :class:`~langchain.runnable.Runnable` constructor.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">and</span> <span class="n">tool_config</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"Must specify at most one of tool_choice and tool_config, received "</span>
                 <span class="sa">f</span><span class="s2">"both:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_config</span><span class="si">=}</span><span class="s2">"</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">formatted_tools</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">formatted_tools</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">tool_to_dict</span><span class="p">(</span><span class="n">convert_to_genai_function_declarations</span><span class="p">(</span><span class="n">tools</span><span class="p">))</span>
@@ -2275,12 +2456,11 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">genai_tool</span> <span class="o">=</span> <span class="n">tool_to_dict</span><span class="p">(</span><span class="n">convert_to_genai_function_declarations</span><span class="p">([</span><span class="n">tool</span><span class="p">]))</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">genai_tool</span><span class="p">[</span><span class="s2">"function_declarations"</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># type: ignore[index]</span>
-    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># other TypedDict</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">genai_tool</span><span class="p">[</span><span class="s2">"function_declarations"</span><span class="p">])</span>  <span class="c1"># type: ignore[index]</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># other TypedDict</span>
         <span class="k">if</span> <span class="n">is_typeddict</span><span class="p">(</span><span class="n">tool</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">Dict</span><span class="p">,</span> <span class="n">tool</span><span class="p">))[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">return</span> <span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="s2">"Dict"</span><span class="p">,</span> <span class="n">tool</span><span class="p">))[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
+        <span class="k">raise</span>
 </pre></div>
 </article>
 </div>

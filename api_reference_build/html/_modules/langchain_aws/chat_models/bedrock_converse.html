@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 16, 2025" name="docbuild:last-update"/>
+<meta content="Sep 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -279,7 +279,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolsOutputParser</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_aws_client</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_aws_client</span><span class="p">,</span> <span class="n">trim_message_whitespace</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">_BM</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_BM"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">BaseModel</span><span class="p">)</span>
@@ -918,6 +918,16 @@
                 <span class="n">service_name</span><span class="o">=</span><span class="s2">"bedrock"</span><span class="p">,</span>
             <span class="p">)</span>
 
+        <span class="c1"># For AIPs, pull base model ID via GetInferenceProfile API call</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">'application-inference-profile'</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bedrock_client</span><span class="o">.</span><span class="n">get_inference_profile</span><span class="p">(</span>
+                <span class="n">inferenceProfileIdentifier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"models"</span> <span class="ow">in</span> <span class="n">response</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"models"</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">model_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">"models"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"modelArn"</span><span class="p">]</span>
+                <span class="c1"># Format: arn:aws:bedrock:region::foundation-model/provider.model-name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="o">=</span> <span class="n">model_arn</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
         <span class="c1"># Handle streaming configuration for application inference profiles</span>
         <span class="k">if</span> <span class="s2">"application-inference-profile"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_configure_streaming_for_resolved_model</span><span class="p">()</span>
@@ -968,19 +978,6 @@
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_base_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="c1"># identify the base model id used in the application inference profile (AIP)</span>
-        <span class="c1"># Format: arn:aws:bedrock:us-east-1:&lt;accountId&gt;:application-inference-profile/&lt;id&gt;</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="ow">and</span> <span class="s2">"application-inference-profile"</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
-        <span class="p">):</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bedrock_client</span><span class="o">.</span><span class="n">get_inference_profile</span><span class="p">(</span>
-                <span class="n">inferenceProfileIdentifier</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">"models"</span> <span class="ow">in</span> <span class="n">response</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"models"</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">model_arn</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">"models"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"modelArn"</span><span class="p">]</span>
-                <span class="c1"># Format: arn:aws:bedrock:region::foundation-model/provider.model-name</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="o">=</span> <span class="n">model_arn</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_configure_streaming_for_resolved_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1360,9 +1357,9 @@
 <span class="w">    </span><span class="sd">"""Handle Bedrock converse and Anthropic style content blocks"""</span>
     <span class="n">bedrock_messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">bedrock_system</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="c1"># Merge system, human, ai message runs because Anthropic expects</span>
-    <span class="c1"># (optional) system messages first, then alternating human/ai messages.</span>
-    <span class="n">messages</span> <span class="o">=</span> <span class="n">merge_message_runs</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+    <span class="n">trimmed_messages</span> <span class="o">=</span> <span class="n">trim_message_whitespace</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+    <span class="n">messages</span> <span class="o">=</span> <span class="n">merge_message_runs</span><span class="p">(</span><span class="n">trimmed_messages</span><span class="p">)</span>
+    
     <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
         <span class="n">content</span> <span class="o">=</span> <span class="n">_lc_content_to_bedrock</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 16, 2025" name="docbuild:last-update"/>
+<meta content="Sep 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -234,13 +234,10 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Any</span><span class="p">,</span>
-    <span class="n">AsyncIterator</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">Iterator</span><span class="p">,</span>
     <span class="n">List</span><span class="p">,</span>
     <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Sequence</span><span class="p">,</span>
     <span class="n">Type</span><span class="p">,</span>
     <span class="n">Union</span><span class="p">,</span>
     <span class="n">cast</span><span class="p">,</span>
@@ -249,6 +246,7 @@
     <span class="n">TypedDict</span><span class="p">,</span>
     <span class="n">overload</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncIterator</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">proto</span>  <span class="c1"># type: ignore[import-untyped]</span>
 
@@ -430,16 +428,17 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        history: The list of messages to re-create the history of the chat.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        A parsed chat history.</span>
+
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If a sequence of message has a SystemMessage not at the</span>
 <span class="sd">        first place.</span>
 <span class="sd">    """</span>
-
     <span class="n">vertex_messages</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="p">[],</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">message</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">history</span><span class="p">):</span>
-        <span class="n">content</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">SystemMessage</span><span class="p">):</span>
             <span class="n">context</span> <span class="o">=</span> <span class="n">content</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
@@ -449,11 +448,9 @@
             <span class="n">vertex_message</span> <span class="o">=</span> <span class="n">ChatMessage</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">author</span><span class="o">=</span><span class="s2">"user"</span><span class="p">)</span>
             <span class="n">vertex_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vertex_message</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
-    <span class="n">chat_history</span> <span class="o">=</span> <span class="n">_ChatHistory</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="n">vertex_messages</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">chat_history</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_ChatHistory</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="n">vertex_messages</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_chat_history_gemini</span><span class="p">(</span>
@@ -466,22 +463,21 @@
             <span class="k">return</span> <span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Message's content is expected to be a dict, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="si">}</span><span class="s2">!"</span>
-            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Message's content is expected to be a dict, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">part</span><span class="p">)</span><span class="si">}</span><span class="s2">!"</span>  <span class="c1"># type: ignore[unreachable, unused-ignore]</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"text"</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"tool_use"</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"text"</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"executable_code"</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"executable_code"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span> <span class="ow">or</span> <span class="s2">"language"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"Executable code part must have 'code' and 'language' keys, got "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">Part</span><span class="p">(</span>
                 <span class="n">executable_code</span><span class="o">=</span><span class="n">ExecutableCode</span><span class="p">(</span>
                     <span class="n">language</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"language"</span><span class="p">],</span> <span class="n">code</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"executable_code"</span><span class="p">]</span>
@@ -489,10 +485,11 @@
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"code_execution_result"</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"code_execution_result"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span> <span class="ow">or</span> <span class="s2">"outcome"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"Code execution result part must have 'code_execution_result' and "</span>
                     <span class="sa">f</span><span class="s2">"'outcome' keys, got </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">Part</span><span class="p">(</span>
                 <span class="n">code_execution_result</span><span class="o">=</span><span class="n">CodeExecutionResult</span><span class="p">(</span>
                     <span class="n">output</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"code_execution_result"</span><span class="p">],</span> <span class="n">outcome</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"outcome"</span><span class="p">]</span>
@@ -505,10 +502,11 @@
                 <span class="n">oai_content_block</span> <span class="o">=</span> <span class="n">convert_to_openai_image_block</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
                 <span class="n">url</span> <span class="o">=</span> <span class="n">oai_content_block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"url"</span><span class="p">]</span>
                 <span class="k">return</span> <span class="n">imageBytesLoader</span><span class="o">.</span><span class="n">load_gapic_part</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">part</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"base64"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"source_type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"base64"</span><span class="p">:</span>
                 <span class="n">bytes_</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="s2">"data"</span><span class="p">])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"source_type must be url or base64."</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">"source_type must be url or base64."</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">inline_data</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="n">bytes_</span><span class="p">}</span>
             <span class="k">if</span> <span class="s2">"mime_type"</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
                 <span class="n">inline_data</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span>
@@ -523,7 +521,8 @@
         <span class="c1"># https://github.com/langchain-ai/langchainjs/blob/e536593e2585f1dd7b0afc187de4d07cb40689ba/libs/langchain-google-common/src/utils/gemini.ts#L93-L106</span>
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"media"</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">"mime_type"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Missing mime_type in media part: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Missing mime_type in media part: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>  <span class="c1"># type: ignore[unreachable, unused-ignore]</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">mime_type</span> <span class="o">=</span> <span class="n">part</span><span class="p">[</span><span class="s2">"mime_type"</span><span class="p">]</span>
             <span class="n">proto_part</span> <span class="o">=</span> <span class="n">Part</span><span class="p">()</span>
 
@@ -534,9 +533,8 @@
                     <span class="n">file_uri</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"file_uri"</span><span class="p">],</span> <span class="n">mime_type</span><span class="o">=</span><span class="n">mime_type</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"Media part must have either data or file_uri: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Media part must have either data or file_uri: </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">"</span>  <span class="c1"># type: ignore[unreachable, unused-ignore]</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="s2">"video_metadata"</span> <span class="ow">in</span> <span class="n">part</span><span class="p">:</span>
                 <span class="n">metadata</span> <span class="o">=</span> <span class="n">VideoMetadata</span><span class="p">(</span><span class="n">part</span><span class="p">[</span><span class="s2">"video_metadata"</span><span class="p">])</span>
@@ -546,7 +544,8 @@
         <span class="k">if</span> <span class="n">part</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"thinking"</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Part</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">part</span><span class="p">[</span><span class="s2">"thinking"</span><span class="p">],</span> <span class="n">thought</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Only text, image_url, and media types are supported!"</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Only text, image_url, and media types are supported!"</span>  <span class="c1"># type: ignore[unreachable, unused-ignore]</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_parts</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">BaseMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Part</span><span class="p">]:</span>
         <span class="n">raw_content</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span>
@@ -572,7 +571,8 @@
                 <span class="n">item</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">raw_content</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">raw_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unsupported type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">raw_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>  <span class="c1"># type: ignore[unreachable]</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">raw_part</span> <span class="ow">in</span> <span class="n">raw_content</span><span class="p">:</span>
             <span class="n">part</span> <span class="o">=</span> <span class="n">_convert_to_prompt</span><span class="p">(</span><span class="n">raw_part</span><span class="p">)</span>
@@ -646,7 +646,7 @@
                     <span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vertex_messages</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">vertex_messages</span><span class="p">:</span>
                 <span class="n">prev_content</span> <span class="o">=</span> <span class="n">vertex_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">prev_content_is_model</span> <span class="o">=</span> <span class="n">prev_content</span> <span class="ow">and</span> <span class="n">prev_content</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"model"</span>
                 <span class="k">if</span> <span class="n">prev_content_is_model</span><span class="p">:</span>
@@ -666,7 +666,7 @@
                 <span class="p">)</span>
             <span class="p">)</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">part</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vertex_messages</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">vertex_messages</span><span class="p">:</span>
                 <span class="n">prev_content</span> <span class="o">=</span> <span class="n">vertex_messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">prev_content_is_function</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">prev_content</span> <span class="ow">and</span> <span class="n">prev_content</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"function"</span>
@@ -684,26 +684,20 @@
 
             <span class="c1"># message.name can be null for ToolMessage</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">name</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">prev_ai_message</span><span class="p">:</span>
-                    <span class="n">tool_call_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span>
-                    <span class="n">tool_call</span><span class="p">:</span> <span class="n">ToolCall</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="n">t</span>
-                            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">prev_ai_message</span><span class="o">.</span><span class="n">tool_calls</span>
-                            <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">tool_call_id</span>
-                        <span class="p">),</span>
-                        <span class="kc">None</span><span class="p">,</span>
-                    <span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">prev_ai_message</span><span class="p">:</span>
+                <span class="n">tool_call_id</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span>
+                <span class="n">tool_call</span><span class="p">:</span> <span class="n">ToolCall</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">prev_ai_message</span><span class="o">.</span><span class="n">tool_calls</span> <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">tool_call_id</span><span class="p">),</span>
+                    <span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
 
-                    <span class="k">if</span> <span class="n">tool_call</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="s2">"Message name is empty and can't find"</span>
-                                <span class="o">+</span> <span class="sa">f</span><span class="s2">"corresponding tool call for id: '$</span><span class="si">{</span><span class="n">tool_call_id</span><span class="si">}</span><span class="s2">'"</span>
-                            <span class="p">)</span>
-                        <span class="p">)</span>
-                    <span class="n">name</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">tool_call</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="s2">"Message name is empty and can't find"</span>
+                        <span class="sa">f</span><span class="s2">"corresponding tool call for id: '$</span><span class="si">{</span><span class="n">tool_call_id</span><span class="si">}</span><span class="s2">'"</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">tool_call</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">_parse_content</span><span class="p">(</span><span class="n">raw_content</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_content</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -759,33 +753,35 @@
 
             <span class="n">vertex_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Content</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">parts</span><span class="o">=</span><span class="n">parts</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
-            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unexpected message with type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2"> at the position </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">system_instruction</span><span class="p">,</span> <span class="n">vertex_messages</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_examples</span><span class="p">(</span><span class="n">examples</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">InputOutputTextPair</span><span class="p">]:</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Expect examples to have an even amount of messages, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span><span class="si">}</span><span class="s2">."</span>
         <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">example_pairs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">input_text</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">example</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">examples</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Expected the first message in a part to be from human, got "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">example</span><span class="p">)</span><span class="si">}</span><span class="s2"> for the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">th message."</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">input_text</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">content</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="n">AIMessage</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"Expected the second message in a part to be from AI, got "</span>
                     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">example</span><span class="p">)</span><span class="si">}</span><span class="s2"> for the </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">th message."</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">pair</span> <span class="o">=</span> <span class="n">InputOutputTextPair</span><span class="p">(</span>
                 <span class="n">input_text</span><span class="o">=</span><span class="n">input_text</span><span class="p">,</span> <span class="n">output_text</span><span class="o">=</span><span class="n">example</span><span class="o">.</span><span class="n">content</span>
             <span class="p">)</span>
@@ -796,12 +792,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_question</span><span class="p">(</span><span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">HumanMessage</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Get the human message at the end of a list of input messages to a chat model."""</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">messages</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"You should provide at least one message to start the chat!"</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"You should provide at least one message to start the chat!"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="n">question</span> <span class="o">=</span> <span class="n">messages</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">HumanMessage</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"Last message in the list should be from human, got </span><span class="si">{</span><span class="n">question</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">."</span>
-        <span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Last message in the list should be from human, got </span><span class="si">{</span><span class="n">question</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">."</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">question</span>
 
 
@@ -812,33 +808,33 @@
 <span class="w">    </span><span class="sd">"""Appends a new item to the content, handling different initial content types."""</span>
     <span class="k">if</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">new_item</span>
-    <span class="k">elif</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">current_content</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">new_item</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">current_content</span><span class="p">,</span> <span class="n">new_item</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_content</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">current_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_item</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">current_content</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># This case should ideally not be reached with proper type checking,</span>
-        <span class="c1"># but it catches any unexpected types that might slip through.</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unexpected content type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">current_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="c1"># This case should ideally not be reached with proper type checking,</span>
+    <span class="c1"># but it catches any unexpected types that might slip through.</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unexpected content type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">current_content</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>  <span class="c1"># type: ignore[unreachable]</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
-    <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">response_candidate</span><span class="p">:</span> <span class="n">Candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span> <span class="o">...</span>
 
 
 <span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
-    <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span>
+    <span class="n">response_candidate</span><span class="p">:</span> <span class="n">Candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessageChunk</span><span class="p">:</span> <span class="o">...</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_response_candidate</span><span class="p">(</span>
-    <span class="n">response_candidate</span><span class="p">:</span> <span class="s2">"Candidate"</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">response_candidate</span><span class="p">:</span> <span class="n">Candidate</span><span class="p">,</span> <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AIMessage</span><span class="p">:</span>
     <span class="n">content</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -936,18 +932,21 @@
                 <span class="n">content</span> <span class="o">=</span> <span class="n">_append_to_content</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">code_message</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">hasattr</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="s2">"code_execution_result"</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">(</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="s2">"code_execution_result"</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span>
+            <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span>
         <span class="p">):</span>
-            <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span> <span class="ow">and</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">:</span>
-                <span class="n">execution_result</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"code_execution_result"</span><span class="p">,</span>
-                    <span class="c1"># Name output -&gt; code_execution_result for consistency with</span>
-                    <span class="c1"># langchain-google-genai</span>
-                    <span class="s2">"code_execution_result"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
-                    <span class="s2">"outcome"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">,</span>
-                <span class="p">}</span>
-                <span class="n">content</span> <span class="o">=</span> <span class="n">_append_to_content</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">execution_result</span><span class="p">)</span>
+            <span class="n">execution_result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"code_execution_result"</span><span class="p">,</span>
+                <span class="c1"># Name output -&gt; code_execution_result for consistency with</span>
+                <span class="c1"># langchain-google-genai</span>
+                <span class="s2">"code_execution_result"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                <span class="s2">"outcome"</span><span class="p">:</span> <span class="n">part</span><span class="o">.</span><span class="n">code_execution_result</span><span class="o">.</span><span class="n">outcome</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">_append_to_content</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">execution_result</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">mime_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"image/"</span><span class="p">):</span>
             <span class="n">image_format</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">inline_data</span><span class="o">.</span><span class="n">mime_type</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span>
@@ -1040,7 +1039,7 @@
 <div class="viewcode-block" id="ChatVertexAI">
 <a class="viewcode-back" href="../../google_vertexai/chat_models/langchain_google_vertexai.chat_models.ChatVertexAI.html#langchain_google_vertexai.chat_models.ChatVertexAI">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatVertexAI</span><span class="p">(</span><span class="n">_VertexAICommon</span><span class="p">,</span> <span class="n">BaseChatModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Google Cloud Vertex AI chat model integration.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Google Cloud Vertex AI chat model integration.</span>
 
 <span class="sd">    Setup:</span>
 <span class="sd">        You must either:</span>
@@ -1112,14 +1111,63 @@
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            messages = [</span>
-<span class="sd">                ("system", "You are a helpful translator. Translate the user sentence to French."),</span>
+<span class="sd">                (</span>
+<span class="sd">                    "system",</span>
+<span class="sd">                    "You are a helpful translator. Translate the user sentence to French.",</span>
+<span class="sd">                ),</span>
 <span class="sd">                ("human", "I love programming."),</span>
 <span class="sd">            ]</span>
 <span class="sd">            llm.invoke(messages)</span>
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessage(content="J'adore programmer. ", response_metadata={'is_blocked': False, 'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}], 'citation_metadata': None, 'usage_metadata': {'prompt_token_count': 17, 'candidates_token_count': 7, 'total_token_count': 24}}, id='run-925ce305-2268-44c4-875f-dde9128520ad-0')</span>
+<span class="sd">            AIMessage(</span>
+<span class="sd">                content="J'adore programmer. ",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                    "usage_metadata": {</span>
+<span class="sd">                        "prompt_token_count": 17,</span>
+<span class="sd">                        "candidates_token_count": 7,</span>
+<span class="sd">                        "total_token_count": 24,</span>
+<span class="sd">                    },</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-925ce305-2268-44c4-875f-dde9128520ad-0",</span>
+<span class="sd">            )</span>
 
 <span class="sd">    Stream:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1129,9 +1177,71 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessageChunk(content='J', response_metadata={'is_blocked': False, 'safety_ratings': [], 'citation_metadata': None}, id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
-<span class="sd">            AIMessageChunk(content="'adore programmer. ", response_metadata={'is_blocked': False, 'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}], 'citation_metadata': None}, id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
-<span class="sd">            AIMessageChunk(content='', response_metadata={'is_blocked': False, 'safety_ratings': [], 'citation_metadata': None, 'usage_metadata': {'prompt_token_count': 17, 'candidates_token_count': 7, 'total_token_count': 24}}, id='run-9df01d73-84d9-42db-9d6b-b1466a019e89')</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="J",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-9df01d73-84d9-42db-9d6b-b1466a019e89",</span>
+<span class="sd">            )</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="'adore programmer. ",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-9df01d73-84d9-42db-9d6b-b1466a019e89",</span>
+<span class="sd">            )</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                    "usage_metadata": {</span>
+<span class="sd">                        "prompt_token_count": 17,</span>
+<span class="sd">                        "candidates_token_count": 7,</span>
+<span class="sd">                        "total_token_count": 24,</span>
+<span class="sd">                    },</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-9df01d73-84d9-42db-9d6b-b1466a019e89",</span>
+<span class="sd">            )</span>
 
 <span class="sd">        .. code-block:: python</span>
 
@@ -1143,7 +1253,53 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessageChunk(content="J'adore programmer. ", response_metadata={'is_blocked': False, 'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}], 'citation_metadata': None, 'usage_metadata': {'prompt_token_count': 17, 'candidates_token_count': 7, 'total_token_count': 24}}, id='run-b7f7492c-4cb5-42d0-8fc3-dce9b293b0fb')</span>
+<span class="sd">            AIMessageChunk(</span>
+<span class="sd">                content="J'adore programmer. ",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                    "usage_metadata": {</span>
+<span class="sd">                        "prompt_token_count": 17,</span>
+<span class="sd">                        "candidates_token_count": 7,</span>
+<span class="sd">                        "total_token_count": 24,</span>
+<span class="sd">                    },</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-b7f7492c-4cb5-42d0-8fc3-dce9b293b0fb",</span>
+<span class="sd">            )</span>
 
 <span class="sd">    Async:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1158,20 +1314,71 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            AIMessage(content="J'adore programmer. ", response_metadata={'is_blocked': False, 'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_HARASSMENT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}, {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'probability_label': 'NEGLIGIBLE', 'probability_score': 0.1, 'blocked': False, 'severity': 'HARM_SEVERITY_NEGLIGIBLE', 'severity_score': 0.1}], 'citation_metadata': None, 'usage_metadata': {'prompt_token_count': 17, 'candidates_token_count': 7, 'total_token_count': 24}}, id='run-925ce305-2268-44c4-875f-dde9128520ad-0')</span>
+<span class="sd">            AIMessage(</span>
+<span class="sd">                content="J'adore programmer. ",</span>
+<span class="sd">                response_metadata={</span>
+<span class="sd">                    "is_blocked": False,</span>
+<span class="sd">                    "safety_ratings": [</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                            "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                            "probability_score": 0.1,</span>
+<span class="sd">                            "blocked": False,</span>
+<span class="sd">                            "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                            "severity_score": 0.1,</span>
+<span class="sd">                        },</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    "citation_metadata": None,</span>
+<span class="sd">                    "usage_metadata": {</span>
+<span class="sd">                        "prompt_token_count": 17,</span>
+<span class="sd">                        "candidates_token_count": 7,</span>
+<span class="sd">                        "total_token_count": 24,</span>
+<span class="sd">                    },</span>
+<span class="sd">                },</span>
+<span class="sd">                id="run-925ce305-2268-44c4-875f-dde9128520ad-0",</span>
+<span class="sd">            )</span>
 
 <span class="sd">    Context Caching:</span>
 <span class="sd">        Context caching allows you to store and reuse content (e.g., PDFs, images) for faster processing.</span>
 <span class="sd">        The ``cached_content`` parameter accepts a cache name created via the Google Generative AI API with Vertex AI.</span>
 <span class="sd">        Below is an example of caching content from GCS and querying it.</span>
 
-<span class="sd">        Example:</span>
+<span class="sd">    Example:</span>
 <span class="sd">        This caches content from GCS and queries it.</span>
 
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            from google import genai</span>
-<span class="sd">            from google.genai.types import Content, CreateCachedContentConfig, HttpOptions, Part</span>
+<span class="sd">            from google.genai.types import (</span>
+<span class="sd">                Content,</span>
+<span class="sd">                CreateCachedContentConfig,</span>
+<span class="sd">                HttpOptions,</span>
+<span class="sd">                Part,</span>
+<span class="sd">            )</span>
 <span class="sd">            from langchain_google_vertexai import ChatVertexAI</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
@@ -1207,7 +1414,9 @@
 <span class="sd">                model_name="gemini-1.5-flash-001",</span>
 <span class="sd">                cached_content=cache.name,</span>
 <span class="sd">            )</span>
-<span class="sd">            message = HumanMessage(content="Provide a summary of the key information across the content.")</span>
+<span class="sd">            message = HumanMessage(</span>
+<span class="sd">                content="Provide a summary of the key information across the content."</span>
+<span class="sd">            )</span>
 <span class="sd">            llm.invoke([message])</span>
 
 <span class="sd">    Tool calling:</span>
@@ -1215,34 +1424,53 @@
 
 <span class="sd">            from pydantic import BaseModel, Field</span>
 
+
 <span class="sd">            class GetWeather(BaseModel):</span>
 <span class="sd">                '''Get the current weather in a given location'''</span>
 
-<span class="sd">                location: str = Field(..., description="The city and state, e.g. San Francisco, CA")</span>
+<span class="sd">                location: str = Field(</span>
+<span class="sd">                    ..., description="The city and state, e.g. San Francisco, CA"</span>
+<span class="sd">                )</span>
+
 
 <span class="sd">            class GetPopulation(BaseModel):</span>
 <span class="sd">                '''Get the current population in a given location'''</span>
 
-<span class="sd">                location: str = Field(..., description="The city and state, e.g. San Francisco, CA")</span>
+<span class="sd">                location: str = Field(</span>
+<span class="sd">                    ..., description="The city and state, e.g. San Francisco, CA"</span>
+<span class="sd">                )</span>
+
 
 <span class="sd">            llm_with_tools = llm.bind_tools([GetWeather, GetPopulation])</span>
-<span class="sd">            ai_msg = llm_with_tools.invoke("Which city is hotter today and which is bigger: LA or NY?")</span>
+<span class="sd">            ai_msg = llm_with_tools.invoke(</span>
+<span class="sd">                "Which city is hotter today and which is bigger: LA or NY?"</span>
+<span class="sd">            )</span>
 <span class="sd">            ai_msg.tool_calls</span>
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            [{'name': 'GetWeather',</span>
-<span class="sd">              'args': {'location': 'Los Angeles, CA'},</span>
-<span class="sd">              'id': '2a2401fa-40db-470d-83ce-4e52de910d9e'},</span>
-<span class="sd">             {'name': 'GetWeather',</span>
-<span class="sd">              'args': {'location': 'New York City, NY'},</span>
-<span class="sd">              'id': '96761deb-ab7f-4ef9-b4b4-6d44562fc46e'},</span>
-<span class="sd">             {'name': 'GetPopulation',</span>
-<span class="sd">              'args': {'location': 'Los Angeles, CA'},</span>
-<span class="sd">              'id': '9147d532-abee-43a2-adb5-12f164300484'},</span>
-<span class="sd">             {'name': 'GetPopulation',</span>
-<span class="sd">              'args': {'location': 'New York City, NY'},</span>
-<span class="sd">              'id': 'c43374ea-bde5-49ca-8487-5b83ebeea1e6'}]</span>
+<span class="sd">            [</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetWeather",</span>
+<span class="sd">                    "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                    "id": "2a2401fa-40db-470d-83ce-4e52de910d9e",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetWeather",</span>
+<span class="sd">                    "args": {"location": "New York City, NY"},</span>
+<span class="sd">                    "id": "96761deb-ab7f-4ef9-b4b4-6d44562fc46e",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetPopulation",</span>
+<span class="sd">                    "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                    "id": "9147d532-abee-43a2-adb5-12f164300484",</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    "name": "GetPopulation",</span>
+<span class="sd">                    "args": {"location": "New York City, NY"},</span>
+<span class="sd">                    "id": "c43374ea-bde5-49ca-8487-5b83ebeea1e6",</span>
+<span class="sd">                },</span>
+<span class="sd">            ]</span>
 
 <span class="sd">        See ``ChatVertexAI.bind_tools()`` method for more.</span>
 
@@ -1277,19 +1505,27 @@
 
 <span class="sd">            from pydantic import BaseModel, Field</span>
 
+
 <span class="sd">            class Joke(BaseModel):</span>
 <span class="sd">                '''Joke to tell user.'''</span>
 
 <span class="sd">                setup: str = Field(description="The setup of the joke")</span>
 <span class="sd">                punchline: str = Field(description="The punchline to the joke")</span>
-<span class="sd">                rating: Optional[int] = Field(default=None, description="How funny the joke is, from 1 to 10")</span>
+<span class="sd">                rating: Optional[int] = Field(</span>
+<span class="sd">                    default=None, description="How funny the joke is, from 1 to 10"</span>
+<span class="sd">                )</span>
+
 
 <span class="sd">            structured_llm = llm.with_structured_output(Joke)</span>
 <span class="sd">            structured_llm.invoke("Tell me a joke about cats")</span>
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            Joke(setup='What do you call a cat that loves to bowl?', punchline='An alley cat!', rating=None)</span>
+<span class="sd">            Joke(</span>
+<span class="sd">                setup="What do you call a cat that loves to bowl?",</span>
+<span class="sd">                punchline="An alley cat!",</span>
+<span class="sd">                rating=None,</span>
+<span class="sd">            )</span>
 
 <span class="sd">        See ``ChatVertexAI.with_structured_output()`` for more.</span>
 
@@ -1316,7 +1552,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The weather in this image appears to be sunny and pleasant. The sky is a bright blue with scattered white clouds, suggesting a clear and mild day. The lush green grass indicates recent rainfall or sufficient moisture. The absence of strong shadows suggests that the sun is high in the sky, possibly late afternoon. Overall, the image conveys a sense of tranquility and warmth, characteristic of a beautiful summer day.'</span>
+<span class="sd">            "The weather in this image appears to be sunny and pleasant. The sky is a bright blue with scattered white clouds, suggesting a clear and mild day. The lush green grass indicates recent rainfall or sufficient moisture. The absence of strong shadows suggests that the sun is high in the sky, possibly late afternoon. Overall, the image conveys a sense of tranquility and warmth, characteristic of a beautiful summer day."</span>
 
 <span class="sd">        You can also point to GCS files which is faster / more efficient because bytes are transferred back and forth.</span>
 
@@ -1339,7 +1575,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The image is of five blueberry scones arranged on a piece of baking paper. Here is a list of what is in the picture:* **Five blueberry scones:** They are scattered across the parchment paper, dusted with powdered sugar.  * **Two cups of coffee:**  Two white cups with saucers. One appears full, the other partially drunk. * **A bowl of blueberries:** A brown bowl is filled with fresh blueberries, placed near the scones.* **A spoon:**  A silver spoon with the words "Let\'s Jam" rests on the paper.* **Pink peonies:** Several pink peonies lie beside the scones, adding a touch of color.* **Baking paper:** The scones, cups, bowl, and spoon are arranged on a piece of white baking paper, splattered with purple.  The paper is crinkled and sits on a dark surface. The image has a rustic and delicious feel, suggesting a cozy and enjoyable breakfast or brunch setting.' # codespell:ignore brunch</span>
+<span class="sd">            'The image is of five blueberry scones arranged on a piece of baking paper. Here is a list of what is in the picture:* **Five blueberry scones:** They are scattered across the parchment paper, dusted with powdered sugar.  * **Two cups of coffee:**  Two white cups with saucers. One appears full, the other partially drunk. * **A bowl of blueberries:** A brown bowl is filled with fresh blueberries, placed near the scones.* **A spoon:**  A silver spoon with the words "Let\'s Jam" rests on the paper.* **Pink peonies:** Several pink peonies lie beside the scones, adding a touch of color.* **Baking paper:** The scones, cups, bowl, and spoon are arranged on a piece of white baking paper, splattered with purple.  The paper is crinkled and sits on a dark surface. The image has a rustic and delicious feel, suggesting a cozy and enjoyable breakfast or brunch setting.'</span>
 
 <span class="sd">    PDF input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1347,17 +1583,17 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            pdf_bytes = open("/path/to/your/test.pdf", 'rb').read()</span>
-<span class="sd">            pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')</span>
+<span class="sd">            pdf_bytes = open("/path/to/your/test.pdf", "rb").read()</span>
+<span class="sd">            pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")</span>
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
 <span class="sd">                    {"type": "text", "text": "describe the document in a sentence"},</span>
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
-<span class="sd">                        "mime_type":"application/pdf",</span>
-<span class="sd">                        "data": pdf_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "mime_type": "application/pdf",</span>
+<span class="sd">                        "data": pdf_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1365,7 +1601,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'This research paper describes a system developed for SemEval-2025 Task 9, which aims to automate the detection of food hazards from recall reports, addressing the class imbalance problem by leveraging LLM-based data augmentation techniques and transformer-based models to improve performance.'</span>
+<span class="sd">            "This research paper describes a system developed for SemEval-2025 Task 9, which aims to automate the detection of food hazards from recall reports, addressing the class imbalance problem by leveraging LLM-based data augmentation techniques and transformer-based models to improve performance."</span>
 
 <span class="sd">        You can also point to GCS files.</span>
 
@@ -1388,7 +1624,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The article introduces Transformer, a new model architecture for sequence transduction based solely on attention mechanisms, outperforming previous models in machine translation tasks and demonstrating good generalization to English constituency parsing.'</span>
+<span class="sd">            "The article introduces Transformer, a new model architecture for sequence transduction based solely on attention mechanisms, outperforming previous models in machine translation tasks and demonstrating good generalization to English constituency parsing."</span>
 
 <span class="sd">    Video input:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1396,18 +1632,21 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            video_bytes = open("/path/to/your/video.mp4", 'rb').read()</span>
-<span class="sd">            video_base64 = base64.b64encode(video_bytes).decode('utf-8')</span>
+<span class="sd">            video_bytes = open("/path/to/your/video.mp4", "rb").read()</span>
+<span class="sd">            video_base64 = base64.b64encode(video_bytes).decode("utf-8")</span>
 
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
-<span class="sd">                    {"type": "text", "text": "describe what's in this video in a sentence"},</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "type": "text",</span>
+<span class="sd">                        "text": "describe what's in this video in a sentence",</span>
+<span class="sd">                    },</span>
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
 <span class="sd">                        "mime_type": "video/mp4",</span>
-<span class="sd">                        "data": video_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "data": video_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1415,7 +1654,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed adventure involving a corn-on-the-cob chase, maze antics, and a disastrous attempt to prepare a turkey dinner.'</span>
+<span class="sd">            "Tom and Jerry, along with a turkey, engage in a chaotic Thanksgiving-themed adventure involving a corn-on-the-cob chase, maze antics, and a disastrous attempt to prepare a turkey dinner."</span>
 
 <span class="sd">        You can also pass YouTube URLs directly:</span>
 
@@ -1430,7 +1669,7 @@
 <span class="sd">                        "type": "media",</span>
 <span class="sd">                        "file_uri": "https://www.youtube.com/watch?v=9hE5-98ZeCg",</span>
 <span class="sd">                        "mime_type": "video/mp4",</span>
-<span class="sd">                    }</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1438,7 +1677,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            'The video is a demo of multimodal live streaming in Gemini 2.0. The narrator is sharing his screen in AI Studio and asks if the AI can see it. The AI then reads text that is highlighted on the screen, defines the word “multimodal,” and summarizes everything that was seen and heard.'</span>
+<span class="sd">            "The video is a demo of multimodal live streaming in Gemini 2.0. The narrator is sharing his screen in AI Studio and asks if the AI can see it. The AI then reads text that is highlighted on the screen, defines the word “multimodal,” and summarizes everything that was seen and heard."</span>
 
 <span class="sd">        You can also point to GCS files.</span>
 
@@ -1471,8 +1710,8 @@
 <span class="sd">            import base64</span>
 <span class="sd">            from langchain_core.messages import HumanMessage</span>
 
-<span class="sd">            audio_bytes = open("/path/to/your/audio.mp3", 'rb').read()</span>
-<span class="sd">            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')</span>
+<span class="sd">            audio_bytes = open("/path/to/your/audio.mp3", "rb").read()</span>
+<span class="sd">            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")</span>
 
 <span class="sd">            message = HumanMessage(</span>
 <span class="sd">                content=[</span>
@@ -1480,9 +1719,9 @@
 <span class="sd">                    {</span>
 <span class="sd">                        "type": "file",</span>
 <span class="sd">                        "source_type": "base64",</span>
-<span class="sd">                        "mime_type":"audio/mp3",</span>
-<span class="sd">                        "data": audio_base64</span>
-<span class="sd">                    }</span>
+<span class="sd">                        "mime_type": "audio/mp3",</span>
+<span class="sd">                        "data": audio_base64,</span>
+<span class="sd">                    },</span>
 <span class="sd">                ]</span>
 <span class="sd">            )</span>
 <span class="sd">            ai_msg = llm.invoke([message])</span>
@@ -1517,7 +1756,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            "This audio is an interview with two product managers from Google who work on Pixel feature drops. They discuss how feature drops are important for showcasing how Google devices are constantly improving and getting better. They also discuss some of the highlights of the January feature drop and the new features coming in the March drop for Pixel phones and Pixel watches. The interview concludes with discussion of how user feedback is extremely important to them in deciding which features to include in the feature drops. "</span>
+<span class="sd">            "This audio is an interview with two product managers from Google who work on Pixel feature drops. They discuss how feature drops are important for showcasing how Google devices are constantly improving and getting better. They also discuss some of the highlights of the January feature drop and the new features coming in the March drop for Pixel phones and Pixel watches. The interview concludes with discussion of how user feedback is extremely important to them in deciding which features to include in the feature drops."</span>
 
 <span class="sd">    Token usage:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1527,7 +1766,7 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            {'input_tokens': 17, 'output_tokens': 7, 'total_tokens': 24}</span>
+<span class="sd">            {"input_tokens": 17, "output_tokens": 7, "total_tokens": 24}</span>
 
 <span class="sd">    Logprobs:</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1539,13 +1778,17 @@
 <span class="sd">        .. code-block:: python</span>
 
 <span class="sd">            [</span>
-<span class="sd">                {'token': 'J', 'logprob': -1.549651415189146e-06, 'top_logprobs': []},</span>
-<span class="sd">                {'token': "'", 'logprob': -1.549651415189146e-06, 'top_logprobs': []},</span>
-<span class="sd">                {'token': 'adore', 'logprob': 0.0, 'top_logprobs': []},</span>
-<span class="sd">                {'token': ' programmer', 'logprob': -1.1922384146600962e-07, 'top_logprobs': []},</span>
-<span class="sd">                {'token': '.', 'logprob': -4.827636439586058e-05, 'top_logprobs': []},</span>
-<span class="sd">                {'token': ' ', 'logprob': -0.018011733889579773, 'top_logprobs': []},</span>
-<span class="sd">                {'token': '\\n', 'logprob': -0.0008687592926435173, 'top_logprobs': []}</span>
+<span class="sd">                {"token": "J", "logprob": -1.549651415189146e-06, "top_logprobs": []},</span>
+<span class="sd">                {"token": "'", "logprob": -1.549651415189146e-06, "top_logprobs": []},</span>
+<span class="sd">                {"token": "adore", "logprob": 0.0, "top_logprobs": []},</span>
+<span class="sd">                {</span>
+<span class="sd">                    "token": " programmer",</span>
+<span class="sd">                    "logprob": -1.1922384146600962e-07,</span>
+<span class="sd">                    "top_logprobs": [],</span>
+<span class="sd">                },</span>
+<span class="sd">                {"token": ".", "logprob": -4.827636439586058e-05, "top_logprobs": []},</span>
+<span class="sd">                {"token": " ", "logprob": -0.018011733889579773, "top_logprobs": []},</span>
+<span class="sd">                {"token": "\\n", "logprob": -0.0008687592926435173, "top_logprobs": []},</span>
 <span class="sd">            ]</span>
 
 
@@ -1558,34 +1801,48 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            {'is_blocked': False,</span>
-<span class="sd">             'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_HARASSMENT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1}],</span>
-<span class="sd">             'usage_metadata': {'prompt_token_count': 17,</span>
-<span class="sd">              'candidates_token_count': 7,</span>
-<span class="sd">              'total_token_count': 24}}</span>
+<span class="sd">            {</span>
+<span class="sd">                "is_blocked": False,</span>
+<span class="sd">                "safety_ratings": [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
+<span class="sd">                "usage_metadata": {</span>
+<span class="sd">                    "prompt_token_count": 17,</span>
+<span class="sd">                    "candidates_token_count": 7,</span>
+<span class="sd">                    "total_token_count": 24,</span>
+<span class="sd">                },</span>
+<span class="sd">            }</span>
 
 <span class="sd">    Safety settings</span>
 <span class="sd">        .. code-block:: python</span>
@@ -1606,34 +1863,48 @@
 
 <span class="sd">        .. code-block:: python</span>
 
-<span class="sd">            {'is_blocked': False,</span>
-<span class="sd">             'safety_ratings': [{'category': 'HARM_CATEGORY_HATE_SPEECH',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_HARASSMENT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1},</span>
-<span class="sd">              {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT',</span>
-<span class="sd">               'probability_label': 'NEGLIGIBLE',</span>
-<span class="sd">               'probability_score': 0.1,</span>
-<span class="sd">               'blocked': False,</span>
-<span class="sd">               'severity': 'HARM_SEVERITY_NEGLIGIBLE',</span>
-<span class="sd">               'severity_score': 0.1}],</span>
-<span class="sd">             'usage_metadata': {'prompt_token_count': 17,</span>
-<span class="sd">              'candidates_token_count': 7,</span>
-<span class="sd">              'total_token_count': 24}}</span>
+<span class="sd">            {</span>
+<span class="sd">                "is_blocked": False,</span>
+<span class="sd">                "safety_ratings": [</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HATE_SPEECH",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_HARASSMENT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                    {</span>
+<span class="sd">                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",</span>
+<span class="sd">                        "probability_label": "NEGLIGIBLE",</span>
+<span class="sd">                        "probability_score": 0.1,</span>
+<span class="sd">                        "blocked": False,</span>
+<span class="sd">                        "severity": "HARM_SEVERITY_NEGLIGIBLE",</span>
+<span class="sd">                        "severity_score": 0.1,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ],</span>
+<span class="sd">                "usage_metadata": {</span>
+<span class="sd">                    "prompt_token_count": 17,</span>
+<span class="sd">                    "candidates_token_count": 7,</span>
+<span class="sd">                    "total_token_count": 24,</span>
+<span class="sd">                },</span>
+<span class="sd">            }</span>
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
@@ -1722,7 +1993,7 @@
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_lc_serializable</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@classmethod</span>
@@ -1735,17 +2006,18 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">build_extra</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Build extra kwargs from additional params that were passed in."""</span>
         <span class="n">all_required_field_names</span> <span class="o">=</span> <span class="n">get_pydantic_field_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">values</span>
+        <span class="k">return</span> <span class="n">_build_model_kwargs</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">all_required_field_names</span><span class="p">)</span>
 
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[a-z][a-z0-9-_]{0,62}$"</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid label key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Invalid label key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">63</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Label value too long: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Label value too long: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@cached_property</span>
@@ -1755,20 +2027,19 @@
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that the python package exists in environment."""</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tuned_model_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span> <span class="o">=</span> <span class="n">_format_model_name</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">tuned_model_name</span><span class="p">,</span>
                 <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-                <span class="n">project</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
+                <span class="n">project</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">full_model_name</span> <span class="o">=</span> <span class="n">_format_model_name</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
                 <span class="n">location</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
-                <span class="n">project</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
+                <span class="n">project</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">),</span>
             <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span>
@@ -1944,7 +2215,8 @@
                     <span class="p">)</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">formatted_safety_settings</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"safety_settings should be either"</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">"safety_settings should be either"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_request_gemini</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -2207,7 +2479,7 @@
         <span class="bp">self</span><span class="p">,</span> <span class="n">tool_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">_ToolConfigDict</span><span class="p">,</span> <span class="n">ToolConfig</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GapicToolConfig</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">tool_config</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_config</span><span class="p">,</span> <span class="n">ToolConfig</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">_format_tool_config</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">_ToolConfigDict</span><span class="p">,</span> <span class="n">tool_config</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">_format_tool_config</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="s2">"_ToolConfigDict"</span><span class="p">,</span> <span class="n">tool_config</span><span class="p">))</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_agenerate</span><span class="p">(</span>
@@ -2365,15 +2637,20 @@
 <span class="sd">                from pydantic import BaseModel</span>
 <span class="sd">                from langchain_google_vertexai import ChatVertexAI</span>
 
+
 <span class="sd">                class AnswerWithJustification(BaseModel):</span>
 <span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
 <span class="sd">                    answer: str</span>
 <span class="sd">                    justification: str</span>
+
 
 <span class="sd">                llm = ChatVertexAI(model_name="gemini-2.0-flash-001", temperature=0)</span>
 <span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification)</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
 <span class="sd">                # -&gt; AnswerWithJustification(</span>
 <span class="sd">                #     answer='They weigh the same.', justification='A pound is a pound.'</span>
 <span class="sd">                # )</span>
@@ -2384,15 +2661,22 @@
 <span class="sd">                from pydantic import BaseModel</span>
 <span class="sd">                from langchain_google_vertexai import ChatVertexAI</span>
 
+
 <span class="sd">                class AnswerWithJustification(BaseModel):</span>
 <span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
 <span class="sd">                    answer: str</span>
 <span class="sd">                    justification: str</span>
 
-<span class="sd">                llm = ChatVertexAI(model_name="gemini-2.0-flash-001", temperature=0)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification, include_raw=True)</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
+<span class="sd">                llm = ChatVertexAI(model_name="gemini-2.0-flash-001", temperature=0)</span>
+<span class="sd">                structured_llm = llm.with_structured_output(</span>
+<span class="sd">                    AnswerWithJustification, include_raw=True</span>
+<span class="sd">                )</span>
+
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
 <span class="sd">                # -&gt; {</span>
 <span class="sd">                #     'raw': AIMessage(content='', additional_kwargs={'tool_calls': [{'id': 'call_Ao02pnFYXD6GN1yzc0uXPsvF', 'function': {'arguments': '{"answer":"They weigh the same.","justification":"Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ."}', 'name': 'AnswerWithJustification'}, 'type': 'function'}]}),</span>
 <span class="sd">                #     'parsed': AnswerWithJustification(answer='They weigh the same.', justification='Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ.'),</span>
@@ -2403,19 +2687,26 @@
 <span class="sd">            .. code-block:: python</span>
 
 <span class="sd">                from pydantic import BaseModel</span>
-<span class="sd">                from langchain_core.utils.function_calling import convert_to_openai_function</span>
+<span class="sd">                from langchain_core.utils.function_calling import (</span>
+<span class="sd">                    convert_to_openai_function,</span>
+<span class="sd">                )</span>
 <span class="sd">                from langchain_google_vertexai import ChatVertexAI</span>
+
 
 <span class="sd">                class AnswerWithJustification(BaseModel):</span>
 <span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+
 <span class="sd">                    answer: str</span>
 <span class="sd">                    justification: str</span>
+
 
 <span class="sd">                dict_schema = convert_to_openai_function(AnswerWithJustification)</span>
 <span class="sd">                llm = ChatVertexAI(model_name="gemini-2.0-flash-001", temperature=0)</span>
 <span class="sd">                structured_llm = llm.with_structured_output(dict_schema)</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
+<span class="sd">                structured_llm.invoke(</span>
+<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">                )</span>
 <span class="sd">                # -&gt; {</span>
 <span class="sd">                #     'answer': 'They weigh the same',</span>
 <span class="sd">                #     'justification': 'Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume and density of the two substances differ.'</span>
@@ -2427,27 +2718,36 @@
 <span class="sd">                from pydantic import BaseModel, Field</span>
 <span class="sd">                from langchain_google_vertexai import ChatVertexAI</span>
 
+
 <span class="sd">                class Explanation(BaseModel):</span>
 <span class="sd">                    '''A topic explanation with examples.'''</span>
-<span class="sd">                    description: str = Field(description="A brief description of the topic.")</span>
-<span class="sd">                    examples: str = Field(description="Two examples related to the topic.")</span>
+
+<span class="sd">                    description: str = Field(</span>
+<span class="sd">                        description="A brief description of the topic."</span>
+<span class="sd">                    )</span>
+<span class="sd">                    examples: str = Field(</span>
+<span class="sd">                        description="Two examples related to the topic."</span>
+<span class="sd">                    )</span>
+
 
 <span class="sd">                llm = ChatVertexAI(model_name="gemini-2.0-flash", temperature=0)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(Explanation, method="json_mode")</span>
+<span class="sd">                structured_llm = llm.with_structured_output(</span>
+<span class="sd">                    Explanation, method="json_mode"</span>
+<span class="sd">                )</span>
 
 <span class="sd">                for chunk in structured_llm.stream("Tell me about transformer models"):</span>
 <span class="sd">                    print(chunk)</span>
-<span class="sd">                    print('-------------------------')</span>
+<span class="sd">                    print("-------------------------")</span>
 <span class="sd">                # -&gt; description='Transformer models are a type of neural network architecture that have revolutionized the field of natural language processing (NLP) and are also increasingly used in computer vision and other domains. They rely on the self-attention mechanism to weigh the importance of different parts of the input data, allowing them to effectively capture long-range dependencies. Unlike recurrent neural networks (RNNs), transformers can process the entire input sequence in parallel, leading to significantly faster training times. Key components of transformer models include: the self-attention mechanism (calculates attention weights between different parts of the input), multi-head attention (performs self-attention multiple times with different learned parameters), positional encoding (adds information about the position of tokens in the input sequence), feedforward networks (applies a non-linear transformation to each position), and encoder-decoder structure (used for sequence-to-sequence tasks).' examples='1. BERT (Bidirectional Encoder Representations from Transformers): A pre-trained transformer'</span>
 <span class="sd">                #    -------------------------</span>
 <span class="sd">                #    description='Transformer models are a type of neural network architecture that have revolutionized the field of natural language processing (NLP) and are also increasingly used in computer vision and other domains. They rely on the self-attention mechanism to weigh the importance of different parts of the input data, allowing them to effectively capture long-range dependencies. Unlike recurrent neural networks (RNNs), transformers can process the entire input sequence in parallel, leading to significantly faster training times. Key components of transformer models include: the self-attention mechanism (calculates attention weights between different parts of the input), multi-head attention (performs self-attention multiple times with different learned parameters), positional encoding (adds information about the position of tokens in the input sequence), feedforward networks (applies a non-linear transformation to each position), and encoder-decoder structure (used for sequence-to-sequence tasks).' examples='1. BERT (Bidirectional Encoder Representations from Transformers): A pre-trained transformer model that can be fine-tuned for various NLP tasks like text classification, question answering, and named entity recognition. 2. GPT (Generative Pre-trained Transformer): A language model that uses transformers to generate coherent and contextually relevant text. GPT models are used in chatbots, content creation, and code generation.'</span>
 <span class="sd">                #    -------------------------</span>
 
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
-
         <span class="n">_</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"strict"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">parser</span><span class="p">:</span> <span class="n">OutputParserLike</span>
 
@@ -2464,7 +2764,8 @@
                 <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">schema_json</span> <span class="o">=</span> <span class="n">schema</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="n">parser</span> <span class="o">=</span> <span class="n">JsonOutputParser</span><span class="p">()</span>
 
             <span class="c1"># Resolve refs in schema because they are not supported</span>
@@ -2491,7 +2792,8 @@
                     <span class="n">key_name</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Unsupported schema type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">tool_choice</span> <span class="o">=</span> <span class="n">tool_name</span>
 
             <span class="k">try</span><span class="p">:</span>
@@ -2514,8 +2816,7 @@
                 <span class="n">exception_key</span><span class="o">=</span><span class="s2">"parsing_error"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="p">{</span><span class="s2">"raw"</span><span class="p">:</span> <span class="n">llm</span><span class="p">}</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser</span></div>
+        <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">parser</span></div>
 
 
 <div class="viewcode-block" id="ChatVertexAI.bind_tools">
@@ -2542,10 +2843,11 @@
 <span class="sd">                :class:`~langchain.runnable.Runnable` constructor.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">tool_choice</span> <span class="ow">and</span> <span class="n">tool_config</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"Must specify at most one of tool_choice and tool_config, received "</span>
                 <span class="sa">f</span><span class="s2">"both:</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_choice</span><span class="si">=}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">tool_config</span><span class="si">=}</span><span class="s2">"</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>  <span class="c1"># type: ignore[arg-type]</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
@@ -2625,8 +2927,9 @@
                 <span class="n">top_candidate</span><span class="p">,</span>
                 <span class="n">usage_metadata</span><span class="o">=</span><span class="p">{},</span>
             <span class="p">)</span>
-            <span class="c1"># add model name if final chunk</span>
-            <span class="k">if</span> <span class="n">generation_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"finish_reason"</span><span class="p">):</span>
+            <span class="c1"># add model name if final chunk (when we have a definitive finish reason)</span>
+            <span class="n">finish_reason</span> <span class="o">=</span> <span class="n">generation_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"finish_reason"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">finish_reason</span> <span class="ow">and</span> <span class="n">finish_reason</span> <span class="o">!=</span> <span class="s2">"FINISH_REASON_UNSPECIFIED"</span><span class="p">:</span>
                 <span class="n">message</span><span class="o">.</span><span class="n">response_metadata</span><span class="p">[</span><span class="s2">"model_name"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span>
             <span class="c1"># is_blocked is part of "safety_ratings" list</span>
             <span class="c1"># but if it's True/False then chunks can't be marged</span>
@@ -2650,27 +2953,25 @@
         <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="p">[</span><span class="n">input_tokens</span><span class="p">,</span> <span class="n">output_tokens</span><span class="p">,</span> <span class="n">total_tokens</span><span class="p">,</span> <span class="n">cache_read_tokens</span><span class="p">]</span>
     <span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">thought_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">UsageMetadata</span><span class="p">(</span>
-                <span class="n">input_tokens</span><span class="o">=</span><span class="n">input_tokens</span><span class="p">,</span>
-                <span class="n">output_tokens</span><span class="o">=</span><span class="n">output_tokens</span><span class="p">,</span>
-                <span class="n">total_tokens</span><span class="o">=</span><span class="n">total_tokens</span><span class="p">,</span>
-                <span class="n">input_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"cache_read"</span><span class="p">:</span> <span class="n">cache_read_tokens</span><span class="p">},</span>
-                <span class="n">output_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"reasoning"</span><span class="p">:</span> <span class="n">thought_tokens</span><span class="p">},</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">UsageMetadata</span><span class="p">(</span>
-                <span class="n">input_tokens</span><span class="o">=</span><span class="n">input_tokens</span><span class="p">,</span>
-                <span class="n">output_tokens</span><span class="o">=</span><span class="n">output_tokens</span><span class="p">,</span>
-                <span class="n">total_tokens</span><span class="o">=</span><span class="n">total_tokens</span><span class="p">,</span>
-                <span class="n">input_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"cache_read"</span><span class="p">:</span> <span class="n">cache_read_tokens</span><span class="p">},</span>
-            <span class="p">)</span>
+    <span class="k">if</span> <span class="n">thought_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">UsageMetadata</span><span class="p">(</span>
+            <span class="n">input_tokens</span><span class="o">=</span><span class="n">input_tokens</span><span class="p">,</span>
+            <span class="n">output_tokens</span><span class="o">=</span><span class="n">output_tokens</span><span class="p">,</span>
+            <span class="n">total_tokens</span><span class="o">=</span><span class="n">total_tokens</span><span class="p">,</span>
+            <span class="n">input_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"cache_read"</span><span class="p">:</span> <span class="n">cache_read_tokens</span><span class="p">},</span>
+            <span class="n">output_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"reasoning"</span><span class="p">:</span> <span class="n">thought_tokens</span><span class="p">},</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">UsageMetadata</span><span class="p">(</span>
+        <span class="n">input_tokens</span><span class="o">=</span><span class="n">input_tokens</span><span class="p">,</span>
+        <span class="n">output_tokens</span><span class="o">=</span><span class="n">output_tokens</span><span class="p">,</span>
+        <span class="n">total_tokens</span><span class="o">=</span><span class="n">total_tokens</span><span class="p">,</span>
+        <span class="n">input_token_details</span><span class="o">=</span><span class="p">{</span><span class="s2">"cache_read"</span><span class="p">:</span> <span class="n">cache_read_tokens</span><span class="p">},</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_tool_name</span><span class="p">(</span><span class="n">tool</span><span class="p">:</span> <span class="n">_ToolType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">vertexai_tool</span> <span class="o">=</span> <span class="n">_format_to_gapic_tool</span><span class="p">([</span><span class="n">tool</span><span class="p">])</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">vertexai_tool</span><span class="o">.</span><span class="n">function_declarations</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">vertexai_tool</span><span class="o">.</span><span class="n">function_declarations</span><span class="p">)</span>
 </pre></div>
 </article>
 </div>

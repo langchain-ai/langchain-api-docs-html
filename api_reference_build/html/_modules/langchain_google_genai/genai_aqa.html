@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 16, 2025" name="docbuild:last-update"/>
+<meta content="Sep 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -222,10 +222,9 @@
 <h1>Source code for langchain_google_genai.genai_aqa</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Google GenerativeAI Attributed Question and Answering (AQA) service.</span>
 
-<span class="sd">The GenAI Semantic AQA API is a managed end to end service that allows</span>
-<span class="sd">developers to create responses grounded on specified passages based on</span>
-<span class="sd">a user query. For more information visit:</span>
-<span class="sd">https://developers.generativeai.google/guide</span>
+<span class="sd">The GenAI Semantic AQA API is a managed end to end service that allows developers to</span>
+<span class="sd">create responses grounded on specified passages based on a user query. For more</span>
+<span class="sd">information visit: https://developers.generativeai.google/guide</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
@@ -245,8 +244,8 @@
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        prompt: The user's inquiry.</span>
-<span class="sd">        source_passages: A list of passage that the LLM should use only to</span>
-<span class="sd">            answer the user's inquiry.</span>
+<span class="sd">        source_passages: A list of passage that the LLM should use only to answer the</span>
+<span class="sd">            user's inquiry.</span>
 <span class="sd">    """</span>
 
     <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span>
@@ -261,10 +260,10 @@
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        answer: The answer to the user's inquiry.</span>
-<span class="sd">        attributed_passages: A list of passages that the LLM used to construct</span>
-<span class="sd">            the answer.</span>
-<span class="sd">        answerable_probability: The probability of the question being answered</span>
-<span class="sd">            from the provided passages.</span>
+<span class="sd">        attributed_passages: A list of passages that the LLM used to construct the</span>
+<span class="sd">            answer.</span>
+<span class="sd">        answerable_probability: The probability of the question being answered from the</span>
+<span class="sd">            provided passages.</span>
 <span class="sd">    """</span>
 
     <span class="n">answer</span><span class="p">:</span> <span class="nb">str</span>
@@ -284,10 +283,12 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">answer_style</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">genai</span><span class="o">.</span><span class="n">GenerateAnswerRequest</span><span class="o">.</span><span class="n">AnswerStyle</span><span class="o">.</span><span class="n">ABSTRACTIVE</span><span class="p">,</span>
-        <span class="n">safety_settings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">genai</span><span class="o">.</span><span class="n">SafetySetting</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">safety_settings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">genai</span><span class="o">.</span><span class="n">SafetySetting</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">temperature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">safety_settings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">safety_settings</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">genaix</span><span class="o">.</span><span class="n">build_generative_service</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_answer_style</span> <span class="o">=</span> <span class="n">answer_style</span>
@@ -314,9 +315,9 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">GenAIAqa</span><span class="p">(</span><span class="n">RunnableSerializable</span><span class="p">[</span><span class="n">AqaInput</span><span class="p">,</span> <span class="n">AqaOutput</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">"""Google's Attributed Question and Answering service.</span>
 
-<span class="sd">    Given a user's query and a list of passages, Google's server will return</span>
-<span class="sd">    a response that is grounded to the provided list of passages. It will not</span>
-<span class="sd">    base the response on parametric memory.</span>
+<span class="sd">    Given a user's query and a list of passages, Google's server will return a response</span>
+<span class="sd">    that is grounded to the provided list of passages. It will not base the response on</span>
+<span class="sd">    parametric memory.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        answer_style: keyword-only argument. See</span>
@@ -352,7 +353,6 @@
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">AqaInput</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RunnableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AqaOutput</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Generates a grounded response using the provided passages."""</span>
-
         <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">generate_answer</span><span class="p">(</span>
             <span class="n">prompt</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">prompt</span><span class="p">,</span> <span class="n">passages</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">source_passages</span>
         <span class="p">)</span>
