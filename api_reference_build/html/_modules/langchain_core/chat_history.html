@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 18, 2025" name="docbuild:last-update"/>
+<meta content="Sep 19, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -289,33 +289,43 @@
 
 <span class="sd">        .. code-block:: python</span>
 
+<span class="sd">            import json</span>
+<span class="sd">            import os</span>
+<span class="sd">            from langchain_core.messages import messages_from_dict, message_to_dict</span>
+
+
 <span class="sd">            class FileChatMessageHistory(BaseChatMessageHistory):</span>
 <span class="sd">                storage_path: str</span>
 <span class="sd">                session_id: str</span>
 
 <span class="sd">                @property</span>
-<span class="sd">                def messages(self):</span>
-<span class="sd">                    with open(</span>
-<span class="sd">                        os.path.join(storage_path, session_id),</span>
-<span class="sd">                        "r",</span>
-<span class="sd">                        encoding="utf-8",</span>
-<span class="sd">                    ) as f:</span>
-<span class="sd">                        messages = json.loads(f.read())</span>
-<span class="sd">                    return messages_from_dict(messages)</span>
+<span class="sd">                def messages(self) -&gt; list[BaseMessage]:</span>
+<span class="sd">                    try:</span>
+<span class="sd">                        with open(</span>
+<span class="sd">                            os.path.join(self.storage_path, self.session_id),</span>
+<span class="sd">                            "r",</span>
+<span class="sd">                            encoding="utf-8",</span>
+<span class="sd">                        ) as f:</span>
+<span class="sd">                            messages_data = json.load(f)</span>
+<span class="sd">                        return messages_from_dict(messages_data)</span>
+<span class="sd">                    except FileNotFoundError:</span>
+<span class="sd">                        return []</span>
 
 <span class="sd">                def add_messages(self, messages: Sequence[BaseMessage]) -&gt; None:</span>
 <span class="sd">                    all_messages = list(self.messages)  # Existing messages</span>
 <span class="sd">                    all_messages.extend(messages)  # Add new messages</span>
 
 <span class="sd">                    serialized = [message_to_dict(message) for message in all_messages]</span>
-<span class="sd">                    # Can be further optimized by only writing new messages</span>
-<span class="sd">                    # using append mode.</span>
-<span class="sd">                    with open(os.path.join(storage_path, session_id), "w") as f:</span>
-<span class="sd">                        json.dump(messages, f)</span>
+<span class="sd">                    file_path = os.path.join(self.storage_path, self.session_id)</span>
+<span class="sd">                    os.makedirs(os.path.dirname(file_path), exist_ok=True)</span>
+<span class="sd">                    with open(file_path, "w", encoding="utf-8") as f:</span>
+<span class="sd">                        json.dump(serialized, f)</span>
 
-<span class="sd">                def clear(self):</span>
-<span class="sd">                    with open(os.path.join(storage_path, session_id), "w") as f:</span>
-<span class="sd">                        f.write("[]")</span>
+<span class="sd">                def clear(self) -&gt; None:</span>
+<span class="sd">                    file_path = os.path.join(self.storage_path, self.session_id)</span>
+<span class="sd">                    os.makedirs(os.path.dirname(file_path), exist_ok=True)</span>
+<span class="sd">                    with open(file_path, "w", encoding="utf-8") as f:</span>
+<span class="sd">                        json.dump([], f)</span>
 
 <span class="sd">    """</span>
 
