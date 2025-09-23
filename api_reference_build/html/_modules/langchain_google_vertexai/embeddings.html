@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 22, 2025" name="docbuild:last-update"/>
+<meta content="Sep 23, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -363,6 +363,10 @@
     <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validates that the python package exists in environment."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"model_name must be provided for VertexAI embeddings"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
         <span class="n">values</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"project"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">,</span>
             <span class="s2">"location"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">location</span><span class="p">,</span>
@@ -538,11 +542,12 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">"""Makes a Vertex AI model request with retry logic."""</span>
         <span class="k">if</span> <span class="n">embeddings_type</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_version</span><span class="o">.</span><span class="n">task_type_supported</span><span class="p">:</span>
-            <span class="n">requests</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">requests</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TextEmbeddingInput</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">TextEmbeddingInput</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="n">embeddings_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">texts</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">requests</span> <span class="o">=</span> <span class="n">texts</span>
+            <span class="c1"># Fallback to raw text strings for models that don't support task_type</span>
+            <span class="n">requests</span> <span class="o">=</span> <span class="n">texts</span>  <span class="c1"># type: ignore</span>
 
         <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">output_dimensionality</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_version</span><span class="o">.</span><span class="n">output_dimensionality_supported</span><span class="p">:</span>
@@ -769,6 +774,9 @@
         <span class="n">result</span><span class="p">:</span> <span class="n">MultiModalEmbeddingResponse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="p">[</span>
             <span class="s2">"get_embeddings_with_retry"</span>
         <span class="p">](</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">contextual_text</span><span class="o">=</span><span class="n">contextual_text</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="n">dimensions</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">image_embedding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Failed to generate image embedding"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">image_embedding</span></div>
 
 
@@ -803,6 +811,9 @@
             <span class="n">result</span><span class="p">:</span> <span class="n">MultiModalEmbeddingResponse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span><span class="p">[</span>
                 <span class="s2">"get_embeddings_with_retry"</span>
             <span class="p">](</span><span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">contextual_text</span><span class="o">=</span><span class="n">contextual_text</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="n">dimensions</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">image_embedding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Failed to generate embedding for image: </span><span class="si">{</span><span class="n">image_path</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">image_embedding</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">embeddings</span></div>
 </div>
