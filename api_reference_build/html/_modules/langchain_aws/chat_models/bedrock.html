@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,7 +220,8 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_aws.chat_models.bedrock</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
@@ -280,6 +281,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">anthropic_tokens_supported</span><span class="p">,</span>
+    <span class="n">count_tokens_api_supported_for_model</span><span class="p">,</span>
     <span class="n">create_aws_client</span><span class="p">,</span>
     <span class="n">get_num_tokens_anthropic</span><span class="p">,</span>
     <span class="n">get_token_ids_anthropic</span><span class="p">,</span>
@@ -1293,6 +1295,43 @@
             <span class="n">final_output</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
         <span class="n">final_output</span><span class="p">[</span><span class="s2">"usage"</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_usage</span>
         <span class="k">return</span> <span class="n">final_output</span>
+    
+<div class="viewcode-block" id="ChatBedrock.get_num_tokens_from_messages">
+<a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.get_num_tokens_from_messages">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="n">model_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_base_model</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_is_anthropic</span>
+            <span class="ow">and</span> <span class="n">count_tokens_api_supported_for_model</span><span class="p">(</span><span class="n">model_id</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">system</span><span class="p">,</span> <span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">ChatPromptAdapter</span><span class="o">.</span><span class="n">format_messages</span><span class="p">(</span>
+                <span class="s2">"anthropic"</span><span class="p">,</span> <span class="n">messages</span>
+            <span class="p">)</span>
+            <span class="n">input_to_count_tmpl</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"anthropic_version"</span><span class="p">:</span> <span class="s2">"bedrock-2023-05-31"</span><span class="p">,</span>
+                <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_tokens</span> <span class="k">else</span> <span class="mi">8192</span><span class="p">,</span>
+                <span class="s2">"messages"</span><span class="p">:</span> <span class="n">formatted_messages</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">system</span><span class="p">:</span>
+                <span class="n">input_to_count_tmpl</span><span class="p">[</span><span class="s2">"system"</span><span class="p">]</span> <span class="o">=</span> <span class="n">system</span>
+            <span class="n">input_to_count</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">input_to_count_tmpl</span><span class="p">)</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>
+                <span class="n">modelId</span><span class="o">=</span><span class="n">model_id</span><span class="p">,</span>
+                <span class="nb">input</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">"invokeModel"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">"body"</span><span class="p">:</span> <span class="n">input_to_count</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="s2">"inputTokens"</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens_from_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="ChatBedrock.get_num_tokens">
 <a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock.ChatBedrock.html#langchain_aws.chat_models.bedrock.ChatBedrock.get_num_tokens">[docs]</a>

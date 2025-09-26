@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,7 +220,9 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_openai.llms.azure</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="sd">"""Azure OpenAI large language models. Not to be confused with chat models."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Mapping</span>
@@ -325,6 +327,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Mapping of secret keys to environment variables."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"openai_api_key"</span><span class="p">:</span> <span class="s2">"AZURE_OPENAI_API_KEY"</span><span class="p">,</span>
             <span class="s2">"azure_ad_token"</span><span class="p">:</span> <span class="s2">"AZURE_OPENAI_AD_TOKEN"</span><span class="p">,</span>
@@ -339,11 +342,14 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key and python package exists in environment."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n must be at least 1."</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"n must be at least 1."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">streaming</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot stream results when n &gt; 1."</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Cannot stream results when n &gt; 1."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">streaming</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_of</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Cannot stream results when best_of &gt; 1."</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">"Cannot stream results when best_of &gt; 1."</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="c1"># For backwards compatibility. Before openai v1, no distinction was made</span>
         <span class="c1"># between azure_endpoint and base_url (openai_api_base).</span>
         <span class="n">openai_api_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_base</span>
@@ -352,19 +358,21 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_base</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_base</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"/openai"</span>
                 <span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"As of openai&gt;=1.0.0, Azure endpoints should be specified via "</span>
                     <span class="s2">"the `azure_endpoint` param not `openai_api_base` "</span>
                     <span class="s2">"(or alias `base_url`)."</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_name</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"As of openai&gt;=1.0.0, if `deployment_name` (or alias "</span>
                     <span class="s2">"`azure_deployment`) is specified then "</span>
                     <span class="s2">"`openai_api_base` (or alias `base_url`) should not be. "</span>
                     <span class="s2">"Instead use `deployment_name` (or alias `azure_deployment`) "</span>
                     <span class="s2">"and `azure_endpoint`."</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">deployment_name</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">client_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"api_version"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_version</span><span class="p">,</span>
@@ -411,7 +419,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_identifying_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="o">**</span><span class="p">{</span><span class="s2">"deployment_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_name</span><span class="p">},</span>
+            <span class="s2">"deployment_name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">deployment_name</span><span class="p">,</span>
             <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_identifying_params</span><span class="p">,</span>
         <span class="p">}</span>
 
@@ -438,6 +446,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">lc_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Attributes relevant to tracing."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"openai_api_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_type</span><span class="p">,</span>
             <span class="s2">"openai_api_version"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_version</span><span class="p">,</span>

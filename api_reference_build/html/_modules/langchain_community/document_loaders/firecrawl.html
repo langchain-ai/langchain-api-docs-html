@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,8 +220,9 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_community.document_loaders.firecrawl</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.document_loaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLoader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.documents</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
@@ -288,174 +289,15 @@
 
 <span class="sd">    """</span>  <span class="c1"># noqa: E501</span>
 
-<div class="viewcode-block" id="FireCrawlLoader.legacy_crawler_options_adapter">
-<a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.firecrawl.FireCrawlLoader.html#langchain_community.document_loaders.firecrawl.FireCrawlLoader.legacy_crawler_options_adapter">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">legacy_crawler_options_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="n">use_legacy_options</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">legacy_keys</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">"includes"</span><span class="p">,</span>
-            <span class="s2">"excludes"</span><span class="p">,</span>
-            <span class="s2">"allowBackwardCrawling"</span><span class="p">,</span>
-            <span class="s2">"allowExternalContentLinks"</span><span class="p">,</span>
-            <span class="s2">"pageOptions"</span><span class="p">,</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">legacy_keys</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-                <span class="n">use_legacy_options</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="k">break</span>
-
-        <span class="k">if</span> <span class="n">use_legacy_options</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">"Deprecated parameters detected. See Firecrawl v1 docs for updates."</span><span class="p">,</span>
-                <span class="ne">DeprecationWarning</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">"includes"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includes"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"includePaths"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includes"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includes"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"excludes"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"excludes"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"excludePaths"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"excludes"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"excludes"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"allowBackwardCrawling"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowBackwardCrawling"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"allowBackwardLinks"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowBackwardCrawling"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowBackwardCrawling"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"allowExternalContentLinks"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowExternalContentLinks"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"allowExternalLinks"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowExternalContentLinks"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"allowExternalContentLinks"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"pageOptions"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">"pageOptions"</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"scrapeOptions"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legacy_scrape_options_adapter</span><span class="p">(</span>
-                        <span class="n">params</span><span class="p">[</span><span class="s2">"pageOptions"</span><span class="p">]</span>
-                    <span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"pageOptions"</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">params</span></div>
-
-
-<div class="viewcode-block" id="FireCrawlLoader.legacy_scrape_options_adapter">
-<a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.firecrawl.FireCrawlLoader.html#langchain_community.document_loaders.firecrawl.FireCrawlLoader.legacy_scrape_options_adapter">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">legacy_scrape_options_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="n">use_legacy_options</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">formats</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"markdown"</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="s2">"extractorOptions"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s2">"mode"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"mode"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"llm-extraction"</span>
-                    <span class="ow">or</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"mode"</span><span class="p">]</span>
-                    <span class="o">==</span> <span class="s2">"llm-extraction-from-raw-html"</span>
-                    <span class="ow">or</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"mode"</span><span class="p">]</span>
-                    <span class="o">==</span> <span class="s2">"llm-extraction-from-markdown"</span>
-                <span class="p">):</span>
-                    <span class="n">use_legacy_options</span> <span class="o">=</span> <span class="kc">True</span>
-                    <span class="k">if</span> <span class="s2">"extractionPrompt"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]:</span>
-                        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"extractionPrompt"</span><span class="p">]:</span>
-                            <span class="n">params</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span>
-                                <span class="s2">"extractionPrompt"</span>
-                            <span class="p">]</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">params</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                                <span class="s2">"extractionPrompt"</span><span class="p">,</span>
-                                <span class="s2">"Extract page information based on the schema."</span><span class="p">,</span>
-                            <span class="p">)</span>
-
-                    <span class="k">if</span> <span class="s2">"extractionSchema"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]:</span>
-                        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"extractionSchema"</span><span class="p">]:</span>
-                            <span class="n">params</span><span class="p">[</span><span class="s2">"schema"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span>
-                                <span class="s2">"extractionSchema"</span>
-                            <span class="p">]</span>
-
-                    <span class="k">if</span> <span class="s2">"userPrompt"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]:</span>
-                        <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"userPrompt"</span><span class="p">]:</span>
-                            <span class="n">params</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">][</span><span class="s2">"userPrompt"</span><span class="p">]</span>
-
-                    <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"extractorOptions"</span><span class="p">]</span>
-
-        <span class="n">scrape_keys</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">"includeMarkdown"</span><span class="p">,</span>
-            <span class="s2">"includeHtml"</span><span class="p">,</span>
-            <span class="s2">"includeRawHtml"</span><span class="p">,</span>
-            <span class="s2">"includeExtract"</span><span class="p">,</span>
-            <span class="s2">"includeLinks"</span><span class="p">,</span>
-            <span class="s2">"screenshot"</span><span class="p">,</span>
-            <span class="s2">"fullPageScreenshot"</span><span class="p">,</span>
-            <span class="s2">"onlyIncludeTags"</span><span class="p">,</span>
-            <span class="s2">"removeTags"</span><span class="p">,</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">scrape_keys</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-                <span class="n">use_legacy_options</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="k">break</span>
-
-        <span class="k">if</span> <span class="n">use_legacy_options</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                <span class="s2">"Deprecated parameters detected. See Firecrawl v1 docs for updates."</span><span class="p">,</span>
-                <span class="ne">DeprecationWarning</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">"includeMarkdown"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeMarkdown"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"markdown"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeMarkdown"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"includeHtml"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeHtml"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"html"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeHtml"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"includeRawHtml"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeRawHtml"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"rawHtml"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeRawHtml"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"includeExtract"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeExtract"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"extract"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeExtract"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"includeLinks"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeLinks"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"links"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"includeLinks"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"screenshot"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"screenshot"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"screenshot"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"screenshot"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"fullPageScreenshot"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"fullPageScreenshot"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"screenshot@fullPage"</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"fullPageScreenshot"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"onlyIncludeTags"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"onlyIncludeTags"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"includeTags"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"onlyIncludeTags"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"onlyIncludeTags"</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="s2">"removeTags"</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"removeTags"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                    <span class="n">params</span><span class="p">[</span><span class="s2">"excludeTags"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">"removeTags"</span><span class="p">]</span>
-                <span class="k">del</span> <span class="n">params</span><span class="p">[</span><span class="s2">"removeTags"</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="s2">"formats"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-            <span class="n">params</span><span class="p">[</span><span class="s2">"formats"</span><span class="p">]</span> <span class="o">=</span> <span class="n">formats</span>
-
-        <span class="k">return</span> <span class="n">params</span></div>
-
+    <span class="c1"># No legacy support in v2-only implementation</span>
 
 <div class="viewcode-block" id="FireCrawlLoader.__init__">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.firecrawl.FireCrawlLoader.html#langchain_community.document_loaders.firecrawl.FireCrawlLoader.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">api_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"crawl"</span><span class="p">,</span> <span class="s2">"scrape"</span><span class="p">,</span> <span class="s2">"map"</span><span class="p">,</span> <span class="s2">"extract"</span><span class="p">,</span> <span class="s2">"search"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"crawl"</span><span class="p">,</span>
@@ -492,67 +334,307 @@
 <span class="s2">                Allowed: 'crawl', 'scrape', 'search', 'map', 'extract', 'search'."""</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">url</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Url must be provided"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"scrape"</span><span class="p">,</span> <span class="s2">"crawl"</span><span class="p">,</span> <span class="s2">"map"</span><span class="p">,</span> <span class="s2">"extract"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">url</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Url must be provided for modes other than 'search'"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"search"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">query</span> <span class="ow">or</span> <span class="p">(</span><span class="n">params</span> <span class="ow">and</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"query"</span><span class="p">))):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Query must be provided for search mode"</span><span class="p">)</span>
 
         <span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span> <span class="ow">or</span> <span class="n">get_from_env</span><span class="p">(</span><span class="s2">"api_key"</span><span class="p">,</span> <span class="s2">"FIRECRAWL_API_KEY"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span> <span class="o">=</span> <span class="n">FirecrawlApp</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">api_url</span><span class="o">=</span><span class="n">api_url</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="c1"># Ensure we never pass None for api_url (v2 client validates as str).</span>
+        <span class="c1"># Avoid get_from_env to prevent raising.</span>
+        <span class="n">resolved_api_url</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">api_url</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"FIRECRAWL_API_URL"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"https://api.firecrawl.dev"</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span> <span class="o">=</span> <span class="n">FirecrawlApp</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">,</span> <span class="n">api_url</span><span class="o">=</span><span class="n">resolved_api_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span> <span class="ow">or</span> <span class="s2">""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span> <span class="ow">or</span> <span class="p">{}</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">query</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"query"</span><span class="p">]</span> <span class="o">=</span> <span class="n">query</span></div>
 
 
 <div class="viewcode-block" id="FireCrawlLoader.lazy_load">
 <a class="viewcode-back" href="../../../community/document_loaders/langchain_community.document_loaders.firecrawl.FireCrawlLoader.html#langchain_community.document_loaders.firecrawl.FireCrawlLoader.lazy_load">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">lazy_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+        <span class="c1"># Prepare integration tag and filter params per method</span>
+        <span class="n">firecrawl_docs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"scrape"</span><span class="p">:</span>
-            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">scrape_url</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">legacy_scrape_options_adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-                <span class="p">)</span>
-            <span class="p">]</span>
+            <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"formats"</span><span class="p">,</span>
+                <span class="s2">"headers"</span><span class="p">,</span>
+                <span class="s2">"include_tags"</span><span class="p">,</span>
+                <span class="s2">"exclude_tags"</span><span class="p">,</span>
+                <span class="s2">"only_main_content"</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">,</span>
+                <span class="s2">"wait_for"</span><span class="p">,</span>
+                <span class="s2">"mobile"</span><span class="p">,</span>
+                <span class="s2">"parsers"</span><span class="p">,</span>
+                <span class="s2">"actions"</span><span class="p">,</span>
+                <span class="s2">"location"</span><span class="p">,</span>
+                <span class="s2">"skip_tls_verification"</span><span class="p">,</span>
+                <span class="s2">"remove_base64_images"</span><span class="p">,</span>
+                <span class="s2">"fast_mode"</span><span class="p">,</span>
+                <span class="s2">"use_mock"</span><span class="p">,</span>
+                <span class="s2">"block_ads"</span><span class="p">,</span>
+                <span class="s2">"proxy"</span><span class="p">,</span>
+                <span class="s2">"max_age"</span><span class="p">,</span>
+                <span class="s2">"store_in_cache"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">scrape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)]</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"crawl"</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"URL is required for crawl mode"</span><span class="p">)</span>
-            <span class="n">crawl_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">crawl_url</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">legacy_crawler_options_adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="n">crawl_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"prompt"</span><span class="p">,</span>
+                <span class="s2">"exclude_paths"</span><span class="p">,</span>
+                <span class="s2">"include_paths"</span><span class="p">,</span>
+                <span class="s2">"max_discovery_depth"</span><span class="p">,</span>
+                <span class="s2">"ignore_sitemap"</span><span class="p">,</span>
+                <span class="s2">"ignore_query_parameters"</span><span class="p">,</span>
+                <span class="s2">"limit"</span><span class="p">,</span>
+                <span class="s2">"crawl_entire_domain"</span><span class="p">,</span>
+                <span class="s2">"allow_external_links"</span><span class="p">,</span>
+                <span class="s2">"allow_subdomains"</span><span class="p">,</span>
+                <span class="s2">"delay"</span><span class="p">,</span>
+                <span class="s2">"max_concurrency"</span><span class="p">,</span>
+                <span class="s2">"webhook"</span><span class="p">,</span>
+                <span class="s2">"scrape_options"</span><span class="p">,</span>
+                <span class="s2">"zero_data_retention"</span><span class="p">,</span>
+                <span class="s2">"poll_interval"</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+            <span class="n">crawl_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">crawl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="c1"># Support dict or object with 'data'</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">crawl_response</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">crawl_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">crawl_response</span><span class="p">,</span> <span class="s2">"data"</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"map"</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"URL is required for map mode"</span><span class="p">)</span>
-            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">map_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"search"</span><span class="p">,</span>
+                <span class="s2">"include_subdomains"</span><span class="p">,</span>
+                <span class="s2">"limit"</span><span class="p">,</span>
+                <span class="s2">"sitemap"</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">,</span>
+                <span class="s2">"location"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+            <span class="n">map_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="c1"># Firecrawl v2 (&gt;=4.3.6) returns an object with a `links` array</span>
+            <span class="c1"># Fallback to legacy list response if needed</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">map_response</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">links</span> <span class="o">=</span> <span class="n">map_response</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"links"</span><span class="p">)</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">links</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">map_response</span><span class="p">,</span> <span class="s2">"links"</span><span class="p">):</span>
+                <span class="n">links</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">map_response</span><span class="p">,</span> <span class="s2">"links"</span><span class="p">)</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">links</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">links</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">is_list</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">map_response</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">map_response</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_list</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"extract"</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"URL is required for extract mode"</span><span class="p">)</span>
-            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">extract</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">],</span> <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
-            <span class="p">]</span>
+            <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"prompt"</span><span class="p">,</span>
+                <span class="s2">"schema"</span><span class="p">,</span>
+                <span class="s2">"system_prompt"</span><span class="p">,</span>
+                <span class="s2">"allow_external_links"</span><span class="p">,</span>
+                <span class="s2">"enable_web_search"</span><span class="p">,</span>
+                <span class="s2">"show_sources"</span><span class="p">,</span>
+                <span class="s2">"scrape_options"</span><span class="p">,</span>
+                <span class="s2">"ignore_invalid_urls"</span><span class="p">,</span>
+                <span class="s2">"poll_interval"</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">,</span>
+                <span class="s2">"agent"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">extract</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))]</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"search"</span><span class="p">:</span>
-            <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
-                <span class="n">query</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"query"</span><span class="p">),</span>
-                <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+            <span class="n">allowed</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">"sources"</span><span class="p">,</span>
+                <span class="s2">"categories"</span><span class="p">,</span>
+                <span class="s2">"limit"</span><span class="p">,</span>
+                <span class="s2">"tbs"</span><span class="p">,</span>
+                <span class="s2">"location"</span><span class="p">,</span>
+                <span class="s2">"ignore_invalid_urls"</span><span class="p">,</span>
+                <span class="s2">"timeout"</span><span class="p">,</span>
+                <span class="s2">"scrape_options"</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"integration"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"langchain"</span>
+            <span class="n">search_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">firecrawl</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+                <span class="n">query</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"query"</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
+            <span class="c1"># If SDK already returns a list[dict], use it directly</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">search_data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">search_data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Normalize typed SearchData into list of dicts with markdown + metadata</span>
+                <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">containers</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">search_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">containers</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">search_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"web"</span><span class="p">),</span>
+                        <span class="n">search_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"news"</span><span class="p">),</span>
+                        <span class="n">search_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"images"</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">containers</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="nb">getattr</span><span class="p">(</span><span class="n">search_data</span><span class="p">,</span> <span class="s2">"web"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="nb">getattr</span><span class="p">(</span><span class="n">search_data</span><span class="p">,</span> <span class="s2">"news"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="nb">getattr</span><span class="p">(</span><span class="n">search_data</span><span class="p">,</span> <span class="s2">"images"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="p">]</span>
+                <span class="k">for</span> <span class="n">kind</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="s2">"web"</span><span class="p">,</span> <span class="n">containers</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                    <span class="p">(</span><span class="s2">"news"</span><span class="p">,</span> <span class="n">containers</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                    <span class="p">(</span><span class="s2">"images"</span><span class="p">,</span> <span class="n">containers</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">items</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                        <span class="n">url_val</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="k">else</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"url"</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">title_val</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="k">else</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"title"</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">desc_val</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                            <span class="k">else</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"description"</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">content_val</span> <span class="o">=</span> <span class="n">desc_val</span> <span class="ow">or</span> <span class="n">title_val</span> <span class="ow">or</span> <span class="n">url_val</span> <span class="ow">or</span> <span class="s2">""</span>
+                        <span class="n">metadata_val</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">{</span>
+                                <span class="s2">"url"</span><span class="p">:</span> <span class="n">url_val</span><span class="p">,</span>
+                                <span class="s2">"title"</span><span class="p">:</span> <span class="n">title_val</span><span class="p">,</span>
+                                <span class="s2">"category"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+                                <span class="k">else</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"category"</span><span class="p">),</span>
+                                <span class="s2">"type"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+                            <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="p">}</span>
+                        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">{</span><span class="s2">"markdown"</span><span class="p">:</span> <span class="n">content_val</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">:</span> <span class="n">metadata_val</span><span class="p">}</span>
+                        <span class="p">)</span>
+                <span class="n">firecrawl_docs</span> <span class="o">=</span> <span class="n">results</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"""Invalid mode '</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">'.</span>
 <span class="s2">                Allowed: 'crawl', 'scrape', 'map', 'extract', 'search'."""</span>
             <span class="p">)</span>
         <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">firecrawl_docs</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"map"</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"extract"</span><span class="p">:</span>
-                <span class="n">page_content</span> <span class="o">=</span> <span class="n">doc</span>
-                <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"map"</span><span class="p">:</span>
+                <span class="c1"># Support both legacy string list and v2 link objects</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">page_content</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">doc</span>
+                    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">page_content_value</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"url"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"href"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">page_content_value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">page_content_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">page_content_value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">{</span>
+                            <span class="s2">"title"</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"title"</span><span class="p">),</span>
+                            <span class="s2">"description"</span><span class="p">:</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"description"</span><span class="p">),</span>
+                        <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="p">}</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">):</span>
+                    <span class="n">page_content_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span>
+                        <span class="n">doc</span><span class="p">,</span> <span class="s2">"href"</span><span class="p">,</span> <span class="s2">""</span>
+                    <span class="p">)</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">page_content_value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">page_content_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">page_content_value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">title</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="n">description</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">meta</span><span class="p">[</span><span class="s2">"title"</span><span class="p">]</span> <span class="o">=</span> <span class="n">title</span>
+                    <span class="k">if</span> <span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">meta</span><span class="p">[</span><span class="s2">"description"</span><span class="p">]</span> <span class="o">=</span> <span class="n">description</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"extract"</span><span class="p">:</span>
+                <span class="n">page_content</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"search"</span><span class="p">:</span>
+                <span class="c1"># Already normalized to dicts with markdown/metadata above</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">markdown_value</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"markdown"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">markdown_value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">markdown_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">markdown_value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">metadata_obj</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="n">metadata_obj</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata_obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"markdown"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"html"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rawHtml"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="n">metadata</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">content_value</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"markdown"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"html"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rawHtml"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">content_value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">content_value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">content_value</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"markdown"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"html"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"rawHtml"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">page_content</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">content_value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">content_value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">meta</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span> <span class="ow">or</span> <span class="p">{}</span>
+
+                <span class="c1"># Normalize metadata to plain dict for LangChain Document</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"model_dump"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">model_dump</span><span class="p">):</span>
+                        <span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span><span class="n">meta</span><span class="p">):</span>
+                        <span class="n">meta</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="s2">"__dict__"</span><span class="p">):</span>
+                        <span class="n">meta</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">meta</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">meta</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"value"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">meta</span><span class="p">)}</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">page_content</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="k">yield</span> <span class="n">Document</span><span class="p">(</span>
                 <span class="n">page_content</span><span class="o">=</span><span class="n">page_content</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span>
             <span class="p">)</span></div>
 </div>
 

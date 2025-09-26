@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -243,6 +243,31 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">CreateTable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.sql.expression</span><span class="w"> </span><span class="kn">import</span> <span class="n">Executable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">NullType</span>
+
+
+<span class="c1"># Workaround for DuckDB type hashability issue with SQLAlchemy</span>
+<span class="c1"># See: https://github.com/duckdb/duckdb-python/issues/78</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_patch_duckdb_types</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Patch DuckDBPyType to be hashable for SQLAlchemy compatibility."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+
+        <span class="c1"># Check if DuckDBPyType exists and doesn't already have __hash__</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">duckdb</span><span class="p">,</span> <span class="s2">"typing"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">duckdb</span><span class="o">.</span><span class="n">typing</span><span class="p">,</span> <span class="s2">"DuckDBPyType"</span><span class="p">):</span>
+            <span class="n">duckdb_type</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">typing</span><span class="o">.</span><span class="n">DuckDBPyType</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">duckdb_type</span><span class="p">,</span> <span class="s2">"__hash__"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">duckdb_type</span><span class="o">.</span><span class="fm">__hash__</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Add a hash method based on the string representation</span>
+                <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>  <span class="c1"># type: ignore[no-untyped-def]</span>
+                    <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+                <span class="n">duckdb_type</span><span class="o">.</span><span class="fm">__hash__</span> <span class="o">=</span> <span class="fm">__hash__</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="c1"># DuckDB not available, nothing to patch</span>
+        <span class="k">pass</span>
+
+
+<span class="c1"># Apply the patch when this module is imported</span>
+<span class="n">_patch_duckdb_types</span><span class="p">()</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_format_index</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">interfaces</span><span class="o">.</span><span class="n">ReflectedIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

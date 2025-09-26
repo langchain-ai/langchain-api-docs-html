@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,7 +220,9 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_openai.embeddings.base</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span></span><span class="sd">"""Base classes for OpenAI embeddings."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
@@ -272,29 +274,25 @@
             <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
             <span class="k">continue</span>
 
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">_result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="c1"># if only one embedding was produced, use it</span>
             <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_result</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="k">continue</span>
 
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># else we need to weighted average</span>
-            <span class="c1"># should be same as</span>
-            <span class="c1"># average = np.average(_result, axis=0, weights=num_tokens_in_batch[i])</span>
-            <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">num_tokens_in_batch</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">average</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="nb">sum</span><span class="p">(</span>
-                    <span class="n">val</span> <span class="o">*</span> <span class="n">weight</span>
-                    <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">num_tokens_in_batch</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-                <span class="p">)</span>
-                <span class="o">/</span> <span class="n">total_weight</span>
-                <span class="k">for</span> <span class="n">embedding</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">_result</span><span class="p">)</span>
-            <span class="p">]</span>
+        <span class="c1"># else we need to weighted average</span>
+        <span class="c1"># should be same as</span>
+        <span class="c1"># average = np.average(_result, axis=0, weights=num_tokens_in_batch[i])</span>
+        <span class="n">total_weight</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">num_tokens_in_batch</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">average</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">val</span> <span class="o">*</span> <span class="n">weight</span> <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="n">num_tokens_in_batch</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="o">/</span> <span class="n">total_weight</span>
+            <span class="k">for</span> <span class="n">embedding</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">_result</span><span class="p">)</span>
+        <span class="p">]</span>
 
-            <span class="c1"># should be same as</span>
-            <span class="c1"># embeddings.append((average / np.linalg.norm(average)).tolist())</span>
-            <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">val</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">average</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
-            <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">val</span> <span class="o">/</span> <span class="n">magnitude</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">average</span><span class="p">])</span>
+        <span class="c1"># should be same as</span>
+        <span class="c1"># embeddings.append((average / np.linalg.norm(average)).tolist())</span>
+        <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">val</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">average</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="n">embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">val</span> <span class="o">/</span> <span class="n">magnitude</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">average</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">embeddings</span>
 
@@ -491,7 +489,8 @@
         <span class="n">extra</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"model_kwargs"</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">for</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">extra</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Found </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> supplied twice."</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Found </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> supplied twice."</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">field_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_required_field_names</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">"""WARNING! </span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2"> is not default parameter.</span>
@@ -502,10 +501,11 @@
 
         <span class="n">invalid_model_kwargs</span> <span class="o">=</span> <span class="n">all_required_field_names</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">extra</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">invalid_model_kwargs</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"Parameters </span><span class="si">{</span><span class="n">invalid_model_kwargs</span><span class="si">}</span><span class="s2"> should be specified explicitly. "</span>
                 <span class="sa">f</span><span class="s2">"Instead they were passed in as part of `model_kwargs` parameter."</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="n">values</span><span class="p">[</span><span class="s2">"model_kwargs"</span><span class="p">]</span> <span class="o">=</span> <span class="n">extra</span>
         <span class="k">return</span> <span class="n">values</span>
@@ -514,9 +514,10 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Validate that api key and python package exists in environment."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"azure"</span><span class="p">,</span> <span class="s2">"azure_ad"</span><span class="p">,</span> <span class="s2">"azuread"</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"If you are using Azure, please use the `AzureOpenAIEmbeddings` class."</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="n">client_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"api_key"</span><span class="p">:</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_key</span> <span class="k">else</span> <span class="kc">None</span>
@@ -533,20 +534,22 @@
             <span class="n">openai_proxy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span>
             <span class="n">http_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span>
             <span class="n">http_async_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">"Cannot specify 'openai_proxy' if one of "</span>
                 <span class="s2">"'http_client'/'http_async_client' is already specified. Received:</span><span class="se">\n</span><span class="s2">"</span>
                 <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">openai_proxy</span><span class="si">=}</span><span class="se">\n</span><span class="si">{</span><span class="n">http_client</span><span class="si">=}</span><span class="se">\n</span><span class="si">{</span><span class="n">http_async_client</span><span class="si">=}</span><span class="s2">"</span>
             <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
                 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="s2">"Could not import httpx python package. "</span>
                         <span class="s2">"Please install it with `pip install httpx`."</span>
-                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span><span class="p">)</span>
             <span class="n">sync_specific</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"http_client"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_client</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">OpenAI</span><span class="p">(</span><span class="o">**</span><span class="n">client_params</span><span class="p">,</span> <span class="o">**</span><span class="n">sync_specific</span><span class="p">)</span><span class="o">.</span><span class="n">embeddings</span>  <span class="c1"># type: ignore[arg-type]</span>
@@ -555,10 +558,11 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="kn">import</span><span class="w"> </span><span class="nn">httpx</span>
                 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="s2">"Could not import httpx python package. "</span>
                         <span class="s2">"Please install it with `pip install httpx`."</span>
-                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span> <span class="o">=</span> <span class="n">httpx</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span><span class="n">proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">openai_proxy</span><span class="p">)</span>
             <span class="n">async_specific</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"http_client"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_async_client</span><span class="p">}</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span> <span class="o">=</span> <span class="n">openai</span><span class="o">.</span><span class="n">AsyncOpenAI</span><span class="p">(</span>
@@ -577,8 +581,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">texts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Take the input `texts` and `chunk_size` and return 3 iterables as a tuple:</span>
+<span class="w">        </span><span class="sd">"""Take the input `texts` and `chunk_size` and return 3 iterables as a tuple.</span>
 
 <span class="sd">        We have `batches`, where batches are sets of individual texts</span>
 <span class="sd">        we want responses from the openai api. The length of a single batch is</span>
@@ -606,11 +609,12 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoTokenizer</span>
             <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="s2">"Could not import transformers python package. "</span>
                     <span class="s2">"This is needed for OpenAIEmbeddings to work without "</span>
                     <span class="s2">"`tiktoken`. Please install it with `pip install transformers`. "</span>
                 <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
                 <span class="n">pretrained_model_name_or_path</span><span class="o">=</span><span class="n">model_name</span>
@@ -680,8 +684,7 @@
         <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Generate length-safe embeddings for a list of texts.</span>
+<span class="w">        </span><span class="sd">"""Generate length-safe embeddings for a list of texts.</span>
 
 <span class="sd">        This method handles tokenization and embedding generation, respecting the</span>
 <span class="sd">        set embedding context length and chunk size. It supports both tiktoken</span>
@@ -733,8 +736,7 @@
         <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""</span>
-<span class="sd">        Asynchronously generate length-safe embeddings for a list of texts.</span>
+<span class="w">        </span><span class="sd">"""Asynchronously generate length-safe embeddings for a list of texts.</span>
 
 <span class="sd">        This method handles tokenization and asynchronous embedding generation,</span>
 <span class="sd">        respecting the set embedding context length and chunk size. It supports both</span>
@@ -748,7 +750,6 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List[List[float]]: A list of embeddings for each input text.</span>
 <span class="sd">        """</span>
-
         <span class="n">_chunk_size</span> <span class="o">=</span> <span class="n">chunk_size</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunk_size</span>
         <span class="n">client_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_invocation_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
         <span class="n">_iter</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="k">await</span> <span class="n">run_in_executor</span><span class="p">(</span>

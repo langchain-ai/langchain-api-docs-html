@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 25, 2025" name="docbuild:last-update"/>
+<meta content="Sep 26, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -279,7 +279,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.function_calling</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolsOutputParser</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_aws_client</span><span class="p">,</span> <span class="n">trim_message_whitespace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_aws.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">count_tokens_api_supported_for_model</span><span class="p">,</span>
+    <span class="n">create_aws_client</span><span class="p">,</span>
+    <span class="n">trim_message_whitespace</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">_BM</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_BM"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">BaseModel</span><span class="p">)</span>
@@ -988,7 +992,17 @@
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_base_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
+<span class="w">        </span><span class="sd">"""Return base model id, stripping any regional prefix."""</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_model_id</span>
+
+        <span class="c1"># For regional model IDs (e.g., us.anthropic.claude-3-5-haiku-20241022-v1:0),</span>
+        <span class="c1"># get the base model ID by removing the regional prefix</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">"eu."</span><span class="p">,</span> <span class="s2">"us."</span><span class="p">,</span> <span class="s2">"us-gov."</span><span class="p">,</span> <span class="s2">"apac."</span><span class="p">,</span> <span class="s2">"sa."</span><span class="p">,</span> <span class="s2">"amer."</span><span class="p">,</span> <span class="s2">"global."</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_id</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_configure_streaming_for_resolved_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Configure streaming support after resolving the base model for application inference profiles."""</span>
@@ -1368,7 +1382,61 @@
             <span class="s2">"aws_access_key_id"</span><span class="p">:</span> <span class="s2">"AWS_ACCESS_KEY_ID"</span><span class="p">,</span>
             <span class="s2">"aws_secret_access_key"</span><span class="p">:</span> <span class="s2">"AWS_SECRET_ACCESS_KEY"</span><span class="p">,</span>
             <span class="s2">"aws_session_token"</span><span class="p">:</span> <span class="s2">"AWS_SESSION_TOKEN"</span><span class="p">,</span>
-        <span class="p">}</span></div>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="ChatBedrockConverse.get_num_tokens_from_messages">
+<a class="viewcode-back" href="../../../aws/chat_models/langchain_aws.chat_models.bedrock_converse.ChatBedrockConverse.html#langchain_aws.chat_models.bedrock_converse.ChatBedrockConverse.get_num_tokens_from_messages">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_num_tokens_from_messages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">],</span>
+        <span class="n">tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Get the number of tokens in the messages using AWS Bedrock count_tokens API.</span>
+
+<span class="sd">        This method uses AWS Bedrock's count_tokens API which provides accurate</span>
+<span class="sd">        token counting for supported models before inference. Falls back to the base</span>
+<span class="sd">        implementation for unsupported models.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages: The message inputs to tokenize.</span>
+<span class="sd">            tools: Tool schemas (currently ignored as count_tokens API doesn't support them).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The number of input tokens in the messages.</span>
+<span class="sd">        """</span>
+        <span class="n">model_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_base_model</span><span class="p">()</span>
+        <span class="c1"># Check if the model supports count_tokens API</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">count_tokens_api_supported_for_model</span><span class="p">(</span><span class="n">model_id</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens_from_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">tools</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"Tool schemas are not yet supported by AWS Bedrock count_tokens API. "</span>
+                <span class="s2">"Ignoring tools parameter."</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">bedrock_messages</span><span class="p">,</span> <span class="n">system</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_blocks</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_blocks</span>
+                <span class="k">else</span> <span class="n">_messages_to_bedrock</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">input_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"converse"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"messages"</span><span class="p">:</span> <span class="n">bedrock_messages</span><span class="p">}}</span>
+            <span class="k">if</span> <span class="n">system</span><span class="p">:</span>
+                <span class="n">input_data</span><span class="p">[</span><span class="s2">"converse"</span><span class="p">][</span><span class="s2">"system"</span><span class="p">]</span> <span class="o">=</span> <span class="n">system</span>
+
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">count_tokens</span><span class="p">(</span>
+                <span class="n">modelId</span><span class="o">=</span><span class="n">model_id</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">input_data</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">response</span><span class="p">[</span><span class="s2">"inputTokens"</span><span class="p">]</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"count_tokens API failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. Using fallback."</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_num_tokens_from_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">tools</span><span class="p">)</span></div>
+</div>
 
 
 
