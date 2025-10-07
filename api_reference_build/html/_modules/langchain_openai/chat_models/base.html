@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -320,7 +320,13 @@
     <span class="n">is_basemodel_subclass</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.utils.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_model_kwargs</span><span class="p">,</span> <span class="n">from_env</span><span class="p">,</span> <span class="n">secret_from_env</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">SecretStr</span><span class="p">,</span> <span class="n">model_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseModel</span><span class="p">,</span>
+    <span class="n">ConfigDict</span><span class="p">,</span>
+    <span class="n">Field</span><span class="p">,</span>
+    <span class="n">SecretStr</span><span class="p">,</span>
+    <span class="n">model_validator</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic.v1</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span> <span class="k">as</span> <span class="n">BaseModelV1</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
 
@@ -688,11 +694,19 @@
     <span class="p">)</span>
 <span class="w">    </span><span class="sd">"""Timeout for requests to OpenAI completion API. Can be float, ``httpx.Timeout`` or</span>
 <span class="sd">        None."""</span>
-    <span class="n">stream_usage</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="w">    </span><span class="sd">"""Whether to include usage metadata in streaming output. If True, an additional</span>
+    <span class="n">stream_usage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Whether to include usage metadata in streaming output. If enabled, an additional</span>
 <span class="sd">    message chunk will be generated during the stream including usage metadata.</span>
 
+<span class="sd">    This parameter is enabled unless ``openai_api_base`` is set or the model is</span>
+<span class="sd">    initialized with a custom client, as many chat completions APIs do not support</span>
+<span class="sd">    streaming token usage.</span>
+
 <span class="sd">    .. versionadded:: 0.3.9</span>
+
+<span class="sd">    .. versionchanged:: 0.3.35</span>
+
+<span class="sd">        Enabled for default base URL and client.</span>
 <span class="sd">    """</span>
     <span class="n">max_retries</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Maximum number of retries to make when generating."""</span>
@@ -970,6 +984,28 @@
             <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OPENAI_ORGANIZATION"</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_base</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"OPENAI_API_BASE"</span><span class="p">)</span>
+
+        <span class="c1"># Enable stream_usage by default if using default base URL and client</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">all</span><span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">"stream_usage"</span><span class="p">,</span>
+                    <span class="s2">"openai_proxy"</span><span class="p">,</span>
+                    <span class="s2">"openai_api_base"</span><span class="p">,</span>
+                    <span class="s2">"base_url"</span><span class="p">,</span>
+                    <span class="s2">"client"</span><span class="p">,</span>
+                    <span class="s2">"root_client"</span><span class="p">,</span>
+                    <span class="s2">"async_client"</span><span class="p">,</span>
+                    <span class="s2">"root_async_client"</span><span class="p">,</span>
+                    <span class="s2">"http_client"</span><span class="p">,</span>
+                    <span class="s2">"http_async_client"</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="ow">and</span> <span class="s2">"OPENAI_BASE_URL"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span> <span class="o">=</span> <span class="kc">True</span>
+
         <span class="n">client_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">"api_key"</span><span class="p">:</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_key</span><span class="o">.</span><span class="n">get_secret_value</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">openai_api_key</span> <span class="k">else</span> <span class="kc">None</span>
@@ -1274,7 +1310,7 @@
         <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">stream_usage_sources</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">source</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stream_usage</span> <span class="ow">or</span> <span class="kc">False</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_stream</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -3860,6 +3896,55 @@
     <span class="k">return</span> <span class="n">payload</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_chat_completions_blocks_to_responses</span><span class="p">(</span>
+    <span class="n">block</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Convert chat completions content blocks to responses API format.</span>
+
+<span class="sd">    Only handles text, image, file blocks. Others pass through.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
+        <span class="c1"># chat api: {"type": "text", "text": "..."}</span>
+        <span class="c1"># responses api: {"type": "input_text", "text": "..."}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]}</span>
+    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image_url"</span><span class="p">:</span>
+        <span class="c1"># chat api: {"type": "image_url", "image_url": {"url": "...", "detail": "..."}}  # noqa: E501</span>
+        <span class="c1"># responses api: {"type": "image_url", "image_url": "...", "detail": "...", "file_id": "..."}  # noqa: E501</span>
+        <span class="n">new_block</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_image"</span><span class="p">,</span>
+            <span class="s2">"image_url"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"url"</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"detail"</span><span class="p">):</span>
+            <span class="n">new_block</span><span class="p">[</span><span class="s2">"detail"</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"detail"</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_block</span>
+    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"file"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_file"</span><span class="p">,</span> <span class="o">**</span><span class="n">block</span><span class="p">[</span><span class="s2">"file"</span><span class="p">]}</span>
+    <span class="k">return</span> <span class="n">block</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_valid_tool_message_content</span><span class="p">(</span><span class="n">tool_output</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tool_output</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_output</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+        <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">"input_text"</span><span class="p">,</span>
+            <span class="s2">"input_image"</span><span class="p">,</span>
+            <span class="s2">"input_file"</span><span class="p">,</span>
+            <span class="s2">"text"</span><span class="p">,</span>
+            <span class="s2">"image_url"</span><span class="p">,</span>
+            <span class="s2">"file"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">tool_output</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">_convert_chat_completions_blocks_to_responses</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">tool_output</span>
+        <span class="p">]</span>
+    <span class="k">return</span> <span class="n">_stringify</span><span class="p">(</span><span class="n">tool_output</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_make_computer_call_output_from_message</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">ToolMessage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="n">computer_call_output</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"call_id"</span><span class="p">:</span> <span class="n">message</span><span class="o">.</span><span class="n">tool_call_id</span><span class="p">,</span>
@@ -3933,8 +4018,7 @@
                 <span class="p">)</span>
                 <span class="n">input_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">computer_call_output</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tool_output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">tool_output</span> <span class="o">=</span> <span class="n">_stringify</span><span class="p">(</span><span class="n">tool_output</span><span class="p">)</span>
+                <span class="n">tool_output</span> <span class="o">=</span> <span class="n">_ensure_valid_tool_message_content</span><span class="p">(</span><span class="n">tool_output</span><span class="p">)</span>
                 <span class="n">function_call_output</span> <span class="o">=</span> <span class="p">{</span>
                     <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function_call_output"</span><span class="p">,</span>
                     <span class="s2">"output"</span><span class="p">:</span> <span class="n">tool_output</span><span class="p">,</span>
@@ -4034,23 +4118,10 @@
                 <span class="n">new_blocks</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">non_message_item_types</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"mcp_approval_response"</span><span class="p">,)</span>
                 <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]:</span>
-                    <span class="c1"># chat api: {"type": "text", "text": "..."}</span>
-                    <span class="c1"># responses api: {"type": "input_text", "text": "..."}</span>
-                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"text"</span><span class="p">:</span>
-                        <span class="n">new_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_text"</span><span class="p">,</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]})</span>
-                    <span class="c1"># chat api: {"type": "image_url", "image_url": {"url": "...", "detail": "..."}}  # noqa: E501</span>
-                    <span class="c1"># responses api: {"type": "image_url", "image_url": "...", "detail": "...", "file_id": "..."}  # noqa: E501</span>
-                    <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"image_url"</span><span class="p">:</span>
-                        <span class="n">new_block</span> <span class="o">=</span> <span class="p">{</span>
-                            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_image"</span><span class="p">,</span>
-                            <span class="s2">"image_url"</span><span class="p">:</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"url"</span><span class="p">],</span>
-                        <span class="p">}</span>
-                        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"detail"</span><span class="p">):</span>
-                            <span class="n">new_block</span><span class="p">[</span><span class="s2">"detail"</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">"image_url"</span><span class="p">][</span><span class="s2">"detail"</span><span class="p">]</span>
-                        <span class="n">new_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_block</span><span class="p">)</span>
-                    <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"file"</span><span class="p">:</span>
-                        <span class="n">new_block</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"input_file"</span><span class="p">,</span> <span class="o">**</span><span class="n">block</span><span class="p">[</span><span class="s2">"file"</span><span class="p">]}</span>
-                        <span class="n">new_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_block</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image_url"</span><span class="p">,</span> <span class="s2">"file"</span><span class="p">):</span>
+                        <span class="n">new_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">_convert_chat_completions_blocks_to_responses</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                        <span class="p">)</span>
                     <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"input_text"</span><span class="p">,</span> <span class="s2">"input_image"</span><span class="p">,</span> <span class="s2">"input_file"</span><span class="p">):</span>
                         <span class="n">new_blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="n">block</span><span class="p">[</span><span class="s2">"type"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">non_message_item_types</span><span class="p">:</span>

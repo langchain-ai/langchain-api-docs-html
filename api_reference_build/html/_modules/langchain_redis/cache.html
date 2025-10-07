@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -376,7 +376,20 @@
         <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"redis"</span><span class="p">,</span>
         <span class="n">redis_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Redis</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">redis_client</span> <span class="ow">or</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">redis_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">redis_client</span>
+        <span class="k">elif</span> <span class="n">redis_url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"redis+sentinel://"</span><span class="p">):</span>
+            <span class="c1"># For Sentinel URLs, use RedisVL's connection factory</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">redisvl.redis.connection</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
+                <span class="n">RedisConnectionFactory</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">RedisConnectionFactory</span><span class="o">.</span><span class="n">get_redis_connection</span><span class="p">(</span>
+                <span class="n">redis_url</span><span class="o">=</span><span class="n">redis_url</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">client_setinfo</span><span class="p">(</span><span class="s2">"LIB-NAME"</span><span class="p">,</span> <span class="n">__full_lib_name__</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
         <span class="k">except</span> <span class="n">ResponseError</span><span class="p">:</span>
@@ -618,18 +631,45 @@
         <span class="n">prefix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"llmcache"</span><span class="p">,</span>
         <span class="n">redis_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Redis</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">redis_client</span> <span class="ow">or</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">redis_client</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">redis_client</span>
+        <span class="k">elif</span> <span class="n">redis_url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"redis+sentinel://"</span><span class="p">):</span>
+            <span class="c1"># For Sentinel URLs, use RedisVL's connection factory</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">redisvl.redis.connection</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
+                <span class="n">RedisConnectionFactory</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">RedisConnectionFactory</span><span class="o">.</span><span class="n">get_redis_connection</span><span class="p">(</span>
+                <span class="n">redis_url</span><span class="o">=</span><span class="n">redis_url</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="n">redis_url</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">embeddings</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
         <span class="n">vectorizer</span> <span class="o">=</span> <span class="n">EmbeddingsVectorizer</span><span class="p">(</span><span class="n">embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embeddings</span><span class="p">)</span>
+
+        <span class="c1"># RedisVL's SemanticCache uses 'name' as the prefix for keys.</span>
+        <span class="c1"># To support the 'prefix' parameter for multi-tenant isolation,</span>
+        <span class="c1"># we need to map it appropriately:</span>
+        <span class="c1"># - If both name and prefix are provided and different, combine them</span>
+        <span class="c1"># - If only prefix is provided (and differs from default), use it</span>
+        <span class="c1"># - Otherwise use name (maintains backward compatibility)</span>
+        <span class="n">cache_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">if</span> <span class="n">prefix</span> <span class="ow">and</span> <span class="n">prefix</span> <span class="o">!=</span> <span class="s2">"llmcache"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">"llmcache"</span> <span class="ow">and</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">prefix</span><span class="p">:</span>
+                <span class="c1"># Both are provided and different: combine them</span>
+                <span class="n">cache_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Only prefix is meaningfully set: use it</span>
+                <span class="n">cache_name</span> <span class="o">=</span> <span class="n">prefix</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">RedisVLSemanticCache</span><span class="p">(</span>
             <span class="n">vectorizer</span><span class="o">=</span><span class="n">vectorizer</span><span class="p">,</span>
             <span class="n">redis_client</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="p">,</span>
             <span class="n">distance_threshold</span><span class="o">=</span><span class="n">distance_threshold</span><span class="p">,</span>
             <span class="n">ttl</span><span class="o">=</span><span class="n">ttl</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">cache_name</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 

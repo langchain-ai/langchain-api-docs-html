@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -502,20 +502,29 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List of embeddings, one for each text.</span>
-
 <span class="sd">        """</span>
         <span class="k">try</span><span class="p">:</span>
+
+            <span class="nd">@retry</span><span class="p">(</span>
+                <span class="n">retry</span><span class="o">=</span><span class="n">retry_if_exception_type</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">httpx</span><span class="o">.</span><span class="n">TimeoutException</span><span class="p">,</span> <span class="n">httpx</span><span class="o">.</span><span class="n">HTTPStatusError</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">wait</span><span class="o">=</span><span class="n">wait_fixed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wait_time</span><span class="p">),</span>
+                <span class="n">stop</span><span class="o">=</span><span class="n">stop_after_attempt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_aembed_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+                    <span class="n">url</span><span class="o">=</span><span class="s2">"/embeddings"</span><span class="p">,</span>
+                    <span class="n">json</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                        <span class="s2">"input"</span><span class="p">:</span> <span class="n">batch</span><span class="p">,</span>
+                    <span class="p">},</span>
+                <span class="p">)</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">response</span>
+
             <span class="n">batch_responses</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
-                <span class="o">*</span><span class="p">[</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">async_client</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-                        <span class="n">url</span><span class="o">=</span><span class="s2">"/embeddings"</span><span class="p">,</span>
-                        <span class="n">json</span><span class="o">=</span><span class="p">{</span>
-                            <span class="s2">"model"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
-                            <span class="s2">"input"</span><span class="p">:</span> <span class="n">batch</span><span class="p">,</span>
-                        <span class="p">},</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batches</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
-                <span class="p">]</span>
+                <span class="o">*</span><span class="p">[</span><span class="n">_aembed_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_batches</span><span class="p">(</span><span class="n">texts</span><span class="p">)]</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="p">[</span>
                 <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">embedding_obj</span><span class="p">[</span><span class="s2">"embedding"</span><span class="p">]))</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,8 +224,12 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">azure.core.credentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">AzureKeyCredential</span><span class="p">,</span> <span class="n">TokenCredential</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
@@ -272,19 +276,28 @@
 <div class="viewcode-block" id="get_endpoint_from_project">
 <a class="viewcode-back" href="../../../azure_ai/utils/langchain_azure_ai.utils.utils.get_endpoint_from_project.html#langchain_azure_ai.utils.utils.get_endpoint_from_project">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_endpoint_from_project</span><span class="p">(</span>
-    <span class="n">project_connection_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n">TokenCredential</span>
+    <span class="n">project_endpoint</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">credential</span><span class="p">:</span> <span class="n">TokenCredential</span><span class="p">,</span>
+    <span class="n">service</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">Literal</span><span class="p">[</span><span class="s2">"inference"</span><span class="p">],</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"cognitive_services"</span><span class="p">],</span> <span class="nb">str</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="s2">"inference"</span><span class="p">,</span>
+    <span class="n">api_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"v1"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">AzureKeyCredential</span><span class="p">,</span> <span class="n">TokenCredential</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Retrieves the default inference endpoint and credentials from a project.</span>
+<span class="w">    </span><span class="sd">"""Retrieves the endpoint and credentials required a given a project endpoint.</span>
 
 <span class="sd">    It uses the Azure AI project's connection string to retrieve the inference</span>
 <span class="sd">    defaults. The default connection of type Azure AI Services is used to</span>
 <span class="sd">    retrieve the endpoint and credentials.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        project_connection_string (str): Connection string for the Azure AI project.</span>
+<span class="sd">        project_endpoint (str): Endpoint for the Azure AI project.</span>
 <span class="sd">        credential (TokenCredential): Azure credential object. Credentials must be of</span>
-<span class="sd">            type `TokenCredential` when using the `project_connection_string`</span>
+<span class="sd">            type `TokenCredential` when using the `project_endpoint`</span>
 <span class="sd">            parameter.</span>
+<span class="sd">        service (str): The type of service to retrieve the endpoint for. Can be one of</span>
+<span class="sd">            "inference", or "cognitive_services". Defaults to "inference".</span>
+<span class="sd">        api_version (str): API version to use when retrieving the endpoint. Defaults</span>
+<span class="sd">            to "v1".</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[str, Union[AzureKeyCredential, TokenCredential]]: Endpoint URL and</span>
@@ -293,40 +306,75 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">azure.ai.projects</span><span class="w"> </span><span class="kn">import</span> <span class="n">AIProjectClient</span>  <span class="c1"># type: ignore[import-untyped]</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">azure.ai.projects.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># type: ignore[import-untyped]</span>
+            <span class="n">ApiKeyCredentials</span><span class="p">,</span>
+            <span class="n">Connection</span><span class="p">,</span>
             <span class="n">ConnectionType</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">"The `azure.ai.projects` package is required to use the "</span>
-            <span class="s2">"`project_connection_string` parameter. Please install it with "</span>
+            <span class="s2">"`project_endpoint` parameter. Please install it with "</span>
             <span class="s2">"`pip install azure-ai-projects`."</span>
         <span class="p">)</span>
 
-    <span class="c1"># this has been depreciated TODO: remove inference</span>
-    <span class="n">project</span> <span class="o">=</span> <span class="n">AIProjectClient</span><span class="o">.</span><span class="n">from_connection_string</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
-        <span class="n">conn_str</span><span class="o">=</span><span class="n">project_connection_string</span><span class="p">,</span>
+    <span class="n">project</span> <span class="o">=</span> <span class="n">AIProjectClient</span><span class="p">(</span>
+        <span class="n">endpoint</span><span class="o">=</span><span class="n">project_endpoint</span><span class="p">,</span>
         <span class="n">credential</span><span class="o">=</span><span class="n">credential</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">connection</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">connections</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span>
-        <span class="n">connection_type</span><span class="o">=</span><span class="n">ConnectionType</span><span class="o">.</span><span class="n">AZURE_AI_SERVICES</span><span class="p">,</span> <span class="n">include_credentials</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">connection</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">"No Azure AI Services connection found in the project. See "</span>
-            <span class="s2">"https://aka.ms/azureai/modelinference/connection for more "</span>
-            <span class="s2">"information."</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">connection</span><span class="o">.</span><span class="n">endpoint_url</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/models"</span><span class="p">):</span>
-        <span class="n">endpoint</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">endpoint_url</span>
-    <span class="k">elif</span> <span class="n">connection</span><span class="o">.</span><span class="n">endpoint_url</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">):</span>
-        <span class="n">endpoint</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">endpoint_url</span> <span class="o">+</span> <span class="s2">"models"</span>
+    <span class="k">if</span> <span class="n">service</span> <span class="ow">in</span> <span class="s2">"inference"</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># For hub projects, use connections</span>
+            <span class="n">connection</span><span class="p">:</span> <span class="n">Connection</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">connections</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span>
+                <span class="n">connection_type</span><span class="o">=</span><span class="n">ConnectionType</span><span class="o">.</span><span class="n">AZURE_OPEN_AI</span><span class="p">,</span> <span class="n">include_credentials</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">target</span> <span class="o">+</span> <span class="s2">"/openai/v1"</span>
+            <span class="k">if</span> <span class="n">connection</span><span class="o">.</span><span class="n">credentials</span> <span class="ow">is</span> <span class="n">ApiKeyCredentials</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">connection</span><span class="o">.</span><span class="n">credentials</span><span class="o">.</span><span class="n">api_key</span>  <span class="c1"># type: ignore</span>
+            <span class="k">elif</span> <span class="n">connection</span><span class="o">.</span><span class="n">credentials</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"AAD"</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">credential</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Unsupported credential type: </span><span class="si">{</span><span class="n">connection</span><span class="o">.</span><span class="n">credentials</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="c1"># For non-hub projects, use OpenAI client</span>
+            <span class="n">endpoint</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">get_openai_client</span><span class="p">(</span><span class="n">api_version</span><span class="o">=</span><span class="n">api_version</span><span class="p">)</span><span class="o">.</span><span class="n">base_url</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">credential</span>
+    <span class="k">elif</span> <span class="n">service</span> <span class="o">==</span> <span class="s2">"cognitive_services"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">project_endpoint</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/api"</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">credential</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">endpoint</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">endpoint_url</span> <span class="o">+</span> <span class="s2">"/models"</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Service type '</span><span class="si">{</span><span class="n">service</span><span class="si">}</span><span class="s2">' is not supported."</span><span class="p">)</span></div>
 
-    <span class="k">return</span> <span class="n">endpoint</span><span class="p">,</span> <span class="n">connection</span><span class="o">.</span><span class="n">key</span> <span class="ow">or</span> <span class="n">connection</span><span class="o">.</span><span class="n">token_credential</span></div>
+
+
+<div class="viewcode-block" id="detect_file_src_type">
+<a class="viewcode-back" href="../../../azure_ai/utils/langchain_azure_ai.utils.utils.detect_file_src_type.html#langchain_azure_ai.utils.utils.detect_file_src_type">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">detect_file_src_type</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Detect if the file is local or remote."""</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"local"</span>
+
+    <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">and</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">netloc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"remote"</span>
+
+    <span class="k">return</span> <span class="s2">"invalid"</span></div>
+
+
+
+<div class="viewcode-block" id="download_audio_from_url">
+<a class="viewcode-back" href="../../../azure_ai/utils/langchain_azure_ai.utils.utils.download_audio_from_url.html#langchain_azure_ai.utils.utils.download_audio_from_url">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_audio_from_url</span><span class="p">(</span><span class="n">audio_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Download audio from url to local."""</span>
+    <span class="n">ext</span> <span class="o">=</span> <span class="n">audio_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">audio_url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"wb"</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">):</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span></div>
 
 </pre></div>
 </article>

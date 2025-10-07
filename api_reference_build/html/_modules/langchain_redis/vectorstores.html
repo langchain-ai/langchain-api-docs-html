@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -579,11 +579,25 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">modified_metadata_schema</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
 
+            <span class="c1"># Handle key prefix format</span>
+            <span class="c1"># Issue #78: The trailing ":" was added historically, creating double</span>
+            <span class="c1"># colons in keys (e.g., "prefix::doc_id"). For backward compatibility,</span>
+            <span class="c1"># this behavior is maintained by default via legacy_key_format flag.</span>
+            <span class="c1"># Set legacy_key_format=False for correct single-colon format.</span>
+            <span class="c1"># Note: key_prefix is always set by validator, so it's never None here</span>
+            <span class="n">key_prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">key_prefix</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">index_name</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">legacy_key_format</span><span class="p">:</span>
+                <span class="c1"># Legacy format: adds trailing ":" (creates "prefix::doc_id")</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key_prefix</span><span class="si">}</span><span class="s2">:"</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Correct format: no trailing ":" (creates "prefix:doc_id")</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">key_prefix</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">_index</span> <span class="o">=</span> <span class="n">SearchIndex</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="s2">"index"</span><span class="p">:</span> <span class="p">{</span>
                         <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">index_name</span><span class="p">,</span>
-                        <span class="s2">"prefix"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">key_prefix</span><span class="si">}</span><span class="s2">:"</span><span class="p">,</span>
+                        <span class="s2">"prefix"</span><span class="p">:</span> <span class="n">prefix</span><span class="p">,</span>
                         <span class="s2">"storage_type"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">storage_type</span><span class="p">,</span>
                     <span class="p">},</span>
                     <span class="s2">"fields"</span><span class="p">:</span> <span class="p">[</span>
@@ -1332,7 +1346,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">vector</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
 
-        <span class="k">return</span> <span class="n">vector</span></div>
+        <span class="k">return</span> <span class="n">vector</span>  <span class="c1"># type: ignore[return-value]</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_docs_full</span><span class="p">(</span>

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Sep 30, 2025" name="docbuild:last-update"/>
+<meta content="Oct 07, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -224,11 +224,14 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span> <span class="k">as</span> <span class="n">_annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Generator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_core</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ArgsKwargs</span><span class="p">,</span>
@@ -236,9 +239,10 @@
     <span class="n">SchemaValidator</span><span class="p">,</span>
     <span class="n">core_schema</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeGuard</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeAlias</span><span class="p">,</span> <span class="n">TypeIs</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">..errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">PydanticUndefinedAnnotation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldInfo</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..plugin._schema_validator</span><span class="w"> </span><span class="kn">import</span> <span class="n">PluggableSchemaValidator</span><span class="p">,</span> <span class="n">create_schema_validator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">..warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">PydanticDeprecatedSince20</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_config</span><span class="p">,</span> <span class="n">_decorators</span>
@@ -250,13 +254,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">._signature</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_pydantic_signature</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyClassAttribute</span>
 
-<span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">_typeshed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataclassInstance</span> <span class="k">as</span> <span class="n">StandardDataclass</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">..config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigDict</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">..fields</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldInfo</span>
 
-    <span class="k">class</span><span class="w"> </span><span class="nc">PydanticDataclass</span><span class="p">(</span><span class="n">StandardDataclass</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">PydanticDataclass</span><span class="p">(</span><span class="n">StandardDataclass</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""A protocol containing attributes only available once a class has been decorated as a Pydantic dataclass.</span>
 
 <span class="sd">        Attributes:</span>
@@ -280,23 +283,18 @@
         <span class="nd">@classmethod</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">__pydantic_fields_complete__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
 
-<span class="k">else</span><span class="p">:</span>
-    <span class="c1"># See PyCharm issues https://youtrack.jetbrains.com/issue/PY-21915</span>
-    <span class="c1"># and https://youtrack.jetbrains.com/issue/PY-51428</span>
-    <span class="ne">DeprecationWarning</span> <span class="o">=</span> <span class="n">PydanticDeprecatedSince20</span>
-
 
 <span class="k">def</span><span class="w"> </span><span class="nf">set_dataclass_fields</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StandardDataclass</span><span class="p">],</span>
+    <span class="n">config_wrapper</span><span class="p">:</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigWrapper</span><span class="p">,</span>
     <span class="n">ns_resolver</span><span class="p">:</span> <span class="n">NsResolver</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">config_wrapper</span><span class="p">:</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigWrapper</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Collect and set `cls.__pydantic_fields__`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        cls: The class.</span>
+<span class="sd">        config_wrapper: The config wrapper instance.</span>
 <span class="sd">        ns_resolver: Namespace resolver to use when getting dataclass annotations.</span>
-<span class="sd">        config_wrapper: The config wrapper instance, defaults to `None`.</span>
 <span class="sd">    """</span>
     <span class="n">typevars_map</span> <span class="o">=</span> <span class="n">get_standard_typevars_map</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
     <span class="n">fields</span> <span class="o">=</span> <span class="n">collect_dataclass_fields</span><span class="p">(</span>
@@ -349,7 +347,7 @@
     <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="fm">__init__</span>  <span class="c1"># type: ignore</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_config__</span> <span class="o">=</span> <span class="n">config_wrapper</span><span class="o">.</span><span class="n">config_dict</span>  <span class="c1"># type: ignore</span>
 
-    <span class="n">set_dataclass_fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ns_resolver</span><span class="p">,</span> <span class="n">config_wrapper</span><span class="o">=</span><span class="n">config_wrapper</span><span class="p">)</span>
+    <span class="n">set_dataclass_fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config_wrapper</span><span class="o">=</span><span class="n">config_wrapper</span><span class="p">,</span> <span class="n">ns_resolver</span><span class="o">=</span><span class="n">ns_resolver</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_force_build</span> <span class="ow">and</span> <span class="n">config_wrapper</span><span class="o">.</span><span class="n">defer_build</span><span class="p">:</span>
         <span class="n">set_dataclass_mocks</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
@@ -357,7 +355,8 @@
 
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">'__post_init_post_parse__'</span><span class="p">):</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s1">'Support for `__post_init_post_parse__` has been dropped, the method will not be called'</span><span class="p">,</span> <span class="ne">DeprecationWarning</span>
+            <span class="s1">'Support for `__post_init_post_parse__` has been dropped, the method will not be called'</span><span class="p">,</span>
+            <span class="n">PydanticDeprecatedSince20</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">typevars_map</span> <span class="o">=</span> <span class="n">get_standard_typevars_map</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
@@ -402,50 +401,22 @@
 
     <span class="c1"># We are about to set all the remaining required properties expected for this cast;</span>
     <span class="c1"># __pydantic_decorators__ and __pydantic_fields__ should already be set</span>
-    <span class="bp">cls</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s1">'type[PydanticDataclass]'</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
-    <span class="c1"># debug(schema)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="s1">'type[PydanticDataclass]'</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
 
     <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_core_schema__</span> <span class="o">=</span> <span class="n">schema</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_validator__</span> <span class="o">=</span> <span class="n">validator</span> <span class="o">=</span> <span class="n">create_schema_validator</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_validator__</span> <span class="o">=</span> <span class="n">create_schema_validator</span><span class="p">(</span>
         <span class="n">schema</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span> <span class="s1">'dataclass'</span><span class="p">,</span> <span class="n">core_config</span><span class="p">,</span> <span class="n">config_wrapper</span><span class="o">.</span><span class="n">plugin_settings</span>
     <span class="p">)</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_serializer__</span> <span class="o">=</span> <span class="n">SchemaSerializer</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">core_config</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">config_wrapper</span><span class="o">.</span><span class="n">validate_assignment</span><span class="p">:</span>
-
-        <span class="nd">@wraps</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">)</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">validated_setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">validator</span><span class="o">.</span><span class="n">validate_assignment</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-
-        <span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span> <span class="o">=</span> <span class="n">validated_setattr</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
-
     <span class="bp">cls</span><span class="o">.</span><span class="n">__pydantic_complete__</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="kc">True</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">is_builtin_dataclass</span><span class="p">(</span><span class="n">_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">TypeGuard</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">StandardDataclass</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">"""Returns True if a class is a stdlib dataclass and *not* a pydantic dataclass.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_stdlib_dataclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeIs</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">StandardDataclass</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Returns `True` if the class is a stdlib dataclass and *not* a Pydantic dataclass.</span>
 
-<span class="sd">    We check that</span>
-<span class="sd">    - `_cls` is a dataclass</span>
-<span class="sd">    - `_cls` does not inherit from a processed pydantic dataclass (and thus have a `__pydantic_validator__`)</span>
-<span class="sd">    - `_cls` does not have any annotations that are not dataclass fields</span>
-<span class="sd">    e.g.</span>
-<span class="sd">    ```python</span>
-<span class="sd">    import dataclasses</span>
-
-<span class="sd">    import pydantic.dataclasses</span>
-
-<span class="sd">    @dataclasses.dataclass</span>
-<span class="sd">    class A:</span>
-<span class="sd">        x: int</span>
-
-<span class="sd">    @pydantic.dataclasses.dataclass</span>
-<span class="sd">    class B(A):</span>
-<span class="sd">        y: int</span>
-<span class="sd">    ```</span>
-<span class="sd">    In this case, when we first check `B`, we make an extra check and look at the annotations ('y'),</span>
-<span class="sd">    which won't be a superset of all the dataclass fields (only the stdlib fields i.e. 'x')</span>
+<span class="sd">    Unlike the stdlib `dataclasses.is_dataclass()` function, this does *not* include subclasses</span>
+<span class="sd">    of a dataclass that are themselves not dataclasses.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        cls: The class.</span>
@@ -453,11 +424,117 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        `True` if the class is a stdlib dataclass, `False` otherwise.</span>
 <span class="sd">    """</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span><span class="n">_cls</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_cls</span><span class="p">,</span> <span class="s1">'__pydantic_validator__'</span><span class="p">)</span>
-        <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">_cls</span><span class="o">.</span><span class="n">__dataclass_fields__</span><span class="p">)</span><span class="o">.</span><span class="n">issuperset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">_cls</span><span class="p">,</span> <span class="s1">'__annotations__'</span><span class="p">,</span> <span class="p">{})))</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="s1">'__dataclass_fields__'</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">'__pydantic_validator__'</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">as_dataclass_field</span><span class="p">(</span><span class="n">pydantic_field</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">Field</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+    <span class="n">field_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'default'</span><span class="p">:</span> <span class="n">pydantic_field</span><span class="p">}</span>
+
+    <span class="c1"># Needed because if `doc` is set, the dataclass slots will be a dict (field name -&gt; doc) instead of a tuple:</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">14</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pydantic_field</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">field_args</span><span class="p">[</span><span class="s1">'doc'</span><span class="p">]</span> <span class="o">=</span> <span class="n">pydantic_field</span><span class="o">.</span><span class="n">description</span>
+
+    <span class="c1"># Needed as the stdlib dataclass module processes kw_only in a specific way during class construction:</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pydantic_field</span><span class="o">.</span><span class="n">kw_only</span><span class="p">:</span>
+        <span class="n">field_args</span><span class="p">[</span><span class="s1">'kw_only'</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Needed as the stdlib dataclass modules generates `__repr__()` during class construction:</span>
+    <span class="k">if</span> <span class="n">pydantic_field</span><span class="o">.</span><span class="n">repr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">field_args</span><span class="p">[</span><span class="s1">'repr'</span><span class="p">]</span> <span class="o">=</span> <span class="n">pydantic_field</span><span class="o">.</span><span class="n">repr</span>
+
+    <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="o">**</span><span class="n">field_args</span><span class="p">)</span>
+
+
+<span class="n">DcFields</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">Field</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span>
+
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">patch_base_fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Temporarily patch the stdlib dataclasses bases of `cls` if the Pydantic `Field()` function is used.</span>
+
+<span class="sd">    When creating a Pydantic dataclass, it is possible to inherit from stdlib dataclasses, where</span>
+<span class="sd">    the Pydantic `Field()` function is used. To create this Pydantic dataclass, we first apply</span>
+<span class="sd">    the stdlib `@dataclass` decorator on it. During the construction of the stdlib dataclass,</span>
+<span class="sd">    the `kw_only` and `repr` field arguments need to be understood by the stdlib *during* the</span>
+<span class="sd">    dataclass construction. To do so, we temporarily patch the fields dictionary of the affected</span>
+<span class="sd">    bases.</span>
+
+<span class="sd">    For instance, with the following example:</span>
+
+<span class="sd">    ```python {test="skip" lint="skip"}</span>
+<span class="sd">    import dataclasses as stdlib_dc</span>
+
+<span class="sd">    import pydantic</span>
+<span class="sd">    import pydantic.dataclasses as pydantic_dc</span>
+
+<span class="sd">    @stdlib_dc.dataclass</span>
+<span class="sd">    class A:</span>
+<span class="sd">        a: int = pydantic.Field(repr=False)</span>
+
+<span class="sd">    # Notice that the `repr` attribute of the dataclass field is `True`:</span>
+<span class="sd">    A.__dataclass_fields__['a']</span>
+<span class="sd">    #&gt; dataclass.Field(default=FieldInfo(repr=False), repr=True, ...)</span>
+
+<span class="sd">    @pydantic_dc.dataclass</span>
+<span class="sd">    class B(A):</span>
+<span class="sd">        b: int = pydantic.Field(repr=False)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    When passing `B` to the stdlib `@dataclass` decorator, it will look for fields in the parent classes</span>
+<span class="sd">    and reuse them directly. When this context manager is active, `A` will be temporarily patched to be</span>
+<span class="sd">    equivalent to:</span>
+
+<span class="sd">    ```python {test="skip" lint="skip"}</span>
+<span class="sd">    @stdlib_dc.dataclass</span>
+<span class="sd">    class A:</span>
+<span class="sd">        a: int = stdlib_dc.field(default=Field(repr=False), repr=False)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    !!! note</span>
+<span class="sd">        This is only applied to the bases of `cls`, and not `cls` itself. The reason is that the Pydantic</span>
+<span class="sd">        dataclass decorator "owns" `cls` (in the previous example, `B`). As such, we instead modify the fields</span>
+<span class="sd">        directly (in the previous example, we simply do `setattr(B, 'b', as_dataclass_field(pydantic_field))`).</span>
+
+<span class="sd">    !!! note</span>
+<span class="sd">        This approach is far from ideal, and can probably be the source of unwanted side effects/race conditions.</span>
+<span class="sd">        The previous implemented approach was mutating the `__annotations__` dict of `cls`, which is no longer a</span>
+<span class="sd">        safe operation in Python 3.14+, and resulted in unexpected behavior with field ordering anyway.</span>
+<span class="sd">    """</span>
+    <span class="c1"># A list of two-tuples, the first element being a reference to the</span>
+    <span class="c1"># dataclass fields dictionary, the second element being a mapping between</span>
+    <span class="c1"># the field names that were modified, and their original `Field`:</span>
+    <span class="n">original_fields_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">DcFields</span><span class="p">,</span> <span class="n">DcFields</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">dc_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">Field</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'__dataclass_fields__'</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">dc_fields_with_pydantic_field_defaults</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">field_name</span><span class="p">:</span> <span class="n">field</span>
+            <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dc_fields</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="n">FieldInfo</span><span class="p">)</span>
+            <span class="c1"># Only do the patching if one of the affected attributes is set:</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">kw_only</span> <span class="ow">or</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">repr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">dc_fields_with_pydantic_field_defaults</span><span class="p">:</span>
+            <span class="n">original_fields_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">dc_fields</span><span class="p">,</span> <span class="n">dc_fields_with_pydantic_field_defaults</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dc_fields_with_pydantic_field_defaults</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">default</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">FieldInfo</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
+                <span class="c1"># `dataclasses.Field` isn't documented as working with `copy.copy()`.</span>
+                <span class="c1"># It is a class with `__slots__`, so should work (and we hope for the best):</span>
+                <span class="n">new_dc_field</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                <span class="c1"># For base fields, no need to set `doc` from `FieldInfo.description`, this is only relevant</span>
+                <span class="c1"># for the class under construction and handled in `as_dataclass_field()`.</span>
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="ow">and</span> <span class="n">default</span><span class="o">.</span><span class="n">kw_only</span><span class="p">:</span>
+                    <span class="n">new_dc_field</span><span class="o">.</span><span class="n">kw_only</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">default</span><span class="o">.</span><span class="n">repr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="n">new_dc_field</span><span class="o">.</span><span class="n">repr</span> <span class="o">=</span> <span class="n">default</span><span class="o">.</span><span class="n">repr</span>
+                <span class="n">dc_fields</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_dc_field</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">fields</span><span class="p">,</span> <span class="n">original_fields</span> <span class="ow">in</span> <span class="n">original_fields_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">original_field</span> <span class="ow">in</span> <span class="n">original_fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">fields</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">original_field</span>
 </pre></div>
 </article>
 </div>
