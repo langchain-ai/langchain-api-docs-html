@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Oct 07, 2025" name="docbuild:last-update"/>
+<meta content="Oct 13, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -226,8 +226,9 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">string</span><span class="w"> </span><span class="kn">import</span> <span class="n">Formatter</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">create_model</span>
 
@@ -384,9 +385,7 @@
 
 <div class="viewcode-block" id="mustache_schema">
 <a class="viewcode-back" href="../../../core/prompts/langchain_core.prompts.string.mustache_schema.html#langchain_core.prompts.few_shot.mustache_schema">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">mustache_schema</span><span class="p">(</span>
-    <span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mustache_schema</span><span class="p">(</span><span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">[</span><span class="n">BaseModel</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Get the variables from a mustache template.</span>
 
 <span class="sd">    Args:</span>
@@ -410,6 +409,11 @@
             <span class="n">fields</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">elif</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"variable"</span><span class="p">,</span> <span class="s2">"no escape"</span><span class="p">}:</span>
             <span class="n">fields</span><span class="p">[</span><span class="n">prefix</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">))]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">for</span> <span class="n">fkey</span><span class="p">,</span> <span class="n">fval</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">fields</span><span class="p">[</span><span class="n">fkey</span><span class="p">]</span> <span class="o">=</span> <span class="n">fval</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">is_subsequence</span><span class="p">(</span><span class="n">fkey</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fields</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="n">fkey</span>
+        <span class="p">)</span>
     <span class="n">defs</span><span class="p">:</span> <span class="n">Defs</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># None means leaf node</span>
     <span class="k">while</span> <span class="n">fields</span><span class="p">:</span>
         <span class="n">field</span><span class="p">,</span> <span class="n">is_leaf</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">popitem</span><span class="p">()</span>
@@ -583,6 +587,18 @@
 <span class="w">        </span><span class="sd">"""Print a pretty representation of the prompt."""</span>
         <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretty_repr</span><span class="p">(</span><span class="n">html</span><span class="o">=</span><span class="n">is_interactive_env</span><span class="p">()))</span>  <span class="c1"># noqa: T201</span></div>
 </div>
+
+
+
+<div class="viewcode-block" id="is_subsequence">
+<a class="viewcode-back" href="../../../core/prompts/langchain_core.prompts.string.is_subsequence.html#langchain_core.prompts.few_shot.is_subsequence">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_subsequence</span><span class="p">(</span><span class="n">child</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return True if child is subsequence of parent."""</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">child</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">child</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">child</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">parent</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">child</span><span class="p">)))</span></div>
 
 </pre></div>
 </article>
