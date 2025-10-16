@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Oct 14, 2025" name="docbuild:last-update"/>
+<meta content="Oct 16, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -326,10 +326,12 @@
 
 
 <span class="nd">@_handle_exceptions</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_create_table</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_table</span><span class="p">(</span>
+    <span class="n">client</span><span class="p">:</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">cols_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s2">"id"</span><span class="p">:</span> <span class="s2">"CHAR(16) PRIMARY KEY NOT NULL"</span><span class="p">,</span>
-        <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"CLOB"</span><span class="p">,</span>
+        <span class="n">text_field</span><span class="p">:</span> <span class="s2">"CLOB"</span><span class="p">,</span>
         <span class="s2">"metadata"</span><span class="p">:</span> <span class="s2">"BLOB"</span><span class="p">,</span>
         <span class="s2">"embedding"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"vector(</span><span class="si">{</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s2">, FLOAT32)"</span><span class="p">,</span>
     <span class="p">}</span>
@@ -357,11 +359,23 @@
 <span class="w">    </span><span class="sd">"""Drop a table from the database.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        client: The ibm_db_dbi connection object.</span>
-<span class="sd">        table_name: The name of the table to drop.</span>
+<span class="sd">        client: The `ibm_db_dbi` connection object</span>
+<span class="sd">        table_name: The name of the table to drop</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        RuntimeError: If an error occurs while dropping the table.</span>
+<span class="sd">        RuntimeError: If an error occurs while dropping the table</span>
+
+<span class="sd">    ??? example "Example"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_db2.db2vs import drop_table</span>
+
+<span class="sd">        drop_table(</span>
+<span class="sd">            client=db_client,  # ibm_db_dbi.Connection</span>
+<span class="sd">            table_name="TABLE_NAME",</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">_table_exists</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">table_name</span><span class="p">):</span>
         <span class="n">cursor</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
@@ -385,8 +399,19 @@
 <span class="w">    </span><span class="sd">"""Remove all records from the table using TRUNCATE.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        client: The ibm_db_dbi connection object.</span>
-<span class="sd">        table_name: The name of the table to clear.</span>
+<span class="sd">        client: The ibm_db_dbi connection object</span>
+<span class="sd">        table_name: The name of the table to clear</span>
+
+<span class="sd">    ??? example "Example"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_db2.db2vs import clear_table</span>
+
+<span class="sd">        clear_table(</span>
+<span class="sd">            client=db_client,  # ibm_db_dbi.Connection</span>
+<span class="sd">            table_name="TABLE_NAME",</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_table_exists</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">table_name</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> not found…"</span><span class="p">)</span>
@@ -413,9 +438,65 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">DB2VS</span><span class="p">(</span><span class="n">VectorStore</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""`DB2VS` vector store.</span>
 
-<span class="sd">    To use, you should have:</span>
-<span class="sd">    - the ``ibm_db`` python package installed</span>
-<span class="sd">    - a connection to db2 database with vector store feature (v12.1.2+)</span>
+<span class="sd">    Args:</span>
+<span class="sd">        embedding_function: The embedding backend used to generate vectors for stored</span>
+<span class="sd">            texts and queries</span>
+<span class="sd">        table_name: DB2 table name</span>
+<span class="sd">        client: Existing DB2 connection. Required if `connection_args` is not provided</span>
+<span class="sd">        distance_strategy: Similarity metric used by Db2 `VECTOR_DISTANCE` when</span>
+<span class="sd">            ranking results</span>
+<span class="sd">        query: Probe text used once to infer embedding dimension</span>
+<span class="sd">        params: Extra options</span>
+<span class="sd">        connection_args: Connection parameters used when `client` is not supplied.</span>
+<span class="sd">            Expected keys: `{"database": str, "host": str, "port": str,</span>
+<span class="sd">            "username": str, "password": str, "security": bool}`</span>
+<span class="sd">        text_field: Column name for the raw text (CLOB)</span>
+
+<span class="sd">    ???+ info "Setup"</span>
+
+<span class="sd">        To use, you should have:</span>
+
+<span class="sd">        - the `langchain_db2` python package installed</span>
+<span class="sd">        - a connection to db2 database with vector store feature (v12.1.2+)</span>
+
+<span class="sd">        ```bash</span>
+<span class="sd">        pip install -U langchain-db2</span>
+
+<span class="sd">        # or using uv</span>
+<span class="sd">        uv add langchain-db2</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Instantiate"</span>
+
+<span class="sd">        Create a Vector Store instance with `ibm_db_dbi.Connection` object</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_db2 import DB2VS</span>
+
+<span class="sd">        db2vs = DB2VS(</span>
+<span class="sd">            embedding_function=embeddings, table_name=table_name, client=db_client</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        Create a Vector Store instance with `connection_args`</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_db2 import DB2VS</span>
+
+<span class="sd">        db2vs = DB2VS(</span>
+<span class="sd">            embedding_function=embeddings,</span>
+<span class="sd">            table_name=table_name,</span>
+<span class="sd">            connection_args={</span>
+<span class="sd">                "database": "&lt;DATABASE&gt;",</span>
+<span class="sd">                "host": "&lt;HOST&gt;",</span>
+<span class="sd">                "port": "&lt;PORT&gt;",</span>
+<span class="sd">                "username": "&lt;USERNAME&gt;",</span>
+<span class="sd">                "password": "&lt;PASSWORD&gt;",</span>
+<span class="sd">                "security": False,</span>
+<span class="sd">            },</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
 <span class="sd">    """</span>
 
 <div class="viewcode-block" id="DB2VS.__init__">
@@ -432,6 +513,7 @@
         <span class="n">query</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"What is a Db2 database"</span><span class="p">,</span>
         <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">connection_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"text"</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">connection_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -471,7 +553,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="o">=</span> <span class="n">table_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span> <span class="o">=</span> <span class="n">distance_strategy</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
-            <span class="n">_create_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span> <span class="o">=</span> <span class="n">text_field</span>
+            <span class="n">_create_table</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">text_field</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="n">ibm_db_dbi</span><span class="o">.</span><span class="n">DatabaseError</span> <span class="k">as</span> <span class="n">db_err</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Database error occurred while create table: </span><span class="si">{</span><span class="n">db_err</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -496,8 +581,8 @@
 <span class="sd">        is an instance of Embeddings, otherwise returns None.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Optional[Embeddings]: Embeddings instance if embedding_function</span>
-<span class="sd">            is an instance of Embeddings, otherwise returns None.</span>
+<span class="sd">            Embeddings instance if embedding_function is an instance of</span>
+<span class="sd">                Embeddings, otherwise returns None</span>
 <span class="sd">        """</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span>
@@ -544,14 +629,16 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Add more texts to the vectorstore.</span>
+
 <span class="sd">        Args:</span>
-<span class="sd">          texts: Iterable of strings to add to the vectorstore.</span>
-<span class="sd">          metadatas: Optional list of metadatas associated with the texts.</span>
-<span class="sd">          ids: Optional list of ids for the texts that are being added to</span>
-<span class="sd">          the vector store.</span>
-<span class="sd">          kwargs: vectorstore specific parameters</span>
-<span class="sd">        Return:</span>
-<span class="sd">          List of ids from adding the texts into the vectorstore.</span>
+<span class="sd">            texts: Iterable of strings to add to the vectorstore</span>
+<span class="sd">            metadatas: Optional list of metadatas associated with the texts</span>
+<span class="sd">            ids: Optional list of ids for the texts that are being added to</span>
+<span class="sd">                the vector store</span>
+<span class="sd">            kwargs: vectorstore specific parameters</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of ids from adding the texts into the vectorstore</span>
 <span class="sd">        """</span>
 
         <span class="n">texts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">texts</span><span class="p">)</span>
@@ -623,7 +710,8 @@
         <span class="p">]</span>
 
         <span class="n">SQL_INSERT</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"INSERT INTO </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> (id, embedding, metadata, text) "</span>
+            <span class="sa">f</span><span class="s2">"INSERT INTO "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> (id, embedding, metadata, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="si">}</span><span class="s2">) "</span>
             <span class="sa">f</span><span class="s2">"VALUES (?, VECTOR(?, </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32), SYSTOOLS.JSON2BSON(?), ?)"</span>
         <span class="p">)</span>
 
@@ -646,12 +734,14 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""Return docs most similar to query.</span>
+
 <span class="sd">        Args:</span>
-<span class="sd">            query: str,</span>
-<span class="sd">            k: int, the number for documents to retrieve</span>
-<span class="sd">            filter: Optional, the filter to apply</span>
-<span class="sd">        Return:</span>
-<span class="sd">            List[Document]: documents most similar to a query</span>
+<span class="sd">            query: The natural-language text to search for</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            filter: Filter by metadata</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Documents most similar to a query</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span><span class="p">,</span> <span class="n">EmbeddingsSchema</span><span class="p">):</span>
             <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
@@ -670,6 +760,16 @@
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return documents most similar to a query embedding.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            filter: Filter by metadata</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Documents ordered from most to least similar</span>
+<span class="sd">        """</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_by_vector_with_relevance_scores</span><span class="p">(</span>
             <span class="n">embedding</span><span class="o">=</span><span class="n">embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
@@ -685,7 +785,18 @@
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">"""Return docs most similar to query."""</span>
+<span class="w">        </span><span class="sd">"""Return the top-k documents most similar to a text query, with scores.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            query: Natural-language query to embed and search with</span>
+<span class="sd">            k: Number of results to return</span>
+<span class="sd">            filter: Filter by metadata</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of (document, score) pairs ordered by similarity.</span>
+<span class="sd">                The score is the vector **distance**; lower values indicate</span>
+<span class="sd">                closer matches.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span><span class="p">,</span> <span class="n">EmbeddingsSchema</span><span class="p">):</span>
             <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_function</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">similarity_search_by_vector_with_relevance_scores</span><span class="p">(</span>
@@ -702,14 +813,24 @@
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Return top-k documents for a query embedding, with relevance scores.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            filter: Filter by metadata</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of `(Document, distance)` pairs ordered from most to least</span>
+<span class="sd">                similar (smallest distance first).</span>
+<span class="sd">        """</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">embedding_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">        SELECT id,</span>
-<span class="s2">          text,</span>
+<span class="s2">          </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="si">}</span><span class="s2">,</span>
 <span class="s2">          SYSTOOLS.BSON2JSON(metadata),</span>
 <span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
 <span class="s2">          </span><span class="si">{</span><span class="n">_get_distance_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span><span class="p">)</span><span class="si">}</span><span class="s2">) as distance</span>
@@ -759,14 +880,24 @@
         <span class="n">embedding</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
         <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="nb">filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Document</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">"""Return top-k documents, their distances, and stored embeddings.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            filter: Filter by metadata</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuples of `(document, distance, embedding_array)`, ordered from</span>
+<span class="sd">                most to least similar (ascending distance)</span>
+<span class="sd">        """</span>
         <span class="n">documents</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">embedding_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_embedding_dimension</span><span class="p">()</span>
 
         <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">        SELECT id,</span>
-<span class="s2">          text,</span>
+<span class="s2">          </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_text_field</span><span class="si">}</span><span class="s2">,</span>
 <span class="s2">          SYSTOOLS.BSON2JSON(metadata),</span>
 <span class="s2">          vector_distance(embedding, VECTOR('</span><span class="si">{</span><span class="n">embedding</span><span class="si">}</span><span class="s2">', </span><span class="si">{</span><span class="n">embedding_len</span><span class="si">}</span><span class="s2">, FLOAT32),</span>
 <span class="s2">          </span><span class="si">{</span><span class="n">_get_distance_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">distance_strategy</span><span class="p">)</span><span class="si">}</span><span class="s2">) as distance,</span>
@@ -831,20 +962,18 @@
 <span class="sd">        diversity among selected documents.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">          self: An instance of the class</span>
-<span class="sd">          embedding: Embedding to look up documents similar to.</span>
-<span class="sd">          k: Number of Documents to return. The default value is 4.</span>
-<span class="sd">          fetch_k: Number of Documents to fetch before filtering to</span>
-<span class="sd">                   pass to MMR algorithm.</span>
-<span class="sd">          filter: (Optional[Dict[str, str]]): Filter by metadata. Defaults</span>
-<span class="sd">          to None.</span>
-<span class="sd">          lambda_mult: Number between 0 and 1 that determines the degree</span>
-<span class="sd">                       of diversity among the results with 0 corresponding</span>
-<span class="sd">                       to maximum diversity and 1 to minimum diversity.</span>
-<span class="sd">                       The default value is 0.5.</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            fetch_k: Number of Documents to fetch before filtering to</span>
+<span class="sd">                pass to MMR algorithm</span>
+<span class="sd">            lambda_mult: Number between 0 and 1 that determines the degree</span>
+<span class="sd">                of diversity among the results with 0 corresponding</span>
+<span class="sd">                to maximum diversity and 1 to minimum diversity</span>
+<span class="sd">            filter: Filter by metadata</span>
+
 <span class="sd">        Returns:</span>
 <span class="sd">            List of Documents and similarity scores selected by maximal</span>
-<span class="sd">            marginal relevance and score for each.</span>
+<span class="sd">                marginal relevance and score for each.</span>
 <span class="sd">        """</span>
 
         <span class="c1"># Fetch documents and their scores</span>
@@ -894,18 +1023,16 @@
 <span class="sd">        diversity among selected documents.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">          self: An instance of the class</span>
-<span class="sd">          embedding: Embedding to look up documents similar to.</span>
-<span class="sd">          k: Number of Documents to return. Defaults to 4.</span>
-<span class="sd">          fetch_k: Number of Documents to fetch to pass to MMR algorithm.</span>
-<span class="sd">          lambda_mult: Number between 0 and 1 that determines the degree</span>
-<span class="sd">                       of diversity among the results with 0 corresponding</span>
-<span class="sd">                       to maximum diversity and 1 to minimum diversity.</span>
-<span class="sd">                       Defaults to 0.5.</span>
-<span class="sd">          filter: Optional[Dict[str, Any]]</span>
-<span class="sd">          **kwargs: Any</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            fetch_k: Number of Documents to fetch to pass to MMR algorithm.</span>
+<span class="sd">            lambda_mult: Number between 0 and 1 that determines the degree</span>
+<span class="sd">                of diversity among the results with 0 corresponding</span>
+<span class="sd">                to maximum diversity and 1 to minimum diversity</span>
+<span class="sd">            filter: Filter by metadata</span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">          List of Documents selected by maximal marginal relevance.</span>
+<span class="sd">            List of Documents selected by maximal marginal relevance</span>
 <span class="sd">        """</span>
         <span class="n">docs_and_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_marginal_relevance_search_with_score_by_vector</span><span class="p">(</span>
             <span class="n">embedding</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">fetch_k</span><span class="o">=</span><span class="n">fetch_k</span><span class="p">,</span> <span class="n">lambda_mult</span><span class="o">=</span><span class="n">lambda_mult</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span>
@@ -931,18 +1058,16 @@
 <span class="sd">        diversity among selected documents.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">          self: An instance of the class</span>
-<span class="sd">          query: Text to look up documents similar to.</span>
-<span class="sd">          k: Number of Documents to return. The default value is 4.</span>
-<span class="sd">          fetch_k: Number of Documents to fetch to pass to MMR algorithm.</span>
-<span class="sd">          lambda_mult: Number between 0 and 1 that determines the degree</span>
-<span class="sd">                       of diversity among the results with 0 corresponding</span>
-<span class="sd">                       to maximum diversity and 1 to minimum diversity.</span>
-<span class="sd">                       The default value is 0.5.</span>
-<span class="sd">          filter: Optional[Dict[str, Any]]</span>
-<span class="sd">          **kwargs</span>
+<span class="sd">            query: Text to look up documents similar to</span>
+<span class="sd">            k: Number of Documents to return</span>
+<span class="sd">            fetch_k: Number of Documents to fetch to pass to MMR algorithm.</span>
+<span class="sd">            lambda_mult: Number between 0 and 1 that determines the degree</span>
+<span class="sd">                of diversity among the results with 0 corresponding</span>
+<span class="sd">                to maximum diversity and 1 to minimum diversity</span>
+<span class="sd">            filter: Filter by metadata</span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">          List of Documents selected by maximal marginal relevance.</span>
+<span class="sd">            List of Documents selected by maximal marginal relevance</span>
 
 <span class="sd">        `max_marginal_relevance_search` requires that `query` returns matched</span>
 <span class="sd">        embeddings alongside the match documents.</span>
@@ -963,13 +1088,11 @@
 <a class="viewcode-back" href="../../db2/db2vs/langchain_db2.db2vs.DB2VS.html#langchain_db2.db2vs.DB2VS.delete">[docs]</a>
     <span class="nd">@_handle_exceptions</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Delete by vector IDs.</span>
-<span class="sd">        Args:</span>
-<span class="sd">          self: An instance of the class</span>
-<span class="sd">          ids: List of ids to delete.</span>
-<span class="sd">          **kwargs</span>
-<span class="sd">        """</span>
+<span class="w">        </span><span class="sd">"""Delete by vector IDs</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            ids: List of ids to delete</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No ids provided to delete."</span><span class="p">)</span>
 
@@ -1007,7 +1130,16 @@
         <span class="n">metadatas</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DB2VS</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Return VectorStore initialized from texts and embeddings."""</span>
+<span class="w">        </span><span class="sd">"""Return VectorStore initialized from texts and embeddings.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            texts: Iterable of strings to add to the vectorstore</span>
+<span class="sd">            embedding: Embedding to look up documents similar to</span>
+<span class="sd">            metadatas: Optional list of metadatas associated with the texts</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A ready-to-use vector store with the provided texts loaded</span>
+<span class="sd">        """</span>
         <span class="n">client</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"client"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"client parameter is required..."</span><span class="p">)</span>
@@ -1047,10 +1179,11 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            expr: SQL boolean expression to filter rows, e.g.:</span>
-<span class="sd">                  "id IN ('ABC123','DEF456')" or "title LIKE 'Abc%'".</span>
-<span class="sd">                  If None, returns all rows.</span>
+<span class="sd">                `id IN ('ABC123','DEF456')` or `title LIKE 'Abc%'`.</span>
+<span class="sd">                If None, returns all rows.</span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">            List[str]: List of matching primary-key values.</span>
+<span class="sd">            List of matching primary-key values.</span>
 <span class="sd">        """</span>
         <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT id FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="si">}</span><span class="s2">"</span>
 

@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Oct 14, 2025" name="docbuild:last-update"/>
+<meta content="Oct 16, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -220,7 +220,7 @@
 <div id="searchbox"></div>
 <article class="bd-article">
 <h1>Source code for langchain_ibm.chat_models</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""IBM watsonx.ai large language chat models wrapper."""</span>
+<span></span><span class="sd">"""IBM watsonx.ai chat wrapper."""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
@@ -340,6 +340,8 @@
         <span class="n">additional_kwargs</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">function_call</span> <span class="o">:=</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"function_call"</span><span class="p">):</span>
             <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"function_call"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">function_call</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reasoning_content</span> <span class="o">:=</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_content"</span><span class="p">):</span>
+            <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"reasoning_content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reasoning_content</span>
         <span class="n">tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">invalid_tool_calls</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">raw_tool_calls</span> <span class="o">:=</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tool_calls"</span><span class="p">):</span>
@@ -541,6 +543,9 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">pass</span>
 
+    <span class="k">if</span> <span class="n">reasoning_content</span> <span class="o">:=</span> <span class="n">_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reasoning_content"</span><span class="p">):</span>
+        <span class="n">additional_kwargs</span><span class="p">[</span><span class="s2">"reasoning_content"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reasoning_content</span>
+
     <span class="k">if</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"user"</span> <span class="ow">or</span> <span class="n">default_class</span> <span class="o">==</span> <span class="n">HumanMessageChunk</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">HumanMessageChunk</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">id_</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">role</span> <span class="o">==</span> <span class="s2">"assistant"</span> <span class="ow">or</span> <span class="n">default_class</span> <span class="o">==</span> <span class="n">AIMessageChunk</span><span class="p">:</span>
@@ -622,40 +627,435 @@
 <div class="viewcode-block" id="ChatWatsonx">
 <a class="viewcode-back" href="../../ibm/chat_models/langchain_ibm.chat_models.ChatWatsonx.html#langchain_ibm.chat_models.ChatWatsonx">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChatWatsonx</span><span class="p">(</span><span class="n">BaseChatModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""IBM watsonx.ai large language chat models.</span>
+<span class="w">    </span><span class="sd">"""`IBM watsonx.ai` chat models integration.</span>
 
-<span class="sd">    .. dropdown:: Setup</span>
-<span class="sd">        :open:</span>
+<span class="sd">    ???+ info "Setup"</span>
 
-<span class="sd">        To use, you should have ``langchain_ibm`` python package installed,</span>
-<span class="sd">        and the environment variable ``WATSONX_APIKEY`` set with your API key, or pass</span>
-<span class="sd">        it as a named parameter to the constructor.</span>
+<span class="sd">        To use, you should have `langchain_ibm` python package installed,</span>
+<span class="sd">        and the environment variable `WATSONX_APIKEY` set with your API key, or pass</span>
+<span class="sd">        it as a named parameter `apikey` to the constructor.</span>
 
-<span class="sd">        .. code-block:: bash</span>
+<span class="sd">        ```bash</span>
+<span class="sd">        pip install -U langchain-ibm</span>
 
-<span class="sd">            pip install -U langchain-ibm</span>
-<span class="sd">            export WATSONX_APIKEY="your-api-key"</span>
+<span class="sd">        # or using uv</span>
+<span class="sd">        uv add langchain-ibm</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```bash</span>
+<span class="sd">        export WATSONX_APIKEY="your-api-key"</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Instantiate"</span>
+
+<span class="sd">        Create a model instance with desired params. For example:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_ibm import ChatWatsonx</span>
+<span class="sd">        from ibm_watsonx_ai.foundation_models.schema import TextChatParameters</span>
+
+<span class="sd">        parameters = TextChatParameters(</span>
+<span class="sd">            top_p=1, temperature=0.5, max_completion_tokens=None</span>
+<span class="sd">        )</span>
+
+<span class="sd">        model = ChatWatsonx(</span>
+<span class="sd">            model_id="meta-llama/llama-3-3-70b-instruct",</span>
+<span class="sd">            url="https://us-south.ml.cloud.ibm.com",</span>
+<span class="sd">            project_id="*****",</span>
+<span class="sd">            params=parameters,</span>
+<span class="sd">            # apikey="*****"</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Invoke"</span>
+
+<span class="sd">        Generate a response from the model:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        messages = [</span>
+<span class="sd">            (</span>
+<span class="sd">                "system",</span>
+<span class="sd">                "You are a helpful translator. Translate the user sentence to French.",</span>
+<span class="sd">            ),</span>
+<span class="sd">            ("human", "I love programming."),</span>
+<span class="sd">        ]</span>
+<span class="sd">        model.invoke(messages)</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        Results in an `AIMessage` response:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        AIMessage(</span>
+<span class="sd">            content="J'adore programmer.",</span>
+<span class="sd">            additional_kwargs={},</span>
+<span class="sd">            response_metadata={</span>
+<span class="sd">                "token_usage": {</span>
+<span class="sd">                    "completion_tokens": 7,</span>
+<span class="sd">                    "prompt_tokens": 30,</span>
+<span class="sd">                    "total_tokens": 37,</span>
+<span class="sd">                },</span>
+<span class="sd">                "model_name": "ibm/granite-3-3-8b-instruct",</span>
+<span class="sd">                "system_fingerprint": "",</span>
+<span class="sd">                "finish_reason": "stop",</span>
+<span class="sd">            },</span>
+<span class="sd">            id="chatcmpl-529352c4-93ba-4801-8f1d-a3b4e3935194---daed91fb74d0405f200db1e63da9a48a---7a3ef799-4413-47e4-b24c-85d267e37fa2",</span>
+<span class="sd">            usage_metadata={"input_tokens": 30, "output_tokens": 7, "total_tokens": 37},</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Stream"</span>
+
+<span class="sd">        Stream a response from the model:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        for chunk in model.stream(messages):</span>
+<span class="sd">            print(chunk.text)</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        Results in a sequence of `AIMessageChunk` objects with partial content:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        AIMessageChunk(content="", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(content="J", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(content="'", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(content="ad", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(content="ore", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(</span>
+<span class="sd">            content=" programmer", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775"</span>
+<span class="sd">        )</span>
+<span class="sd">        AIMessageChunk(content=".", id="run--e48a38d3-1500-4b5e-870c-6313e8cff775")</span>
+<span class="sd">        AIMessageChunk(</span>
+<span class="sd">            content="",</span>
+<span class="sd">            response_metadata={</span>
+<span class="sd">                "finish_reason": "stop",</span>
+<span class="sd">                "model_name": "ibm/granite-3-3-8b-instruct",</span>
+<span class="sd">            },</span>
+<span class="sd">            id="run--e48a38d3-1500-4b5e-870c-6313e8cff775",</span>
+<span class="sd">        )</span>
+<span class="sd">        AIMessageChunk(</span>
+<span class="sd">            content="",</span>
+<span class="sd">            id="run--e48a38d3-1500-4b5e-870c-6313e8cff775",</span>
+<span class="sd">            usage_metadata={"input_tokens": 30, "output_tokens": 7, "total_tokens": 37},</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        To collect the full message, you can concatenate the chunks:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        stream = model.stream(messages)</span>
+<span class="sd">        full = next(stream)</span>
+<span class="sd">        for chunk in stream:</span>
+<span class="sd">            full += chunk</span>
+
+<span class="sd">        full</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        AIMessageChunk(</span>
+<span class="sd">            content="J'adore programmer.",</span>
+<span class="sd">            response_metadata={</span>
+<span class="sd">                "finish_reason": "stop",</span>
+<span class="sd">                "model_name": "ibm/granite-3-3-8b-instruct",</span>
+<span class="sd">            },</span>
+<span class="sd">            id="chatcmpl-88a48b71-c149-4a0c-9c02-d6b97ca5dc6c---b7ba15879a8c5283b1e8a3b8db0229f0---0037ca4f-8a74-4f84-a46c-ab3fd1294f24",</span>
+<span class="sd">            usage_metadata={"input_tokens": 30, "output_tokens": 7, "total_tokens": 37},</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Async"</span>
+
+<span class="sd">        Asynchronous equivalents of `invoke`, `stream`, and `batch` are also available:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        # Invoke</span>
+<span class="sd">        await model.ainvoke(messages)</span>
+
+<span class="sd">        # Stream</span>
+<span class="sd">        async for chunk in model.astream(messages):</span>
+<span class="sd">            print(chunk.text)</span>
+
+<span class="sd">        # Batch</span>
+<span class="sd">        await model.abatch([messages])</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        Results in an `AIMessage` response:</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        AIMessage(</span>
+<span class="sd">            content="J'adore programmer.",</span>
+<span class="sd">            additional_kwargs={},</span>
+<span class="sd">            response_metadata={</span>
+<span class="sd">                "token_usage": {</span>
+<span class="sd">                    "completion_tokens": 7,</span>
+<span class="sd">                    "prompt_tokens": 30,</span>
+<span class="sd">                    "total_tokens": 37,</span>
+<span class="sd">                },</span>
+<span class="sd">                "model_name": "ibm/granite-3-3-8b-instruct",</span>
+<span class="sd">                "system_fingerprint": "",</span>
+<span class="sd">                "finish_reason": "stop",</span>
+<span class="sd">            },</span>
+<span class="sd">            id="chatcmpl-5bef2d81-ef56-463b-a8fa-c2bcc2a3c348---821e7750d18925f2b36226db66667e26---6396c786-9da9-4468-883e-11ed90a05937",</span>
+<span class="sd">            usage_metadata={"input_tokens": 30, "output_tokens": 7, "total_tokens": 37},</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        For batched calls, results in a `list[AIMessage]`.</span>
+
+<span class="sd">    ??? info "Tool calling"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from pydantic import BaseModel, Field</span>
 
 
-<span class="sd">    Example:</span>
-<span class="sd">        .. code-block:: python</span>
+<span class="sd">        class GetWeather(BaseModel):</span>
+<span class="sd">            '''Get the current weather in a given location'''</span>
 
-<span class="sd">            from ibm_watsonx_ai.foundation_models.schema import TextChatParameters</span>
-
-<span class="sd">            parameters = TextChatParameters(</span>
-<span class="sd">                max_completion_tokens=100,</span>
-<span class="sd">                temperature=0.5,</span>
-<span class="sd">                top_p=1,</span>
-<span class="sd">                )</span>
-
-<span class="sd">            from langchain_ibm import ChatWatsonx</span>
-<span class="sd">            watsonx_llm = ChatWatsonx(</span>
-<span class="sd">                model_id="meta-llama/llama-3-3-70b-instruct",</span>
-<span class="sd">                url="https://us-south.ml.cloud.ibm.com",</span>
-<span class="sd">                apikey="*****",</span>
-<span class="sd">                project_id="*****",</span>
-<span class="sd">                params=parameters,</span>
+<span class="sd">            location: str = Field(</span>
+<span class="sd">                ..., description="The city and state, e.g. San Francisco, CA"</span>
 <span class="sd">            )</span>
+
+
+<span class="sd">        class GetPopulation(BaseModel):</span>
+<span class="sd">            '''Get the current population in a given location'''</span>
+
+<span class="sd">            location: str = Field(</span>
+<span class="sd">                ..., description="The city and state, e.g. San Francisco, CA"</span>
+<span class="sd">            )</span>
+
+
+<span class="sd">        model_with_tools = model.bind_tools(</span>
+<span class="sd">            [GetWeather, GetPopulation]</span>
+<span class="sd">            # strict = True  # Enforce tool args schema is respected</span>
+<span class="sd">        )</span>
+<span class="sd">        ai_msg = model_with_tools.invoke(</span>
+<span class="sd">            "Which city is hotter today and which is bigger: LA or NY?"</span>
+<span class="sd">        )</span>
+<span class="sd">        ai_msg.tool_calls</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                "name": "GetWeather",</span>
+<span class="sd">                "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                "id": "chatcmpl-tool-59632abcee8f48a18a5f3a81422b917b",</span>
+<span class="sd">                "type": "tool_call",</span>
+<span class="sd">            },</span>
+<span class="sd">            {</span>
+<span class="sd">                "name": "GetWeather",</span>
+<span class="sd">                "args": {"location": "New York, NY"},</span>
+<span class="sd">                "id": "chatcmpl-tool-c6f3b033b4594918bb53f656525b0979",</span>
+<span class="sd">                "type": "tool_call",</span>
+<span class="sd">            },</span>
+<span class="sd">            {</span>
+<span class="sd">                "name": "GetPopulation",</span>
+<span class="sd">                "args": {"location": "Los Angeles, CA"},</span>
+<span class="sd">                "id": "chatcmpl-tool-175a23281e4747ea81cbe472b8e47012",</span>
+<span class="sd">                "type": "tool_call",</span>
+<span class="sd">            },</span>
+<span class="sd">            {</span>
+<span class="sd">                "name": "GetPopulation",</span>
+<span class="sd">                "args": {"location": "New York, NY"},</span>
+<span class="sd">                "id": "chatcmpl-tool-e1ccc534835945aebab708eb5e685bf7",</span>
+<span class="sd">                "type": "tool_call",</span>
+<span class="sd">            },</span>
+<span class="sd">        ]</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Reasoning output"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from langchain_ibm import ChatWatsonx</span>
+<span class="sd">        from ibm_watsonx_ai.foundation_models.schema import TextChatParameters</span>
+
+<span class="sd">        parameters = TextChatParameters(</span>
+<span class="sd">            include_reasoning=True, reasoning_effort="medium"</span>
+<span class="sd">        )</span>
+
+<span class="sd">        model = ChatWatsonx(</span>
+<span class="sd">            model_id="openai/gpt-oss-120b",</span>
+<span class="sd">            url="https://us-south.ml.cloud.ibm.com",</span>
+<span class="sd">            project_id="*****",</span>
+<span class="sd">            params=parameters,</span>
+<span class="sd">            # apikey="*****"</span>
+<span class="sd">        )</span>
+
+<span class="sd">        response = model.invoke("What is 3^3?")</span>
+
+<span class="sd">        # Response text</span>
+<span class="sd">        print(f"Output: {response.content}")</span>
+
+<span class="sd">        # Reasoning summaries</span>
+<span class="sd">        print(f"Reasoning: {response.additional_kwargs['reasoning_content']}")</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        Output: 3^3 = 27</span>
+<span class="sd">        Reasoning: The user asks "What is 3^3?" That's 27. Provide answer.</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        !!! version-added "Added in version 0.3.19: Updated `AIMessage` format"</span>
+<span class="sd">            [`langchain-ibm &gt;= 0.3.19`](https://pypi.org/project/langchain-ibm/#history)</span>
+<span class="sd">            allows users to set Reasoning output parameters and will format output from</span>
+<span class="sd">            reasoning summaries into `additional_kwargs` field.</span>
+
+<span class="sd">    ??? info "Structured output"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        from pydantic import BaseModel, Field</span>
+
+
+<span class="sd">        class Joke(BaseModel):</span>
+<span class="sd">            '''Joke to tell user.'''</span>
+
+<span class="sd">            setup: str = Field(description="The setup of the joke")</span>
+<span class="sd">            punchline: str = Field(description="The punchline to the joke")</span>
+<span class="sd">            rating: int | None = Field(description="How funny the joke is, 1 to 10")</span>
+
+
+<span class="sd">        structured_model = model.with_structured_output(Joke)</span>
+<span class="sd">        structured_model.invoke("Tell me a joke about cats")</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        Joke(</span>
+<span class="sd">            setup="Why was the cat sitting on the computer?",</span>
+<span class="sd">            punchline="To keep an eye on the mouse!",</span>
+<span class="sd">            rating=None,</span>
+<span class="sd">        )</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        See `with_structured_output` for more info.</span>
+
+<span class="sd">    ??? info "JSON mode"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        json_model = model.bind(response_format={"type": "json_object"})</span>
+<span class="sd">        ai_msg = json_model.invoke(</span>
+<span class="sd">            “Return JSON with 'random_ints': an array of 10 random integers from 0–99.”</span>
+<span class="sd">        )</span>
+<span class="sd">        ai_msg.content</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        '{\\n  "random_ints": [12, 34, 56, 78, 10, 22, 44, 66, 88, 99]\\n}'</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Image input"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        import base64</span>
+<span class="sd">        import httpx</span>
+<span class="sd">        from langchain.messages import HumanMessage</span>
+
+<span class="sd">        image_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"</span>
+<span class="sd">        image_data = base64.b64encode(httpx.get(image_url).content).decode("utf-8")</span>
+<span class="sd">        message = HumanMessage(</span>
+<span class="sd">            content=[</span>
+<span class="sd">                {"type": "text", "text": "describe the weather in this image"},</span>
+<span class="sd">                {</span>
+<span class="sd">                    "type": "image_url",</span>
+<span class="sd">                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},</span>
+<span class="sd">                },</span>
+<span class="sd">            ]</span>
+<span class="sd">        )</span>
+
+<span class="sd">        ai_msg = model.invoke([message])</span>
+<span class="sd">        ai_msg.content</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        "The weather in the image presents a clear, sunny day with good visibility</span>
+<span class="sd">        and no immediate signs of rain or strong winds. The vibrant blue sky with</span>
+<span class="sd">        scattered white clouds gives the impression of a tranquil, pleasant day</span>
+<span class="sd">        conducive to outdoor activities."</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Token usage"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        ai_msg = model.invoke(messages)</span>
+<span class="sd">        ai_msg.usage_metadata</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        {'input_tokens': 30, 'output_tokens': 7, 'total_tokens': 37}</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        stream = model.stream(messages)</span>
+<span class="sd">        full = next(stream)</span>
+<span class="sd">        for chunk in stream:</span>
+<span class="sd">            full += chunk</span>
+<span class="sd">        full.usage_metadata</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        {'input_tokens': 30, 'output_tokens': 7, 'total_tokens': 37}</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Logprobs"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        logprobs_model = model.bind(logprobs=True)</span>
+<span class="sd">        ai_msg = logprobs_model.invoke(messages)</span>
+<span class="sd">        ai_msg.response_metadata["logprobs"]</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        {</span>
+<span class="sd">            'content': [</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': 'J',</span>
+<span class="sd">                    'logprob': -0.0017940393</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': "'",</span>
+<span class="sd">                    'logprob': -1.7523613e-05</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': 'ad',</span>
+<span class="sd">                    'logprob': -0.16112353</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': 'ore',</span>
+<span class="sd">                    'logprob': -0.0003091811</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': ' programmer',</span>
+<span class="sd">                    'logprob': -0.24849245</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': '.',</span>
+<span class="sd">                    'logprob': -2.5033638e-05</span>
+<span class="sd">                },</span>
+<span class="sd">                {</span>
+<span class="sd">                    'token': '&lt;|end_of_text|&gt;',</span>
+<span class="sd">                    'logprob': -7.080781e-05</span>
+<span class="sd">                }</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    ??? info "Response metadata"</span>
+
+<span class="sd">        ```python</span>
+<span class="sd">        ai_msg = model.invoke(messages)</span>
+<span class="sd">        ai_msg.response_metadata</span>
+<span class="sd">        ```</span>
+
+<span class="sd">        ```txt</span>
+<span class="sd">        {</span>
+<span class="sd">            'token_usage': {</span>
+<span class="sd">                'completion_tokens': 7,</span>
+<span class="sd">                'prompt_tokens': 30,</span>
+<span class="sd">                'total_tokens': 37</span>
+<span class="sd">            },</span>
+<span class="sd">            'model_name': 'ibm/granite-3-3-8b-instruct',</span>
+<span class="sd">            'system_fingerprint': '',</span>
+<span class="sd">            'finish_reason': 'stop'</span>
+<span class="sd">        }</span>
+<span class="sd">        ```</span>
 <span class="sd">    """</span>
 
     <span class="n">model_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -670,7 +1070,7 @@
 <span class="sd">    provisioned (opt-in) through the Gateway to ensure secure, vendor-agnostic access </span>
 <span class="sd">    and easy switch-over without reconfiguration.</span>
 
-<span class="sd">    For more details on configuration and usage, see IBM watsonx Model Gateway docs: https://dataplatform.cloud.ibm.com/docs/content/wsj/analyze-data/fm-model-gateway.html?context=wx&amp;audience=wdp</span>
+<span class="sd">    For more details on configuration and usage, see [IBM watsonx Model Gateway docs](https://dataplatform.cloud.ibm.com/docs/content/wsj/analyze-data/fm-model-gateway.html?context=wx&amp;audience=wdp)</span>
 <span class="sd">    """</span>
 
     <span class="n">deployment_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -722,9 +1122,10 @@
     <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">TextChatParameters</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Model parameters to use during request generation.</span>
 
-<span class="sd">    Note:</span>
-<span class="sd">        `ValueError` is raised if the same Chat generation parameter is provided </span>
-<span class="sd">        within the params attribute and as keyword argument."""</span>
+<span class="sd">    !!! note</span>
+<span class="sd">        `ValueError` is raised if the same Chat generation parameter is provided</span>
+<span class="sd">        within the params attribute and as keyword argument.</span>
+<span class="sd">    """</span>
 
     <span class="n">frequency_penalty</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="w">    </span><span class="sd">"""Positive values penalize new tokens based on their existing frequency in the </span>
@@ -838,18 +1239,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">lc_secrets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">"""A map of constructor argument names to secret ids.</span>
-
-<span class="sd">        For example:</span>
-<span class="sd">            {</span>
-<span class="sd">                "url": "WATSONX_URL",</span>
-<span class="sd">                "apikey": "WATSONX_APIKEY",</span>
-<span class="sd">                "token": "WATSONX_TOKEN",</span>
-<span class="sd">                "password": "WATSONX_PASSWORD",</span>
-<span class="sd">                "username": "WATSONX_USERNAME",</span>
-<span class="sd">                "instance_id": "WATSONX_INSTANCE_ID",</span>
-<span class="sd">            }</span>
-<span class="sd">        """</span>
+<span class="w">        </span><span class="sd">"""Mapping of secret environment variables."""</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"WATSONX_URL"</span><span class="p">,</span>
             <span class="s2">"apikey"</span><span class="p">:</span> <span class="s2">"WATSONX_APIKEY"</span><span class="p">,</span>
@@ -1251,8 +1641,7 @@
 <span class="sd">                Must be the name of the single provided function or</span>
 <span class="sd">                "auto" to automatically determine which function to call</span>
 <span class="sd">                (if any).</span>
-<span class="sd">            **kwargs: Any additional parameters to pass to the</span>
-<span class="sd">                :class:`~langchain.runnable.Runnable` constructor.</span>
+<span class="sd">            **kwargs: Any additional parameters to pass to the Runnable constructor.</span>
 <span class="sd">        """</span>
 
         <span class="n">formatted_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_function</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">functions</span><span class="p">]</span>
@@ -1301,17 +1690,16 @@
 <span class="sd">                Can be  a dictionary, pydantic model, callable, or BaseTool. Pydantic</span>
 <span class="sd">                models, callables, and BaseTools will be automatically converted to</span>
 <span class="sd">                their schema dictionary representation.</span>
-<span class="sd">            tool_choice: Which tool to require the model to call.</span>
-<span class="sd">                Options are:</span>
-<span class="sd">                    - str of the form ``"&lt;&lt;tool_name&gt;&gt;"``: calls &lt;&lt;tool_name&gt;&gt; tool.</span>
-<span class="sd">                    - ``"auto"``: automatically selects a tool (including no tool).</span>
-<span class="sd">                    - ``"none"``: does not call a tool.</span>
-<span class="sd">                    - ``"any"`` or ``"required"`` or ``True``: force at least one tool to be called.</span>
-<span class="sd">                    - dict of the form ``{"type": "function", "function": {"name": &lt;&lt;tool_name&gt;&gt;}}``: calls &lt;&lt;tool_name&gt;&gt; tool.</span>
-<span class="sd">                    - ``False`` or ``None``: no effect, default OpenAI behavior.</span>
+<span class="sd">            tool_choice: Which tool to require the model to call. Options are:</span>
 
-<span class="sd">            kwargs: Any additional parameters are passed directly to</span>
-<span class="sd">                ``self.bind(**kwargs)``.</span>
+<span class="sd">                - `str` of the form `'&lt;&lt;tool_name&gt;&gt;'`: calls `&lt;&lt;tool_name&gt;&gt;` tool.</span>
+<span class="sd">                - `'auto'`: automatically selects a tool (including no tool).</span>
+<span class="sd">                - `'none'`: does not call a tool.</span>
+<span class="sd">                - `'any'` or `'required'` or `True`: force at least one tool to be called.</span>
+<span class="sd">                - `dict` of the form `{"type": "function", "function": {"name": &lt;&lt;tool_name&gt;&gt;}}`: calls `&lt;&lt;tool_name&gt;&gt;` tool.</span>
+<span class="sd">                - `False` or `None`: no effect, default OpenAI behavior.</span>
+
+<span class="sd">            kwargs: Any additional parameters are passed directly to `bind`.</span>
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="n">formatted_tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">tool_choice</span><span class="p">:</span>
@@ -1377,16 +1765,16 @@
 <span class="sd">                - a TypedDict class,</span>
 <span class="sd">                - or a Pydantic class,</span>
 
-<span class="sd">                If ``schema`` is a Pydantic class then the model output will be a</span>
+<span class="sd">                If `schema` is a Pydantic class then the model output will be a</span>
 <span class="sd">                Pydantic instance of that class, and the model-generated fields will be</span>
 <span class="sd">                validated by the Pydantic class. Otherwise the model output will be a</span>
 <span class="sd">                dict and will not be validated.</span>
 
 <span class="sd">            method: The method for steering model generation, one of:</span>
 
-<span class="sd">                - ``'function_calling'``: uses tool-calling features.</span>
-<span class="sd">                - ``'json_schema'``: uses dedicated structured output features.</span>
-<span class="sd">                - ``'json_mode'``: uses JSON mode.</span>
+<span class="sd">                - `'function_calling'`: uses tool-calling features.</span>
+<span class="sd">                - `'json_schema'`: uses dedicated structured output features.</span>
+<span class="sd">                - `'json_mode'`: uses JSON mode.</span>
 
 <span class="sd">            include_raw:</span>
 <span class="sd">                If False then only the parsed structured output is returned. If</span>
@@ -1394,201 +1782,279 @@
 <span class="sd">                then both the raw model response (a BaseMessage) and the parsed model</span>
 <span class="sd">                response will be returned. If an error occurs during output parsing it</span>
 <span class="sd">                will be caught and returned as well. The final output is always a dict</span>
-<span class="sd">                with keys ``'raw'``, ``'parsed'``, and ``'parsing_error'``.</span>
+<span class="sd">                with keys `'raw'`, `'parsed'`, and `'parsing_error'`.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            A Runnable that takes same inputs as a :class:`langchain_core.language_models.chat.BaseChatModel`.</span>
+<span class="sd">            A Runnable that takes same inputs as a `langchain_core.language_models.chat.BaseChatModel`.</span>
 
-<span class="sd">            If ``include_raw`` is True, then Runnable outputs a dict with keys:</span>
+<span class="sd">            If `include_raw` is True, then Runnable outputs a dict with keys:</span>
 
-<span class="sd">            - ``'raw'``: BaseMessage</span>
-<span class="sd">            - ``'parsed'``: None if there was a parsing error, otherwise the type depends on the ``schema`` as described above.</span>
-<span class="sd">            - ``'parsing_error'``: Optional[BaseException]</span>
+<span class="sd">            - `'raw'`: BaseMessage</span>
+<span class="sd">            - `'parsed'`: None if there was a parsing error, otherwise the type depends on the `schema` as described above.</span>
+<span class="sd">            - `'parsing_error'`: Optional[BaseException]</span>
 
-<span class="sd">        .. dropdown:: Example: schema=Pydantic class, method="function_calling", include_raw=False</span>
+<span class="sd">        ??? note "Example: `schema=Pydantic` class, `method='function_calling'`, `include_raw=True`"</span>
 
-<span class="sd">            .. code-block:: python</span>
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+<span class="sd">            from pydantic import BaseModel</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
 
-<span class="sd">                class AnswerWithJustification(BaseModel):</span>
-<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
-<span class="sd">                    answer: str</span>
-<span class="sd">                    justification: str</span>
+<span class="sd">            class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                '''An answer to the user question along with justification for the answer.'''</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(</span>
-<span class="sd">                    AnswerWithJustification, , method="function_calling"</span>
-<span class="sd">                )</span>
+<span class="sd">                answer: str</span>
+<span class="sd">                justification: str</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
 
-<span class="sd">                # -&gt; AnswerWithJustification(</span>
-<span class="sd">                #     answer='They weigh the same',</span>
-<span class="sd">                #     justification='Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ.'</span>
-<span class="sd">                # )</span>
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(</span>
+<span class="sd">                AnswerWithJustification, include_raw=True</span>
+<span class="sd">            )</span>
 
-<span class="sd">        .. dropdown:: Example: schema=Pydantic class, method="function_calling", include_raw=True</span>
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
 
-<span class="sd">            .. code-block:: python</span>
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "raw": AIMessage(</span>
+<span class="sd">                    content="",</span>
+<span class="sd">                    additional_kwargs={</span>
+<span class="sd">                        "tool_calls": [</span>
+<span class="sd">                            {</span>
+<span class="sd">                                "id": "call_Ao02pnFYXD6GN1yzc0uXPsvF",</span>
+<span class="sd">                                "function": {</span>
+<span class="sd">                                    "arguments": '{"answer":"They weigh the same.","justification":"Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ."}',</span>
+<span class="sd">                                    "name": "AnswerWithJustification",</span>
+<span class="sd">                                },</span>
+<span class="sd">                                "type": "function",</span>
+<span class="sd">                            }</span>
+<span class="sd">                        ]</span>
+<span class="sd">                    },</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsed": AnswerWithJustification(</span>
+<span class="sd">                    answer="They weigh the same.",</span>
+<span class="sd">                    justification="Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ.",</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsing_error": None,</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
+<span class="sd">        ??? note "Example: `schema=JSON` schema, `method='function_calling'`, `include_raw=False`"</span>
 
-<span class="sd">                class AnswerWithJustification(BaseModel):</span>
-<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
-<span class="sd">                    answer: str</span>
-<span class="sd">                    justification: str</span>
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+<span class="sd">            from pydantic import BaseModel</span>
+<span class="sd">            from langchain_core.utils.function_calling import convert_to_openai_tool</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(AnswerWithJustification, include_raw=True)</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='', additional_kwargs={'tool_calls': [{'id': 'call_Ao02pnFYXD6GN1yzc0uXPsvF', 'function': {'arguments': '{"answer":"They weigh the same.","justification":"Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ."}', 'name': 'AnswerWithJustification'}, 'type': 'function'}]}),</span>
-<span class="sd">                #     'parsed': AnswerWithJustification(answer='They weigh the same.', justification='Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume or density of the objects may differ.'),</span>
-<span class="sd">                #     'parsing_error': None</span>
-<span class="sd">                # }</span>
+<span class="sd">            class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                '''An answer to the user question along with justification for the answer.'''</span>
 
-<span class="sd">        .. dropdown:: Example: schema=JSON Schema, method="function_calling", include_raw=False</span>
+<span class="sd">                answer: str</span>
+<span class="sd">                justification: str</span>
 
-<span class="sd">            .. code-block:: python</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
-<span class="sd">                from langchain_core.utils.function_calling import convert_to_openai_tool</span>
+<span class="sd">            dict_schema = convert_to_openai_tool(AnswerWithJustification)</span>
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(dict_schema)</span>
 
-<span class="sd">                class AnswerWithJustification(BaseModel):</span>
-<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
-<span class="sd">                    answer: str</span>
-<span class="sd">                    justification: str</span>
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                dict_schema = convert_to_openai_tool(AnswerWithJustification)</span>
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(dict_schema)</span>
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "answer": "They weigh the same",</span>
+<span class="sd">                "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume and density of the two substances differ.",</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                structured_llm.invoke("What weighs more a pound of bricks or a pound of feathers")</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'answer': 'They weigh the same',</span>
-<span class="sd">                #     'justification': 'Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume and density of the two substances differ.'</span>
-<span class="sd">                # }</span>
+<span class="sd">        ??? note "Example: `schema=Pydantic` class, `method='json_schema'`, `include_raw=True`"</span>
 
-<span class="sd">        .. dropdown:: Example: schema=Pydantic class, method="json_schema", include_raw=True</span>
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+<span class="sd">            from pydantic import BaseModel</span>
 
-<span class="sd">            .. code-block::</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
+<span class="sd">            class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                '''An answer to the user question along with justification for the answer.'''</span>
 
-<span class="sd">                class AnswerWithJustification(BaseModel):</span>
-<span class="sd">                    '''An answer to the user question along with justification for the answer.'''</span>
+<span class="sd">                answer: str</span>
+<span class="sd">                justification: str</span>
 
-<span class="sd">                    answer: str</span>
-<span class="sd">                    justification: str</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(</span>
-<span class="sd">                    AnswerWithJustification,</span>
-<span class="sd">                    method="json_schema",</span>
-<span class="sd">                    include_raw=True</span>
-<span class="sd">                )</span>
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(</span>
+<span class="sd">                AnswerWithJustification, method="json_schema", include_raw=True</span>
+<span class="sd">            )</span>
 
-<span class="sd">                structured_llm.invoke(</span>
-<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
-<span class="sd">                )</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='', additional_kwargs={'tool_calls': [{'id': 'chatcmpl-tool-bfbd6f6dd33b438990c5ddf277485971', 'type': 'function', 'function': {'name': 'AnswerWithJustification', 'arguments': '{"answer": "They weigh the same", "justification": "A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound."}'}}]}, response_metadata={'token_usage': {'completion_tokens': 45, 'prompt_tokens': 275, 'total_tokens': 320}, 'model_name': 'meta-llama/llama-3-3-70b-instruct', 'system_fingerprint': '', 'finish_reason': 'stop'}, id='chatcmpl-461ca5bd-1982-412c-b886-017c483bf481---8c18b06eead65ae4691364798787bda7---71896588-efa5-439f-a25f-d1abfe289f5a', tool_calls=[{'name': 'AnswerWithJustification', 'args': {'answer': 'They weigh the same', 'justification': 'A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound.'}, 'id': 'chatcmpl-tool-bfbd6f6dd33b438990c5ddf277485971', 'type': 'tool_call'}], usage_metadata={'input_tokens': 275, 'output_tokens': 45, 'total_tokens': 320}),</span>
-<span class="sd">                #     'parsed': AnswerWithJustification(answer='They weigh the same', justification='A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound.'),</span>
-<span class="sd">                #     'parsing_error': None</span>
-<span class="sd">                # }</span>
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
 
-<span class="sd">        .. dropdown:: Example: schema=function schema, method="json_schema", include_raw=False</span>
-
-<span class="sd">            .. code-block:: python</span>
-
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
-
-<span class="sd">                function__schema = {</span>
-<span class="sd">                    'name': 'AnswerWithJustification',</span>
-<span class="sd">                    'description': 'An answer to the user question along with justification for the answer.',</span>
-<span class="sd">                    'parameters': {</span>
-<span class="sd">                        'type': 'object',</span>
-<span class="sd">                        'properties': {</span>
-<span class="sd">                            'answer': {'type': 'string'},</span>
-<span class="sd">                            'justification': {'description': 'A justification for the answer.', 'type': 'string'}</span>
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "raw": AIMessage(</span>
+<span class="sd">                    content="",</span>
+<span class="sd">                    additional_kwargs={</span>
+<span class="sd">                        "tool_calls": [</span>
+<span class="sd">                            {</span>
+<span class="sd">                                "id": "chatcmpl-tool-bfbd6f6dd33b438990c5ddf277485971",</span>
+<span class="sd">                                "type": "function",</span>
+<span class="sd">                                "function": {</span>
+<span class="sd">                                    "name": "AnswerWithJustification",</span>
+<span class="sd">                                    "arguments": '{"answer": "They weigh the same", "justification": "A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound."}',</span>
+<span class="sd">                                },</span>
+<span class="sd">                            }</span>
+<span class="sd">                        ]</span>
+<span class="sd">                    },</span>
+<span class="sd">                    response_metadata={</span>
+<span class="sd">                        "token_usage": {</span>
+<span class="sd">                            "completion_tokens": 45,</span>
+<span class="sd">                            "prompt_tokens": 275,</span>
+<span class="sd">                            "total_tokens": 320,</span>
 <span class="sd">                        },</span>
-<span class="sd">                       'required': ['answer']</span>
-<span class="sd">                   }</span>
-<span class="sd">               }</span>
+<span class="sd">                        "model_name": "meta-llama/llama-3-3-70b-instruct",</span>
+<span class="sd">                        "system_fingerprint": "",</span>
+<span class="sd">                        "finish_reason": "stop",</span>
+<span class="sd">                    },</span>
+<span class="sd">                    id="chatcmpl-461ca5bd-1982-412c-b886-017c483bf481---8c18b06eead65ae4691364798787bda7---71896588-efa5-439f-a25f-d1abfe289f5a",</span>
+<span class="sd">                    tool_calls=[</span>
+<span class="sd">                        {</span>
+<span class="sd">                            "name": "AnswerWithJustification",</span>
+<span class="sd">                            "args": {</span>
+<span class="sd">                                "answer": "They weigh the same",</span>
+<span class="sd">                                "justification": "A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound.",</span>
+<span class="sd">                            },</span>
+<span class="sd">                            "id": "chatcmpl-tool-bfbd6f6dd33b438990c5ddf277485971",</span>
+<span class="sd">                            "type": "tool_call",</span>
+<span class="sd">                        }</span>
+<span class="sd">                    ],</span>
+<span class="sd">                    usage_metadata={</span>
+<span class="sd">                        "input_tokens": 275,</span>
+<span class="sd">                        "output_tokens": 45,</span>
+<span class="sd">                        "total_tokens": 320,</span>
+<span class="sd">                    },</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsed": AnswerWithJustification(</span>
+<span class="sd">                    answer="They weigh the same",</span>
+<span class="sd">                    justification="A pound is a unit of weight or mass, so both a pound of bricks and a pound of feathers weigh the same amount, one pound.",</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsing_error": None,</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(</span>
-<span class="sd">                    function__schema,</span>
-<span class="sd">                    method="json_schema",</span>
-<span class="sd">                    include_raw=False</span>
-<span class="sd">                )</span>
+<span class="sd">        ??? note "Example: `schema=function` schema, `method='json_schema'`, `include_raw=False`"</span>
 
-<span class="sd">                structured_llm.invoke(</span>
-<span class="sd">                    "What weighs more a pound of bricks or a pound of feathers"</span>
-<span class="sd">                )</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'answer': 'They weigh the same',</span>
-<span class="sd">                #     'justification': 'Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume and density of the two substances differ.'</span>
-<span class="sd">                # }</span>
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+<span class="sd">            from pydantic import BaseModel</span>
 
-<span class="sd">        .. dropdown:: Example: schema=Pydantic schema, method="json_mode", include_raw=True</span>
+<span class="sd">            function__schema = {</span>
+<span class="sd">                "name": "AnswerWithJustification",</span>
+<span class="sd">                "description": "An answer to the user question along with justification for the answer.",</span>
+<span class="sd">                "parameters": {</span>
+<span class="sd">                    "type": "object",</span>
+<span class="sd">                    "properties": {</span>
+<span class="sd">                        "answer": {"type": "string"},</span>
+<span class="sd">                        "justification": {</span>
+<span class="sd">                            "description": "A justification for the answer.",</span>
+<span class="sd">                            "type": "string",</span>
+<span class="sd">                        },</span>
+<span class="sd">                    },</span>
+<span class="sd">                    "required": ["answer"],</span>
+<span class="sd">                },</span>
+<span class="sd">            }</span>
 
-<span class="sd">            .. code-block::</span>
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(</span>
+<span class="sd">                function_schema, method="json_schema", include_raw=False</span>
+<span class="sd">            )</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
-<span class="sd">                from pydantic import BaseModel</span>
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "What weighs more a pound of bricks or a pound of feathers"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                class AnswerWithJustification(BaseModel):</span>
-<span class="sd">                    answer: str</span>
-<span class="sd">                    justification: str</span>
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "answer": "They weigh the same",</span>
+<span class="sd">                "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The weight is the same, but the volume and density of the two substances differ.",</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(</span>
-<span class="sd">                    AnswerWithJustification,</span>
-<span class="sd">                    method="json_mode",</span>
-<span class="sd">                    include_raw=True</span>
-<span class="sd">                )</span>
+<span class="sd">        ??? note "Example: `schema=Pydantic` class, `method='json_mode'`, `include_raw=True`"</span>
 
-<span class="sd">                structured_llm.invoke(</span>
-<span class="sd">                    "Answer the following question. "</span>
-<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
-<span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
-<span class="sd">                )</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='{\n    "answer": "They are both the same weight.",\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \n}'),</span>
-<span class="sd">                #     'parsed': AnswerWithJustification(answer='They are both the same weight.', justification='Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.'),</span>
-<span class="sd">                #     'parsing_error': None</span>
-<span class="sd">                # }</span>
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+<span class="sd">            from pydantic import BaseModel</span>
 
-<span class="sd">        .. dropdown:: Example: schema=None, method="json_mode", include_raw=True</span>
 
-<span class="sd">            .. code-block::</span>
+<span class="sd">            class AnswerWithJustification(BaseModel):</span>
+<span class="sd">                answer: str</span>
+<span class="sd">                justification: str</span>
 
-<span class="sd">                from langchain_ibm import ChatWatsonx</span>
 
-<span class="sd">                llm = ChatWatsonx(...)</span>
-<span class="sd">                structured_llm = llm.with_structured_output(method="json_mode", include_raw=True)</span>
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(</span>
+<span class="sd">                AnswerWithJustification, method="json_mode", include_raw=True</span>
+<span class="sd">            )</span>
 
-<span class="sd">                structured_llm.invoke(</span>
-<span class="sd">                    "Answer the following question. "</span>
-<span class="sd">                    "Make sure to return a JSON blob with keys 'answer' and 'justification'.\n\n"</span>
-<span class="sd">                    "What's heavier a pound of bricks or a pound of feathers?"</span>
-<span class="sd">                )</span>
-<span class="sd">                # -&gt; {</span>
-<span class="sd">                #     'raw': AIMessage(content='{\n    "answer": "They are both the same weight.",\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \n}'),</span>
-<span class="sd">                #     'parsed': {</span>
-<span class="sd">                #         'answer': 'They are both the same weight.',</span>
-<span class="sd">                #         'justification': 'Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.'</span>
-<span class="sd">                #     },</span>
-<span class="sd">                #     'parsing_error': None</span>
-<span class="sd">                # }</span>
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "Answer the following question. "</span>
+<span class="sd">                "Make sure to return a JSON blob with keys 'answer' and 'justification'.\\n\\n"</span>
+<span class="sd">                "What's heavier a pound of bricks or a pound of feathers?"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
+
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "raw": AIMessage(</span>
+<span class="sd">                    content='{\\n    "answer": "They are both the same weight.",\\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \\n}'</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsed": AnswerWithJustification(</span>
+<span class="sd">                    answer="They are both the same weight.",</span>
+<span class="sd">                    justification="Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.",</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsing_error": None,</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
+
+<span class="sd">        ??? note "Example: `schema=None`, `method='json_mode'`, `include_raw=True`"</span>
+
+<span class="sd">            ```python</span>
+<span class="sd">            from langchain_ibm import ChatWatsonx</span>
+
+<span class="sd">            model = ChatWatsonx(...)</span>
+<span class="sd">            structured_model = model.with_structured_output(</span>
+<span class="sd">                method="json_mode", include_raw=True</span>
+<span class="sd">            )</span>
+
+<span class="sd">            structured_model.invoke(</span>
+<span class="sd">                "Answer the following question. "</span>
+<span class="sd">                "Make sure to return a JSON blob with keys 'answer' and 'justification'.\\n\\n"</span>
+<span class="sd">                "What's heavier a pound of bricks or a pound of feathers?"</span>
+<span class="sd">            )</span>
+<span class="sd">            ```</span>
+
+<span class="sd">            ```python</span>
+<span class="sd">            {</span>
+<span class="sd">                "raw": AIMessage(</span>
+<span class="sd">                    content='{\\n    "answer": "They are both the same weight.",\\n    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight." \\n}'</span>
+<span class="sd">                ),</span>
+<span class="sd">                "parsed": {</span>
+<span class="sd">                    "answer": "They are both the same weight.",</span>
+<span class="sd">                    "justification": "Both a pound of bricks and a pound of feathers weigh one pound. The difference lies in the volume and density of the materials, not the weight.",</span>
+<span class="sd">                },</span>
+<span class="sd">                "parsing_error": None,</span>
+<span class="sd">            }</span>
+<span class="sd">            ```</span>
+
 <span class="sd">        """</span>  <span class="c1"># noqa: E501</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Received unsupported arguments </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -1601,7 +2067,7 @@
                 <span class="p">)</span>
             <span class="n">formatted_tool</span> <span class="o">=</span> <span class="n">convert_to_openai_tool</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
             <span class="n">tool_name</span> <span class="o">=</span> <span class="n">formatted_tool</span><span class="p">[</span><span class="s2">"function"</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span>
-            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind_tools</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">schema</span><span class="p">],</span>
                 <span class="n">tool_choice</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span>
                 <span class="n">ls_structured_output_format</span><span class="o">=</span><span class="p">{</span>
@@ -1619,7 +2085,7 @@
                     <span class="n">key_name</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">first_tool_only</span><span class="o">=</span><span class="kc">True</span>
                 <span class="p">)</span>
         <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"json_mode"</span><span class="p">:</span>
-            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
                 <span class="n">response_format</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"json_object"</span><span class="p">},</span>
                 <span class="n">ls_structured_output_format</span><span class="o">=</span><span class="p">{</span>
                     <span class="s2">"kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"method"</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
@@ -1656,7 +2122,7 @@
                     <span class="p">},</span>
                 <span class="p">)</span>
             <span class="p">}</span>
-            <span class="n">llm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">bind_kwargs</span><span class="p">)</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">**</span><span class="n">bind_kwargs</span><span class="p">)</span>
             <span class="n">output_parser</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">PydanticOutputParser</span><span class="p">(</span><span class="n">pydantic_object</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
                 <span class="k">if</span> <span class="n">is_pydantic_schema</span>
@@ -1676,9 +2142,9 @@
             <span class="n">parser_with_fallback</span> <span class="o">=</span> <span class="n">parser_assign</span><span class="o">.</span><span class="n">with_fallbacks</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">parser_none</span><span class="p">],</span> <span class="n">exception_key</span><span class="o">=</span><span class="s2">"parsing_error"</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="n">RunnableMap</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">llm</span><span class="p">)</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
+            <span class="k">return</span> <span class="n">RunnableMap</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">model</span><span class="p">)</span> <span class="o">|</span> <span class="n">parser_with_fallback</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">llm</span> <span class="o">|</span> <span class="n">output_parser</span></div>
+            <span class="k">return</span> <span class="n">model</span> <span class="o">|</span> <span class="n">output_parser</span></div>
 </div>
 
 
