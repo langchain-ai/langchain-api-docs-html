@@ -52,7 +52,7 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="en" name="docsearch:language"/>
 <meta content="" name="docsearch:version"/>
-<meta content="Oct 16, 2025" name="docbuild:last-update"/>
+<meta content="Oct 17, 2025" name="docbuild:last-update"/>
 </head>
 <body data-bs-root-margin="0px 0px -60%" data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-default-mode="" data-offset="180">
 <div class="skip-link d-print-none" id="pst-skip-link"><a href="#main-content">Skip to main content</a></div>
@@ -247,48 +247,18 @@
 <span class="n">charref</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'&amp;#(?:[0-9]+|[xX][0-9a-fA-F]+)[^0-9a-fA-F]'</span><span class="p">)</span>
 
 <span class="n">starttagopen</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'&lt;[a-zA-Z]'</span><span class="p">)</span>
-<span class="n">endtagopen</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'&lt;/[a-zA-Z]'</span><span class="p">)</span>
 <span class="n">piclose</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">)</span>
-<span class="n">commentclose</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'--!?&gt;'</span><span class="p">)</span>
-<span class="n">commentabruptclose</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'-?&gt;'</span><span class="p">)</span>
+<span class="n">commentclose</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'--\s*&gt;'</span><span class="p">)</span>
 <span class="c1"># Note:</span>
-<span class="c1">#  1) if you change tagfind/attrfind remember to update locatetagend too;</span>
-<span class="c1">#  2) if you change tagfind/attrfind and/or locatetagend the parser will</span>
+<span class="c1">#  1) if you change tagfind/attrfind remember to update locatestarttagend too;</span>
+<span class="c1">#  2) if you change tagfind/attrfind and/or locatestarttagend the parser will</span>
 <span class="c1">#     explode, so don't do it.</span>
-<span class="c1"># see the HTML5 specs section "13.2.5.6 Tag open state",</span>
-<span class="c1"># "13.2.5.8 Tag name state" and "13.2.5.33 Attribute name state".</span>
-<span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state</span>
-<span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state</span>
-<span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#attribute-name-state</span>
-<span class="n">tagfind_tolerant</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'([a-zA-Z][^\t\n\r\f /&gt;]*)(?:[\t\n\r\f ]|/(?!&gt;))*'</span><span class="p">)</span>
-<span class="n">attrfind_tolerant</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"""</span>
-<span class="s2">  (</span>
-<span class="s2">    (?&lt;=['"\t\n\r\f /])[^\t\n\r\f /&gt;][^\t\n\r\f /=&gt;]*  # attribute name</span>
-<span class="s2">   )</span>
-<span class="s2">  ([\t\n\r\f ]*=[\t\n\r\f ]*        # value indicator</span>
-<span class="s2">    ('[^']*'                        # LITA-enclosed value</span>
-<span class="s2">    |"[^"]*"                        # LIT-enclosed value</span>
-<span class="s2">    |(?!['"])[^&gt;\t\n\r\f ]*         # bare value</span>
-<span class="s2">    )</span>
-<span class="s2">   )?</span>
-<span class="s2">  (?:[\t\n\r\f ]|/(?!&gt;))*           # possibly followed by a space</span>
-<span class="s2">"""</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
-<span class="n">locatetagend</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"""</span>
-<span class="s2">  [a-zA-Z][^\t\n\r\f /&gt;]*           # tag name</span>
-<span class="s2">  [\t\n\r\f /]*                     # optional whitespace before attribute name</span>
-<span class="s2">  (?:(?&lt;=['"\t\n\r\f /])[^\t\n\r\f /&gt;][^\t\n\r\f /=&gt;]*  # attribute name</span>
-<span class="s2">    (?:[\t\n\r\f ]*=[\t\n\r\f ]*    # value indicator</span>
-<span class="s2">      (?:'[^']*'                    # LITA-enclosed value</span>
-<span class="s2">        |"[^"]*"                    # LIT-enclosed value</span>
-<span class="s2">        |(?!['"])[^&gt;\t\n\r\f ]*     # bare value</span>
-<span class="s2">       )</span>
-<span class="s2">     )?</span>
-<span class="s2">    [\t\n\r\f /]*                   # possibly followed by a space</span>
-<span class="s2">   )*</span>
-<span class="s2">   &gt;?</span>
-<span class="s2">"""</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
-<span class="c1"># The following variables are not used, but are temporarily left for</span>
-<span class="c1"># backward compatibility.</span>
+<span class="c1"># see http://www.w3.org/TR/html5/tokenization.html#tag-open-state</span>
+<span class="c1"># and http://www.w3.org/TR/html5/tokenization.html#tag-name-state</span>
+<span class="n">tagfind_tolerant</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'([a-zA-Z][^\t\n\r\f /&gt;\x00]*)(?:\s|/(?!&gt;))*'</span><span class="p">)</span>
+<span class="n">attrfind_tolerant</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">'((?&lt;=[</span><span class="se">\'</span><span class="s1">"\s/])[^\s/&gt;][^\s/=&gt;]*)(\s*=+\s*'</span>
+    <span class="sa">r</span><span class="s1">'(</span><span class="se">\'</span><span class="s1">[^</span><span class="se">\'</span><span class="s1">]*</span><span class="se">\'</span><span class="s1">|"[^"]*"|(?![</span><span class="se">\'</span><span class="s1">"])[^&gt;\s]*))?(?:\s|/(?!&gt;))*'</span><span class="p">)</span>
 <span class="n">locatestarttagend_tolerant</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"""</span>
 <span class="s2">  &lt;[a-zA-Z][^\t\n\r\f /&gt;\x00]*       # tag name</span>
 <span class="s2">  (?:[\s/]*                          # optional whitespace before attribute name</span>
@@ -305,6 +275,8 @@
 <span class="s2">  \s*                                # trailing whitespace</span>
 <span class="s2">"""</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
 <span class="n">endendtag</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">)</span>
+<span class="c1"># the HTML 5 spec, section 8.1.2.2, doesn't allow spaces between</span>
+<span class="c1"># &lt;/ and the tag name, so maybe this should be fixed</span>
 <span class="n">endtagfind</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'&lt;/\s*([a-zA-Z][-.a-zA-Z0-9:_]*)\s*&gt;'</span><span class="p">)</span>
 
 
@@ -332,7 +304,6 @@
 <span class="sd">    """</span>
 
     <span class="n">CDATA_CONTENT_ELEMENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"script"</span><span class="p">,</span> <span class="s2">"style"</span><span class="p">)</span>
-    <span class="n">RCDATA_CONTENT_ELEMENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"textarea"</span><span class="p">,</span> <span class="s2">"title"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">convert_charrefs</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Initialize and reset this instance.</span>
@@ -349,8 +320,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">lasttag</span> <span class="o">=</span> <span class="s1">'???'</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">interesting</span> <span class="o">=</span> <span class="n">interesting_normal</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_support_cdata</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_escapable</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">_markupbase</span><span class="o">.</span><span class="n">ParserBase</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">feed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
@@ -372,33 +341,13 @@
 <span class="w">        </span><span class="sd">"""Return full source of start tag: '&lt;...&gt;'."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__starttag_text</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_cdata_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">elem</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">escapable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_cdata_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">elem</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span> <span class="o">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_escapable</span> <span class="o">=</span> <span class="n">escapable</span>
-        <span class="k">if</span> <span class="n">escapable</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">interesting</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'&amp;|&lt;/</span><span class="si">%s</span><span class="s1">(?=[\t\n\r\f /&gt;])'</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">,</span>
-                                          <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="o">|</span><span class="n">re</span><span class="o">.</span><span class="n">ASCII</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">interesting</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'&lt;/</span><span class="si">%s</span><span class="s1">(?=[\t\n\r\f /&gt;])'</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">,</span>
-                                          <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="o">|</span><span class="n">re</span><span class="o">.</span><span class="n">ASCII</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interesting</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'&lt;/\s*</span><span class="si">%s</span><span class="s1">\s*&gt;'</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">clear_cdata_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">interesting</span> <span class="o">=</span> <span class="n">interesting_normal</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_escapable</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_set_support_cdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Enable or disable support of the CDATA sections.</span>
-<span class="sd">        If enabled, "&lt;[CDATA[" starts a CDATA section which ends with "]]&gt;".</span>
-<span class="sd">        If disabled, "&lt;[CDATA[" starts a bogus comments which ends with "&gt;".</span>
-
-<span class="sd">        This method is not called by default. Its purpose is to be called</span>
-<span class="sd">        in custom handle_starttag() and handle_endtag() methods, with</span>
-<span class="sd">        value that depends on the adjusted current node.</span>
-<span class="sd">        See https://html.spec.whatwg.org/multipage/parsing.html#markup-declaration-open-state</span>
-<span class="sd">        for details.</span>
-<span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_support_cdata</span> <span class="o">=</span> <span class="n">flag</span>
 
     <span class="c1"># Internal -- handle data as far as reasonable.  May leave state</span>
     <span class="c1"># and data to be processed by a subsequent call.  If 'end' is</span>
@@ -419,7 +368,7 @@
                     <span class="c1"># &amp; near the end and see if it's followed by a space or ;.</span>
                     <span class="n">amppos</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">'&amp;'</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">-</span><span class="mi">34</span><span class="p">))</span>
                     <span class="k">if</span> <span class="p">(</span><span class="n">amppos</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span>
-                        <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'[\t\n\r\f ;]'</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">amppos</span><span class="p">)):</span>
+                        <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">'[\s;]'</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">amppos</span><span class="p">)):</span>
                         <span class="k">break</span>  <span class="c1"># wait till we get all the text</span>
                     <span class="n">j</span> <span class="o">=</span> <span class="n">n</span>
             <span class="k">else</span><span class="p">:</span>
@@ -431,7 +380,7 @@
                         <span class="k">break</span>
                     <span class="n">j</span> <span class="o">=</span> <span class="n">n</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_escapable</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">unescape</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">]))</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
@@ -449,7 +398,7 @@
                     <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_pi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;!"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
                     <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_html_declaration</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">or</span> <span class="n">end</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="s2">"&lt;"</span><span class="p">)</span>
                     <span class="n">k</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -457,35 +406,17 @@
                 <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">end</span><span class="p">:</span>
                         <span class="k">break</span>
-                    <span class="k">if</span> <span class="n">starttagopen</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>  <span class="c1"># &lt; + letter</span>
-                        <span class="k">pass</span>
-                    <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;/"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">==</span> <span class="n">n</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="s2">"&lt;/"</span><span class="p">)</span>
-                        <span class="k">elif</span> <span class="n">endtagopen</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>  <span class="c1"># &lt;/ + letter</span>
-                            <span class="k">pass</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="c1"># bogus comment</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">handle_comment</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:])</span>
-                    <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;!--"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-                        <span class="n">j</span> <span class="o">=</span> <span class="n">n</span>
-                        <span class="k">for</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"--!"</span><span class="p">,</span> <span class="s2">"--"</span><span class="p">,</span> <span class="s2">"-"</span><span class="p">):</span>
-                            <span class="k">if</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">):</span>
-                                <span class="n">j</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span>
-                                <span class="k">break</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_comment</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
-                    <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;![CDATA["</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_support_cdata</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">unknown_decl</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">:])</span>
-                    <span class="k">elif</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'&lt;!doctype'</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_decl</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:])</span>
-                    <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;!"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-                        <span class="c1"># bogus comment</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_comment</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:])</span>
-                    <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&lt;?"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_pi</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:])</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&lt;'</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">k</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"we should not get here!"</span><span class="p">)</span>
-                    <span class="n">k</span> <span class="o">=</span> <span class="n">n</span>
+                        <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">unescape</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">k</span><span class="p">]))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">k</span><span class="p">])</span>
                 <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">updatepos</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">startswith</span><span class="p">(</span><span class="s2">"&amp;#"</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
                 <span class="n">match</span> <span class="o">=</span> <span class="n">charref</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
@@ -532,8 +463,8 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"interesting.search() lied"</span>
         <span class="c1"># end while</span>
-        <span class="k">if</span> <span class="n">end</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_escapable</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">end</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_charrefs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">unescape</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">n</span><span class="p">]))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">n</span><span class="p">])</span>
@@ -550,12 +481,8 @@
         <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&lt;!--'</span><span class="p">:</span>
             <span class="c1"># this case is actually already handled in goahead()</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_comment</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&lt;![CDATA['</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_support_cdata</span><span class="p">:</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">']]&gt;'</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">9</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">unknown_decl</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">:</span> <span class="n">j</span><span class="p">])</span>
-            <span class="k">return</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&lt;!['</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_marked_section</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">9</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'&lt;!doctype'</span><span class="p">:</span>
             <span class="c1"># find the closing &gt;</span>
             <span class="n">gtpos</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">9</span><span class="p">)</span>
@@ -563,35 +490,11 @@
                 <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">handle_decl</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:</span><span class="n">gtpos</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">gtpos</span><span class="o">+</span><span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&lt;!['</span><span class="p">:</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-            <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">']'</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unknown_decl</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">:</span> <span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">handle_comment</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:</span> <span class="n">j</span><span class="p">])</span>
-            <span class="k">return</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_bogus_comment</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
-    <span class="c1"># Internal -- parse comment, return length or -1 if not terminated</span>
-    <span class="c1"># see https://html.spec.whatwg.org/multipage/parsing.html#comment-start-state</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">parse_comment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">report</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="n">rawdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rawdata</span>
-        <span class="k">assert</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">'&lt;!--'</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="s1">'unexpected call to parse_comment()'</span>
-        <span class="n">match</span> <span class="o">=</span> <span class="n">commentclose</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
-            <span class="n">match</span> <span class="o">=</span> <span class="n">commentabruptclose</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
-                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="k">if</span> <span class="n">report</span><span class="p">:</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">handle_comment</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">:</span> <span class="n">j</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
-
     <span class="c1"># Internal -- parse bogus comment, return length or -1 if not terminated</span>
-    <span class="c1"># see https://html.spec.whatwg.org/multipage/parsing.html#bogus-comment-state</span>
+    <span class="c1"># see http://www.w3.org/TR/html5/tokenization.html#bogus-comment-state</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_bogus_comment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">report</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">rawdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rawdata</span>
         <span class="k">assert</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">'&lt;!'</span><span class="p">,</span> <span class="s1">'&lt;/'</span><span class="p">),</span> <span class="p">(</span><span class="s1">'unexpected call to '</span>
@@ -617,8 +520,6 @@
 
     <span class="c1"># Internal -- handle starttag, return end or -1 if not terminated</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_starttag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="c1"># See the HTML5 specs section "13.2.5.8 Tag name state"</span>
-        <span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__starttag_text</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">endpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_for_whole_start_tag</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">endpos</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -658,50 +559,82 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">handle_starttag</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">CDATA_CONTENT_ELEMENTS</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">set_cdata_mode</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">RCDATA_CONTENT_ELEMENTS</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">set_cdata_mode</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">escapable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">endpos</span>
 
     <span class="c1"># Internal -- check to see if we have a complete starttag; return end</span>
     <span class="c1"># or -1 if incomplete.</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">check_for_whole_start_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="n">rawdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rawdata</span>
-        <span class="n">match</span> <span class="o">=</span> <span class="n">locatetagend</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">match</span>
-        <span class="n">j</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="k">return</span> <span class="n">j</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">locatestarttagend_tolerant</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+            <span class="nb">next</span> <span class="o">=</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">next</span> <span class="o">==</span> <span class="s2">"&gt;"</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">next</span> <span class="o">==</span> <span class="s2">"/"</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/&gt;"</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">2</span>
+                <span class="k">if</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+                    <span class="c1"># buffer boundary</span>
+                    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="c1"># else bogus input</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="n">i</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">j</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">next</span> <span class="o">==</span> <span class="s2">""</span><span class="p">:</span>
+                <span class="c1"># end of input</span>
+                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">next</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"abcdefghijklmnopqrstuvwxyz=/"</span>
+                        <span class="s2">"ABCDEFGHIJKLMNOPQRSTUVWXYZ"</span><span class="p">):</span>
+                <span class="c1"># end of input in or before attribute value, or we have the</span>
+                <span class="c1"># '/' from a '/&gt;' ending</span>
+                <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="n">i</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">j</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"we should not get here!"</span><span class="p">)</span>
 
     <span class="c1"># Internal -- parse endtag, return end or -1 if incomplete</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">parse_endtag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="c1"># See the HTML5 specs section "13.2.5.7 End tag open state"</span>
-        <span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#end-tag-open-state</span>
         <span class="n">rawdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rawdata</span>
         <span class="k">assert</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"&lt;/"</span><span class="p">,</span> <span class="s2">"unexpected call to parse_endtag"</span>
-        <span class="k">if</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># fast check</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">endendtag</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># &gt;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
             <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">endtagopen</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>  <span class="c1"># &lt;/ + letter</span>
-            <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&gt;'</span><span class="p">:</span>  <span class="c1"># &lt;/&gt; is ignored</span>
-                <span class="c1"># "missing-end-tag-name" parser error</span>
-                <span class="k">return</span> <span class="n">i</span><span class="o">+</span><span class="mi">3</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_bogus_comment</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">gtpos</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">endtagfind</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="c1"># &lt;/ + tag + &gt;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">gtpos</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">gtpos</span>
+            <span class="c1"># find the name: w3.org/TR/html5/tokenization.html#tag-name-state</span>
+            <span class="n">namematch</span> <span class="o">=</span> <span class="n">tagfind_tolerant</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">namematch</span><span class="p">:</span>
+                <span class="c1"># w3.org/TR/html5/tokenization.html#end-tag-open-state</span>
+                <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">'&lt;/&gt;'</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">i</span><span class="o">+</span><span class="mi">3</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_bogus_comment</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">tagname</span> <span class="o">=</span> <span class="n">namematch</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="c1"># consume and ignore other stuff between the name and the &gt;</span>
+            <span class="c1"># Note: this is not 100% correct, since we might have things like</span>
+            <span class="c1"># &lt;/tag attr="&gt;"&gt;, but looking for &gt; after the name should cover</span>
+            <span class="c1"># most of the cases and is much simpler</span>
+            <span class="n">gtpos</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'&gt;'</span><span class="p">,</span> <span class="n">namematch</span><span class="o">.</span><span class="n">end</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">handle_endtag</span><span class="p">(</span><span class="n">tagname</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">gtpos</span><span class="o">+</span><span class="mi">1</span>
 
-        <span class="n">match</span> <span class="o">=</span> <span class="n">locatetagend</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">match</span>
-        <span class="n">j</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">rawdata</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"&gt;"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">elem</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="c1"># script or style</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">elem</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdata_elem</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span><span class="p">(</span><span class="n">rawdata</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">gtpos</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">gtpos</span>
 
-        <span class="c1"># find the name: "13.2.5.8 Tag name state"</span>
-        <span class="c1"># https://html.spec.whatwg.org/multipage/parsing.html#tag-name-state</span>
-        <span class="n">match</span> <span class="o">=</span> <span class="n">tagfind_tolerant</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">match</span>
-        <span class="n">tag</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">handle_endtag</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handle_endtag</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clear_cdata_mode</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">j</span>
+        <span class="k">return</span> <span class="n">gtpos</span>
 
     <span class="c1"># Overridable -- finish processing of start+end tag: &lt;tag.../&gt;</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">handle_startendtag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">attrs</span><span class="p">):</span>
